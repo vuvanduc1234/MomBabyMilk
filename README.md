@@ -66,15 +66,15 @@ npm run dev
 
 ```bash
 # Terminal 1 - Run server
-npm run server
+npm run dev
 
 # Terminal 2 - Run client
-npm run client
+npm run dev
 ```
 
 The application will be available at:
-- Client: http://localhost:5173
-- Server: http://localhost:5000
+- Client: http://localhost:5173 || https://mom-baby-milk-client.vercel.app/
+- Server: http://localhost:5000 || https://mombabymilk.onrender.com
 
 ## 📚 API Endpoints
 
