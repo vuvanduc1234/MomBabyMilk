@@ -1,4 +1,3 @@
-import React from "react";
 import { Link } from "react-router-dom";
 import { ShoppingCart, Star } from "lucide-react";
 import { useCart } from "../../context/CartContext";
@@ -52,7 +51,7 @@ export function ProductCard({ product }) {
           )}
           {/* Hot badge - màu vàng cam */}
           {product.is_featured && (
-            <span className="bg-gradient-to-r from-yellow-300 to-orange-300 text-gray-800 text-xs font-semibold px-2.5 py-1 rounded-md shadow-sm">
+            <span className="bg-linear-to-r from-yellow-300 to-orange-300 text-gray-800 text-xs font-semibold px-2.5 py-1 rounded-md shadow-sm">
               Hot
             </span>
           )}
@@ -76,7 +75,7 @@ export function ProductCard({ product }) {
         )}
 
         {/* Tên sản phẩm */}
-        <h3 className="text-sm font-medium text-gray-800 line-clamp-2 mb-3 min-h-[2.5rem] leading-tight">
+        <h3 className="text-sm font-medium text-gray-800 line-clamp-2 mb-3 min-h-10 leading-tight">
           {product.name}
         </h3>
 

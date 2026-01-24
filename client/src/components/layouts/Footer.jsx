@@ -9,7 +9,11 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
           {/* Brand & Slogan */}
           <div>
-            <h3 className="text-2xl font-bold text-white mb-4">MomBabyMilk</h3>
+            <img
+              src="/nura-logo-white.svg"
+              alt="MomBabyMilk Logo"
+              className="max-h-12 mb-4"
+            />
             <p className="text-gray-400 mb-6 text-sm leading-relaxed">
               Cung cấp sản phẩm dinh dưỡng chất lượng cao
               <br />
