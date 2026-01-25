@@ -93,7 +93,7 @@ export default function Header() {
                 <span className="text-xs">Yêu thích</span>
               </Link>
               <Link
-                to="#"
+                to="/login"
                 className="flex flex-col items-center text-gray-600 hover:text-pink-600 transition"
               >
                 <User className="h-10 w-10" strokeWidth={1.5} />
