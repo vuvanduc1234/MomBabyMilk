@@ -10,7 +10,6 @@ const user = new mongoose.Schema(
     },
     phone: {
       unique: true,
-      required: true,
       type: Number,
     },
     fullname: {
@@ -19,7 +18,6 @@ const user = new mongoose.Schema(
       trim: true,
     },
     gender: {
-      required: true,
       type: String,
       enum: ["male", "female", "other"],
     },
@@ -28,7 +26,6 @@ const user = new mongoose.Schema(
       trim: true,
     },
     dateOfBirth: {
-      required: true,
       type: Date,
     },
     password: {
@@ -45,14 +42,14 @@ const user = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    emailVerificationToken: String, 
-    emailVerificationExpires: Date, 
+    emailVerificationToken: String,
+    emailVerificationExpires: Date,
 
     passwordResetToken: String,
-    passwordResetExpires: Date
+    passwordResetExpires: Date,
   },
   {
     timestamps: true,
-  }
+  },
 );
 module.exports = mongoose.models.User || mongoose.model("User", user);

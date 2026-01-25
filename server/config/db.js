@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const MONGODB_URI =
   process.env.MONGODB_URI ||
-  "mongodb+srv://huylmnse181744_db_user:HvqaBt0DKPNwl2Ac@milkshop.zkxc7w1.mongodb.net/mombabymilk?appName=MilkShop";
+  "mongodb+srv://huylmnse181744_db_user:HvqaBt0DKPNwl2Ac@milkshop.zkxc7w1.mongodb.net/MomBabyMilk?appName=MilkShop";
 
 const connect = async () => {
   try {
