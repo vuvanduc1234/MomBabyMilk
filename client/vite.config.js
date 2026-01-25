@@ -1,8 +1,10 @@
-import path from "path"
-import tailwindcss from "@tailwindcss/vite"
-import react from "@vitejs/plugin-react"
-import { defineConfig } from "vite"
+import path from "path";
+import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vite";
+import { fileURLToPath } from "url";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -13,15 +15,15 @@ export default defineConfig({
   },
   build: {
     cssCodeSplit: true,
-    cssMinify: 'lightningcss',
+    cssMinify: "lightningcss",
     rollupOptions: {
       output: {
         manualChunks: undefined,
         assetFileNames: (assetInfo) => {
-          if (assetInfo.name && assetInfo.name.endsWith('.css')) {
-            return 'assets/styles-[hash][extname]';
+          if (assetInfo.name && assetInfo.name.endsWith(".css")) {
+            return "assets/styles-[hash][extname]";
           }
-          return 'assets/[name]-[hash][extname]';
+          return "assets/[name]-[hash][extname]";
         },
       },
     },
@@ -30,4 +32,4 @@ export default defineConfig({
   css: {
     devSourcemap: false,
   },
-})
+});
