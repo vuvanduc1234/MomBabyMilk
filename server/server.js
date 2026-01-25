@@ -5,6 +5,7 @@ const cookieParser = require("cookie-parser");
 const database = require("./config/db");
 const AuthRoute = require("./routes/AuthRoute");
 const UserRoute = require("./routes/UserRoute");
+const ProductRoute = require("./routes/ProductRoute");
 const app = express();
 database.connect();
 
@@ -16,6 +17,7 @@ app.use(cookieParser());
 
 app.use("/api/auth", AuthRoute);
 app.use("/api/users", UserRoute);
+app.use("/api/product",ProductRoute)
 
 // Server setup
 const PORT = process.env.PORT || 3000;
