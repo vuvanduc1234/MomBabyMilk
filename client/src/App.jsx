@@ -12,6 +12,7 @@ import SakuraFalling from "./components/SakuraFalling";
 import Checkout from "./pages/Checkout/Checkout";
 import Index from "./pages/Index";
 import Login from "./pages/Auth/Login";
+import Register from "./pages/Auth/Register";
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
                 <Route path="/cart" element={<Cart />} />
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
               </Routes>
             </main>
             <Footer />
