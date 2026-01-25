@@ -9,24 +9,22 @@ import Header from "./components/layouts/Header";
 import Footer from "./components/layouts/Footer";
 import SakuraFalling from "./components/SakuraFalling";
 import Checkout from "./pages/Checkout/Checkout";
+import Index from "./pages/Index";
 
 function App() {
   return (
     <CartProvider>
       <Router>
         <div className="min-h-screen bg-gray-50 flex flex-col relative">
-          {" "}
-          {/* XÓA overflow-hidden */}
           <SakuraFalling /> {/* Hoa rơi toàn trang */}
           <Header /> {/* Giữ sticky top-0 z-50 */}
           <main className="flex-1 relative z-10">
             <Routes>
+              <Route path="/" element={<Index />} />
               <Route path="/products" element={<ProductListing />} />
               <Route path="/product/:slug" element={<ProductDetail />} />
               <Route path="/cart" element={<Cart />} />
               <Route path="/checkout" element={<Checkout />} />
-              {/* Thêm route trang chủ nếu cần */}
-              {/* <Route path="/" element={<Home />} /> */}
             </Routes>
           </main>
           <Footer />

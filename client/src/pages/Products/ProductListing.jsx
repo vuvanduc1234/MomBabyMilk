@@ -110,7 +110,7 @@ export default function ProductListing() {
 
   return (
     <div className="bg-gray-50 min-h-screen">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-6">
         {/* Breadcrumb */}
         <div className="mb-6">
           <p className="text-sm text-gray-500">

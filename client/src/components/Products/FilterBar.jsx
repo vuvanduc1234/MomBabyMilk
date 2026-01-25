@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 export function FilterBar({ onFilterChange }) {
   const [selectedCategories, setSelectedCategories] = useState([]);
@@ -36,14 +37,26 @@ export function FilterBar({ onFilterChange }) {
     onFilterChange?.({ categories: selectedCategories, brands: updated });
   };
 
-  return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-      {/* Bộ lọc */}
-      <h3 className="text-xl font-bold text-gray-800 mb-6">Bộ lọc</h3>
+  const handleClearAll = () => {
+    setSelectedCategories([]);
+    setSelectedBrands([]);
+    onFilterChange?.({ categories: [], brands: [] });
+  };
 
+  const hasActiveFilters =
+    selectedCategories.length > 0 || selectedBrands.length > 0;
+
+  return (
+    <div className="bg-card border border-border rounded-lg p-4">
+      {/* Bộ lọc */}{" "}
+      <h3 className="text-base font-semibold text-foreground mb-4 pb-2 border-b border-border">
+        Bộ lọc
+      </h3>
       {/* Danh mục */}
       <div className="mb-8">
-        <h4 className="text-base font-semibold text-gray-700 mb-4">Danh mục</h4>
+        <h4 className="text-sm font-medium text-muted-foreground mb-4">
+          Danh mục
+        </h4>
         <div className="space-y-3">
           {categories.map((category) => {
             const isChecked = selectedCategories.includes(category.id);
@@ -79,10 +92,9 @@ export function FilterBar({ onFilterChange }) {
           })}
         </div>
       </div>
-
       {/* Thương hiệu */}
       <div>
-        <h4 className="text-base font-semibold text-gray-700 mb-4">
+        <h4 className="text-sm font-medium text-muted-foreground mb-4">
           Thương hiệu
         </h4>
         <div className="space-y-3">
@@ -121,6 +133,17 @@ export function FilterBar({ onFilterChange }) {
           })}
         </div>
       </div>
+      {/* Xóa tất cả bộ lọc */}
+      {hasActiveFilters && (
+        <div className="mt-6 pt-4 border-t border-border">
+          <button
+            onClick={handleClearAll}
+            className="w-full py-2.5 px-4 text-sm font-medium bg-pink-50 text-pink-500 hover:text-pink-600 hover:bg-pink-100 rounded-lg transition-colors cursor-pointer"
+          >
+            Xóa tất cả bộ lọc ({selectedCategories.length + selectedBrands.length})
+          </button>
+        </div>
+      )}
     </div>
   );
 }
