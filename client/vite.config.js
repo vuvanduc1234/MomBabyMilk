@@ -13,11 +13,21 @@ export default defineConfig({
   },
   build: {
     cssCodeSplit: true,
-    cssMinify: true,
+    cssMinify: 'lightningcss',
     rollupOptions: {
       output: {
         manualChunks: undefined,
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name && assetInfo.name.endsWith('.css')) {
+            return 'assets/styles-[hash][extname]';
+          }
+          return 'assets/[name]-[hash][extname]';
+        },
       },
     },
+    chunkSizeWarningLimit: 600,
+  },
+  css: {
+    devSourcemap: false,
   },
 })
