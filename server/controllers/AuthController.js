@@ -1,6 +1,6 @@
 const bcrypt = require("bcryptjs");
 const User = require("../models/UserModel");
-const crypto = require('node:crypto');
+const crypto = require("node:crypto");
 const jwt = require("jsonwebtoken");
 const {
   sendResetPassword,
@@ -130,13 +130,13 @@ const generateAccessToken = (user) => {
 };
 
 const register = async (req, res) => {
-  const { email, password, fullname, phone, gender, dateOfBirth, role } =
+  const { email, password, fullname, role } =
     req.body;
 
-  if (!email || !password || !fullname || !phone || !gender || !dateOfBirth) {
+  if (!email || !password || !fullname) {
     return res.status(400).json({
       message:
-        "Vui lòng cung cấp email, mật khẩu, họ tên, số điện thoại, giới tính và ngày sinh",
+        "Vui lòng cung cấp email, mật khẩu, họ tên",
     });
   }
 
@@ -163,9 +163,6 @@ const register = async (req, res) => {
       email,
       password: hashedPassword,
       fullname,
-      phone,
-      gender,
-      dateOfBirth,
       role,
       isVerified: false,
       emailVerificationToken: otp,
@@ -185,7 +182,7 @@ const register = async (req, res) => {
         "Đăng ký thành công. Vui lòng kiểm tra email để nhận mã OTP xác thực tài khoản",
     });
   } catch (err) {
-    console.log(err);
+    res.status(500).json({ message: err.message });
   }
 };
 
@@ -212,7 +209,7 @@ const forgetPassword = async (req, res) => {
         "Nếu email của bạn tồn tại trong hệ thống, chúng tôi đã gửi mã để đặt lại mật khẩu",
     });
   } catch (err) {
-    console.log(err);
+    res.status(500).json({ message: err.message });
   }
 };
 
@@ -259,8 +256,7 @@ const resetPassword = async (req, res) => {
         .json({ message: "Mã OTP không hợp lệ hoặc đã hết hạn" });
     }
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Lỗi máy chủ" });
+    res.status(500).json({ message: err.message });
   }
 };
 
@@ -301,7 +297,7 @@ const changePassword = async (req, res) => {
 
     res.status(200).json({ message: "Cập nhật mật khẩu hoàn tất" });
   } catch (err) {
-    console.log(err);
+    res.status(500).json({ message: err.message });
   }
 };
 
@@ -332,10 +328,57 @@ const verifyEmail = async (req, res) => {
     user.emailVerificationExpires = undefined;
     await user.save();
 
-    res.status(200).json({ message: "Xác thực email thành công!" });
+    const accessToken = generateAccessToken({
+      id: user._id,
+      email: user.email,
+      name: user.fullname,
+    });
+
+    const refreshToken = jwt.sign(
+      { id: user._id, email: user.email, name: user.fullname },
+      process.env.REFRESH_TOKEN_SECRET,
+      { expiresIn: "7d" },
+    );
+
+    await saveRefreshToken(user._id, refreshToken);
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.status(200).json({
+      message: "Xác thực email thành công!",
+      accessToken,
+    });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Lỗi máy chủ" });
+    res.status(500).json({ message: err.message });
+  }
+};
+
+const sendResetOTP = async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.json({ message: "Yêu cầu nhập email" });
+  }
+
+  try {
+    const user = await UserModel.findOne({email});
+    if (!user) {
+      return res.json({message: "Không tìm thấy người dùng"})
+    }
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const otpExpires = Date.now() + 15 * 60 * 1000;
+    user.emailVerificationToken =  otp;
+    user.emailVerificationExpires = otpExpires;
+    await sendVerificationEmail(email, otp, user.fullname)
+    await user.save();
+    res.status(200).json({message: "Gửi OTP Thành công"})
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };
 
@@ -348,4 +391,5 @@ module.exports = {
   resetPassword,
   changePassword,
   verifyEmail,
+  sendResetOTP
 };
