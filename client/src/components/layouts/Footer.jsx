@@ -3,18 +3,18 @@ import { Link } from "react-router-dom";
 
 export default function Footer() {
   return (
-    <footer className="bg-gray-900 text-gray-300">
+    <footer className="bg-white text-gray-600 border border-t">
       {/* Main content */}
       <div className="container mx-auto px-6 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
           {/* Brand & Slogan */}
           <div>
             <img
-              src="/nura-logo-white.svg"
+              src="/nura-logo-black.svg"
               alt="MomBabyMilk Logo"
-              className="max-h-12 mb-4"
+              className="max-h-12 mb-4 opacity-60"
             />
-            <p className="text-gray-400 mb-6 text-sm leading-relaxed">
+            <p className=" mb-6 text-sm leading-relaxed">
               Cung cấp sản phẩm dinh dưỡng chất lượng cao
               <br />
               Đồng hành cùng mẹ và bé khỏe mạnh, vui vẻ mỗi ngày
@@ -23,7 +23,7 @@ export default function Footer() {
 
           {/* Chính sách */}
           <div>
-            <h4 className="text-lg font-semibold text-white mb-5">
+            <h4 className="text-lg font-semibold text-gray-900 mb-5">
               Chính sách
             </h4>
             <ul className="space-y-3 text-sm">
@@ -107,7 +107,7 @@ export default function Footer() {
               <input
                 type="email"
                 placeholder="Email của bạn"
-                className="px-4 py-2.5 rounded-lg bg-gray-800 border border-gray-700 text-white text-sm focus:outline-none focus:border-pink-500 flex-1"
+                className="px-4 py-2.5 rounded-lg bg-gray-100 border border-gray-300 text-gray-600 text-sm focus:outline-none focus:border-pink-500 flex-1"
               />
               <button
                 type="submit"
@@ -156,8 +156,8 @@ export default function Footer() {
       </div>
 
       {/* Bottom bar */}
-      <div className="border-t border-gray-800 bg-gray-950 py-6">
-        <div className="container mx-auto px-6 text-center md:text-left text-sm text-gray-500">
+      <div className="border-t bg-white py-6">
+        <div className="container mx-auto px-6 text-center md:text-left text-sm text-gray-600">
           <p>
             © 2026 MomBabyMilk. All rights reserved. Made with ❤️ for healthy
             moms & happy babies

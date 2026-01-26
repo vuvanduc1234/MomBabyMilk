@@ -20,7 +20,7 @@ function App() {
       <CartProvider>
         <Router>
           <div className="min-h-screen bg-gray-50 flex flex-col relative">
-            <SakuraFalling /> {/* Hoa rơi toàn trang */}
+            {/* <SakuraFalling />  */}
             <Header /> {/* Giữ sticky top-0 z-50 */}
             <main className="flex-1 relative z-10">
               <Routes>
