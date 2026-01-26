@@ -158,7 +158,7 @@ export default function Header() {
               to="#"
               className="text-gray-700 hover:text-pink-600 font-medium transition"
             >
-                <div className="p-3">Khuyến mãi</div>
+              <div className="p-3">Khuyến mãi</div>
             </Link>
             <Link
               to="#"
@@ -170,7 +170,14 @@ export default function Header() {
               to="#"
               className="text-gray-700 hover:text-pink-600 font-medium transition"
             >
-               <div className="p-3">Hỗ trợ</div>
+              <div className="p-3">Hỗ trợ</div>
+            </Link>
+            {/* Thêm link Blog */}
+            <Link
+              to="/blog"
+              className="text-gray-700 hover:text-pink-600 font-medium transition"
+            >
+              <div className="p-3">Blog</div>
             </Link>
           </div>
         </nav>
