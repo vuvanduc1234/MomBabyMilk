@@ -3,9 +3,11 @@ const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const database = require("./config/db");
-const AuthRoute = require("./routes/AuthRoute");
+const AuthRoute = require("./routes/authRoute");
 const UserRoute = require("./routes/UserRoute");
-const ProductRoute = require("./routes/ProductRoute");
+const ProductRoute = require("./routes/productRoute");
+const CategoryRoute = require("./routes/CategoryRoute");
+const BrandRoute = require("./routes/BrandRoute");
 const app = express();
 database.connect();
 
@@ -17,7 +19,9 @@ app.use(cookieParser());
 
 app.use("/api/auth", AuthRoute);
 app.use("/api/users", UserRoute);
-app.use("/api/product",ProductRoute)
+app.use("/api/product", ProductRoute);
+app.use("/api/category", CategoryRoute);
+app.use("/api/brand", BrandRoute);
 
 // Server setup
 const PORT = process.env.PORT || 3000;
