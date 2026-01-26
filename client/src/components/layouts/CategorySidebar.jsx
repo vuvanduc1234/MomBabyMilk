@@ -196,7 +196,7 @@ export function CategorySidebar() {
                             <ul>
                               {subcat.items.map((subItem) => (
                                 <Link
-                                  to={`/san-pham?category=${item.slug}&sub=${subItem.slug}`}
+                                  to={`/products?category=${item.slug}&sub=${subItem.slug}`}
                                   className="text-sm text-foreground hover:text-primary"
                                 >
                                   <li key={subItem.slug} className="py-1.5">
@@ -228,7 +228,7 @@ export function CategorySidebar() {
                           {item.brands.map((brand) => (
                             <Link
                               key={brand.slug}
-                              to={`/san-pham?brand=${brand.slug}`}
+                              to={`/products?brand=${brand.slug}`}
                               className="px-3 py-1.5 text-xs bg-muted hover:bg-muted/80 rounded-md text-foreground transition-colors"
                             >
                               {brand.name}
