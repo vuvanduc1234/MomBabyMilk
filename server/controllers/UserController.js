@@ -43,51 +43,34 @@ const createUser = async (req, res) => {
     await newUser.save();
 
     return res.status(201).json({
-      status: 201,
       message: "Tạo người dùng thành công",
     });
   } catch (err) {
-    console.log(err);
+    res.status(500).json({ message: "Lỗi server: " + err.message });
   }
 };
 
 const findById = async (req, res) => {
-  const user = await UserModel.findById(req.params.id);
+  const {id} = req.params
   try {
+    const user = await UserModel.findById(id);
     if (user) {
-      res.json({
-        status: 200,
+      res.status(200).json({
         message: "Tìm người dùng theo ID thành công",
         data: user,
       });
     } else {
-      res.json({
-        status: 400,
+      res.status(404).json({
         message: "Lỗi tìm người dùng theo ID",
-        data: [],
       });
     }
   } catch (err) {
-    console.log(err);
+    res.status(500).json({ message: "Lỗi server: " + err.message });
   }
 };
 const updateUser = async (req, res) => {
   try {
-    const allowedFields = [
-      "fullname",
-      "phone",
-      "gender",
-      "address",
-      "dateOfBirth",
-    ];
-    const updates = {};
-
-    allowedFields.forEach((field) => {
-      if (req.body[field] !== undefined) {
-        updates[field] = req.body[field];
-      }
-    });
-
+    const { id } = req.params;
     if (
       req.body.role ||
       req.body.password ||
@@ -98,59 +81,56 @@ const updateUser = async (req, res) => {
         status: 403,
         message:
           "Không thể cập nhật các trường bảo vệ (role, password, isVerified, email)",
-        data: [],
       });
     }
 
-    const user = await UserModel.findByIdAndUpdate(req.params.id, updates, {
+    const user = await UserModel.findByIdAndUpdate(id, req.body, {
       new: true,
       runValidators: true,
     });
 
     if (!user) {
       return res.status(404).json({
-        status: 404,
         message: "Không tìm thấy người dùng",
-        data: [],
       });
     }
     return res.status(200).json({
-      status: 200,
-      message: "Cập nhật hoàn tất",
+      message: "Cập nhật người dùng hoàn tất",
       data: user,
     });
   } catch (err) {
-    console.error(err);
+    res.status(500).json({ message: "Lỗi server: " + err.message });
   }
 };
 
 const deleteUser = async (req, res) => {
+  const { id } = req.params;
   try {
-    const user = await UserModel.findByIdAndDelete(req.params.id);
+    const user = await UserModel.findByIdAndDelete(id);
     if (user) {
-      res.json({
-        status: 200,
-        message: "Xóa hoàn tất",
+      res.status(200).json({
+        message: "Xóa người dùng hoàn tất",
         data: user,
       });
     } else {
-      res.json({
-        status: 400,
+      res.status(404).json({
         message: "Lỗi xóa người dùng",
-        data: [],
       });
     }
-  } catch (error) {
-    console.log(error);
+  } catch (err) {
+    res.status(500).json({ message: "Lỗi server: " + err.message });
   }
 };
 
 const viewUser = async (req, res) => {
-  const user = await UserModel.find({});
   try {
-    res.send(user);
+    const user = await UserModel.find({});
+    if (!user) {
+      return res.status(404).json({ message: "Không tìm thấy người dùng" });
+    }
+    res.status(200).json({ message: "Hiện thị tất cả người dùng", data: user });
   } catch (err) {
-    console.log(err);
+    res.status(500).json({ message: "Lỗi server: " + err.message });
   }
 };
 module.exports = {
