@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { ProductCard } from "../../components/Products/ProductCard";
 import { FilterBar } from "../../components/Products/FilterBar";
 import { Search } from "lucide-react";
+import { ProductCard } from "../../components/Products/ProductCard";
 
 // Dữ liệu mẫu sản phẩm
 const mockProducts = [
@@ -13,7 +13,7 @@ const mockProducts = [
     slug: "similac-mom-iq-plus",
     image_url:
       "https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=500&q=80",
-    brand: { name: "Abbott" },
+    brand: { id: 1, name: "Abbott" },
     is_featured: true,
     stock: 10,
     reviews: 0,
@@ -26,7 +26,7 @@ const mockProducts = [
     slug: "frisomum-gold",
     image_url:
       "https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=500&q=80",
-    brand: { name: "Friso" },
+    brand: { id: 8, name: "Friso" },
     is_featured: true,
     stock: 15,
     reviews: 0,
@@ -39,7 +39,7 @@ const mockProducts = [
     slug: "vinamilk-dielac-mama-gold",
     image_url:
       "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=500&q=80",
-    brand: { name: "Vinamilk" },
+    brand: { id: 15, name: "Vinamilk" },
     is_featured: false,
     stock: 20,
     reviews: 0,
@@ -52,7 +52,7 @@ const mockProducts = [
     slug: "abbott-grow-gold",
     image_url:
       "https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=500&q=80",
-    brand: { name: "Abbott" },
+    brand: { id: 1, name: "Abbott" },
     is_featured: false,
     stock: 8,
     reviews: 0,
@@ -65,7 +65,7 @@ const mockProducts = [
     slug: "meiji-infant-formula",
     image_url:
       "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=500&q=80",
-    brand: { name: "Meiji" },
+    brand: { id: 11, name: "Meiji" },
     is_featured: true,
     stock: 12,
     reviews: 0,
@@ -78,7 +78,7 @@ const mockProducts = [
     slug: "nestle-nan-optipro",
     image_url:
       "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=500&q=80",
-    brand: { name: "Nestlé" },
+    brand: { id: 13, name: "Nestlé" },
     is_featured: false,
     stock: 25,
     reviews: 0,
@@ -100,10 +100,7 @@ export default function ProductListing() {
 
     const matchesBrand =
       filters.brands.length === 0 ||
-      filters.brands.some(
-        (brandId) =>
-          product.brand.name.toLowerCase() === brandId.replace("-", " "),
-      );
+      filters.brands.includes(product.brand.id);
 
     return matchesSearch && matchesBrand;
   });
@@ -124,7 +121,7 @@ export default function ProductListing() {
 
         <div className="grid grid-cols-12 gap-6">
           {/* Sidebar Filter */}
-          <div className="col-span-3">
+          <div className="col-span-3 sticky top-48 self-start">
             <FilterBar onFilterChange={handleFilterChange} />
           </div>
 
