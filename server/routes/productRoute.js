@@ -1,42 +1,11 @@
 const express = require("express");
 const router = express.Router();
-const Product = require("../models/ProductModel");
+const {createProduct, updateProduct, deleteProduct, viewProduct, findByProductId} = require("../controllers/ProductController")
 
-router.get("/", async (req, res) => {
-  try {
-    const products = await Product.find();
-    res.json({ success: true, data: products });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-router.post("/", async (req, res) => {
-  try {
-    const { name, description, price, category, stock, imageUrl } = req.body;
-
-    // Validate required fields
-    if (!name || !price || !category) {
-      return res.status(400).json({
-        success: false,
-        error: "Name, price, and category are required",
-      });
-    }
-
-    const product = new Product({
-      name,
-      description,
-      price,
-      category,
-      stock,
-      imageUrl,
-    });
-
-    await product.save();
-    res.status(201).json({ success: true, data: product });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+router.get("/", viewProduct)
+router.post("/",createProduct);
+router.get("/:id", findByProductId )
+router.patch("/:id",updateProduct);
+router.delete("/:id",deleteProduct);
 
 module.exports = router;
