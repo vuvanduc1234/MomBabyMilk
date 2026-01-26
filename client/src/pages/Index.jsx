@@ -12,7 +12,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import Autoplay from "embla-carousel-autoplay"
+import Autoplay from "embla-carousel-autoplay";
 
 const features = [
   {
@@ -48,6 +48,63 @@ const categories = [
   { id: 7, name: "Chăm sóc", slug: "cham-soc" },
 ];
 
+//Mock data for brands
+const brands = [
+  {
+    id: 1,
+    name: "Abbott",
+    slug: "abbott",
+    imagePath: "/labels/abbottgrow.webp",
+  },
+  {
+    id: 2,
+    name: "Alphagen",
+    slug: "alphagen",
+    imagePath: "/labels/alphagen.webp",
+  },
+  {
+    id: 4,
+    name: "Blackmores",
+    slug: "blackmores",
+    imagePath: "/labels/blackmores.webp",
+  },
+  {
+    id: 5,
+    name: "ColosBaby",
+    slug: "colosbaby",
+    imagePath: "/labels/colosbaby.webp",
+  },
+  { id: 7, name: "Ensure", slug: "ensure", imagePath: "/labels/ensure.webp" },
+  {
+    id: 8,
+    name: "Friso",
+    slug: "friso",
+    imagePath: "/labels/frisogold-pro.webp",
+  },
+  { id: 9, name: "Glico", slug: "glico", imagePath: "/labels/glico.webp" },
+  { id: 10, name: "Hikid", slug: "hikid", imagePath: "/labels/hikid.webp" },
+  { id: 11, name: "Meiji", slug: "meiji", imagePath: "/labels/meiji.webp" },
+  {
+    id: 12,
+    name: "Morinaga",
+    slug: "morinaga",
+    imagePath: "/labels/morinaga.webp",
+  },
+  { id: 13, name: "Nestlé", slug: "nestle", imagePath: "/labels/nan.webp" },
+  {
+    id: 15,
+    name: "Vinamilk",
+    slug: "vinamilk",
+    imagePath: "/labels/colosgold.webp",
+  },
+  {
+    id: 16,
+    name: "Yokogold",
+    slug: "yokogold",
+    imagePath: "/labels/yokogold.webp",
+  },
+];
+
 // Mock data for featured products
 const featuredProducts = [
   {
@@ -56,7 +113,7 @@ const featuredProducts = [
     slug: "sua-enfamil-a-plus-1",
     price: 580000,
     sale_price: 520000,
-    image_url: "https://via.placeholder.com/400x400?text=Enfamil+A%2B+1",
+    image_url: "/placeholder.jpg",
     stock: 50,
     brand: { name: "Enfamil" },
     is_featured: true,
@@ -68,7 +125,7 @@ const featuredProducts = [
     slug: "sua-similac-eye-q-4",
     price: 450000,
     sale_price: 399000,
-    image_url: "https://via.placeholder.com/400x400?text=Similac+Eye-Q",
+    image_url: "/placeholder.jpg",
     stock: 35,
     brand: { name: "Abbott" },
     is_featured: true,
@@ -80,7 +137,7 @@ const featuredProducts = [
     slug: "sua-aptamil-duc-so-2",
     price: 650000,
     sale_price: null,
-    image_url: "https://via.placeholder.com/400x400?text=Aptamil+2",
+    image_url: "/placeholder.jpg",
     stock: 20,
     brand: { name: "Aptamil" },
     is_featured: false,
@@ -92,7 +149,7 @@ const featuredProducts = [
     slug: "sua-nan-optipro-3",
     price: 380000,
     sale_price: 350000,
-    image_url: "https://via.placeholder.com/400x400?text=NAN+Optipro",
+    image_url: "/placeholder.jpg",
     stock: 0,
     brand: { name: "Nestlé" },
     is_featured: true,
@@ -104,7 +161,7 @@ const featuredProducts = [
     slug: "sua-friso-gold-4",
     price: 720000,
     sale_price: 680000,
-    image_url: "https://via.placeholder.com/400x400?text=Friso+Gold",
+    image_url: "/placeholder.jpg",
     stock: 42,
     brand: { name: "Friso" },
     is_featured: true,
@@ -116,7 +173,7 @@ const featuredProducts = [
     slug: "sua-dielac-alpha-gold-4",
     price: 320000,
     sale_price: 285000,
-    image_url: "https://via.placeholder.com/400x400?text=Dielac+Alpha",
+    image_url: "/placeholder.jpg",
     stock: 78,
     brand: { name: "Vinamilk" },
     is_featured: false,
@@ -128,7 +185,7 @@ const featuredProducts = [
     slug: "sua-ensure-gold-vanilla",
     price: 580000,
     sale_price: 520000,
-    image_url: "https://via.placeholder.com/400x400?text=Ensure+Gold",
+    image_url: "/placeholder.jpg",
     stock: 30,
     brand: { name: "Abbott" },
     is_featured: true,
@@ -140,7 +197,7 @@ const featuredProducts = [
     slug: "sua-nutricare-bone",
     price: 450000,
     sale_price: null,
-    image_url: "https://via.placeholder.com/400x400?text=Nutricare",
+    image_url: "/placeholder.jpg",
     stock: 25,
     brand: { name: "Nutricare" },
     is_featured: false,
@@ -175,17 +232,17 @@ export default function Index() {
                 <CarouselContent>
                   <CarouselItem className="pl-0">
                     <div className="w-full h-full bg-amber-200 aspect-3/1 flex items-center justify-center">
-                      1 aa
+                      <img src="/ads/promo-dutchlady.webp" className="h-full"/>
                     </div>
                   </CarouselItem>
                   <CarouselItem className="pl-0">
                     <div className="w-full h-full bg-green-200 aspect-3/1 flex items-center justify-center">
-                      2
+                      <img src="/ads/promo-dutchlady.webp" className="h-full"/>
                     </div>
                   </CarouselItem>
                   <CarouselItem className="pl-0">
                     <div className="w-full h-full bg-blue-200 aspect-3/1 flex items-center justify-center">
-                      3
+                      <img src="/ads/promo-dutchlady.webp" className="h-full"/>
                     </div>
                   </CarouselItem>
                 </CarouselContent>
@@ -219,7 +276,7 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Categories */}
+      {/* Labels */}
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center mb-8">
@@ -227,7 +284,7 @@ export default function Index() {
               Khám phá các sản phẩm từ các thương hiệu uy tín
             </h2>
             <Button variant="ghost" asChild>
-              <Link to="/san-pham">
+              <Link to="/products">
                 Xem tất cả
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
@@ -241,14 +298,15 @@ export default function Index() {
                   .map((_, i) => (
                     <Skeleton key={i} className="h-32 rounded-xl" />
                   ))
-              : categories.map((category) => (
-                  <Link
-                    key={category.id}
-                    to={`/san-pham?category=${category.slug}`}
-                  >
+              : brands.map((brand) => (
+                  <Link key={brand.id} to={`/products?brand=${brand.slug}`}>
                     <Card className="hover:ring hover:ring-primary transition-all cursor-pointer group shadow-none">
-                      <CardContent className="p-1 text-center">
-                        <p>Logo</p>
+                      <CardContent className="p-2 text-center flex items-center justify-center h-24">
+                        <img
+                          src={brand.imagePath}
+                          alt={brand.name}
+                          className="w-52 max-h-full object-contain"
+                        />
                       </CardContent>
                     </Card>
                   </Link>

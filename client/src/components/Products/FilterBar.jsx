@@ -13,12 +13,93 @@ export function FilterBar({ onFilterChange }) {
     { id: "sua-tren-3-tuoi", label: "Sữa cho bé trên 3 tuổi" },
   ];
 
+  // const brands = [
+  //   { id: "abbott", label: "Abbott", country: "Hoa Kỳ" },
+  //   { id: "friso", label: "Friso", country: "Hà Lan" },
+  //   { id: "meiji", label: "Meiji", country: "Nhật Bản" },
+  //   { id: "nestle", label: "Nestlé", country: "Thụy Sĩ" },
+  //   { id: "vinamilk", label: "Vinamilk", country: "Việt Nam" },
+  // ];
+
   const brands = [
-    { id: "abbott", label: "Abbott", country: "Hoa Kỳ" },
-    { id: "friso", label: "Friso", country: "Hà Lan" },
-    { id: "meiji", label: "Meiji", country: "Nhật Bản" },
-    { id: "nestle", label: "Nestlé", country: "Thụy Sĩ" },
-    { id: "vinamilk", label: "Vinamilk", country: "Việt Nam" },
+    {
+      id: 1,
+      name: "Abbott",
+      imagePath: "/labels/abbottgrow.webp",
+      country: "Hoa Kỳ",
+    },
+    {
+      id: 2,
+      name: "Alphagen",
+      imagePath: "/labels/alphagen.webp",
+      country: "Úc",
+    },
+    {
+      id: 4,
+      name: "Blackmores",
+      imagePath: "/labels/blackmores.webp",
+      country: "Úc",
+    },
+    {
+      id: 5,
+      name: "ColosBaby",
+      imagePath: "/labels/colosbaby.webp",
+      country: "Việt Nam",
+    },
+    {
+      id: 7,
+      name: "Ensure",
+      imagePath: "/labels/ensure.webp",
+      country: "Hoa Kỳ",
+    },
+    {
+      id: 8,
+      name: "Friso",
+      imagePath: "/labels/frisogold-pro.webp",
+      country: "Hà Lan",
+    },
+    {
+      id: 9,
+      name: "Glico",
+      imagePath: "/labels/glico.webp",
+      country: "Nhật Bản",
+    },
+    {
+      id: 10,
+      name: "Hikid",
+      imagePath: "/labels/hikid.webp",
+      country: "Hàn Quốc",
+    },
+    {
+      id: 11,
+      name: "Meiji",
+      imagePath: "/labels/meiji.webp",
+      country: "Nhật Bản",
+    },
+    {
+      id: 12,
+      name: "Morinaga",
+      imagePath: "/labels/morinaga.webp",
+      country: "Nhật Bản",
+    },
+    {
+      id: 13,
+      name: "Nestlé",
+      imagePath: "/labels/nan.webp",
+      country: "Thụy Sĩ",
+    },
+    {
+      id: 15,
+      name: "Vinamilk",
+      imagePath: "/labels/colosgold.webp",
+      country: "Việt Nam",
+    },
+    {
+      id: 16,
+      name: "Yokogold",
+      imagePath: "/labels/yokogold.webp",
+      country: "Nhật Bản",
+    },
   ];
 
   const handleCategoryChange = (categoryId) => {
@@ -97,38 +178,27 @@ export function FilterBar({ onFilterChange }) {
         <h4 className="text-sm font-medium text-muted-foreground mb-4">
           Thương hiệu
         </h4>
-        <div className="space-y-3">
+
+        {/* Logo thương hiệu để chọn */}
+        <div className="flex flex-wrap gap-2">
           {brands.map((brand) => {
             const isChecked = selectedBrands.includes(brand.id);
             return (
-              <label
+              <div
                 key={brand.id}
-                className="flex items-center cursor-pointer group"
+                onClick={() => handleBrandChange(brand.id)}
+                className={`w-20 h-14 border bg-white rounded-md flex items-center justify-center overflow-hidden cursor-pointer transition-all ${
+                  isChecked
+                    ? "ring-2 ring-primary"
+                    : "hover:ring-1 hover:ring-primary"
+                }`}
               >
-                <input
-                  type="checkbox"
-                  checked={isChecked}
-                  onChange={() => handleBrandChange(brand.id)}
-                  className="sr-only"
+                <img
+                  src={brand.imagePath}
+                  alt={brand.name}
+                  className="max-w-full max-h-full object-contain"
                 />
-                <span
-                  className={`w-5 h-5 border-2 rounded-full flex items-center justify-center transition-all mr-3 ${
-                    isChecked
-                      ? "border-pink-400 bg-white"
-                      : "border-gray-300 bg-white"
-                  }`}
-                >
-                  <span
-                    className={`w-3 h-3 bg-pink-400 rounded-full transition-all ${
-                      isChecked ? "scale-100 opacity-100" : "scale-0 opacity-0"
-                    }`}
-                  ></span>
-                </span>
-                <span className="text-sm text-gray-600 group-hover:text-gray-800 transition-colors">
-                  {brand.label}{" "}
-                  <span className="text-gray-400">({brand.country})</span>
-                </span>
-              </label>
+              </div>
             );
           })}
         </div>
@@ -140,7 +210,8 @@ export function FilterBar({ onFilterChange }) {
             onClick={handleClearAll}
             className="w-full py-2.5 px-4 text-sm font-medium bg-pink-50 text-pink-500 hover:text-pink-600 hover:bg-pink-100 rounded-lg transition-colors cursor-pointer"
           >
-            Xóa tất cả bộ lọc ({selectedCategories.length + selectedBrands.length})
+            Xóa tất cả bộ lọc (
+            {selectedCategories.length + selectedBrands.length})
           </button>
         </div>
       )}
