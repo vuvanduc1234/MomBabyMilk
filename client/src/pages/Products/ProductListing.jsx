@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { FilterBar } from "../../components/Products/FilterBar";
 import { Search } from "lucide-react";
-import { ProductCard } from "../../components/products/ProductCard";
+import { ProductCard } from "../../components/Products/ProductCard";
 
 // Dữ liệu mẫu sản phẩm
 const mockProducts = [
