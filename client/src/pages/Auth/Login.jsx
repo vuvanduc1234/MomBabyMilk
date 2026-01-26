@@ -33,14 +33,30 @@ function Login() {
   }, []);
 
   useEffect(() => {
-    const className = 'login-page-active';
-    if (isOpen) {
-      document.body.classList.add(className);
-    } else {
-      document.body.classList.remove(className);
-    }
+    if (!isOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const hiddenElements = [];
+    const targets = document.querySelectorAll(
+      'header, footer, .fixed.inset-0.pointer-events-none.overflow-hidden'
+    );
+    targets.forEach((element) => {
+      if (!element.dataset.loginHidden) {
+        element.dataset.loginHidden = 'true';
+        element.classList.add('hidden');
+        hiddenElements.push(element);
+      }
+    });
+
     return () => {
-      document.body.classList.remove(className);
+      document.body.style.overflow = previousOverflow;
+      hiddenElements.forEach((element) => {
+        if (element.dataset.loginHidden === 'true') {
+          delete element.dataset.loginHidden;
+          element.classList.remove('hidden');
+        }
+      });
     };
   }, [isOpen]);
 
@@ -178,44 +194,65 @@ function Login() {
 
   return (
     <>
-      <button type="button" onClick={openLogin} className="login-trigger">
+      <button
+        type="button"
+        onClick={openLogin}
+        className={`${
+          isOpen ? 'hidden' : ''
+        } border-0 px-4 py-2 rounded-full text-[14px] font-semibold cursor-pointer bg-[#e996b1] text-[#2b1b24] shadow-[0_6px_14px_rgba(233,150,177,0.35)]`}
+      >
         Đăng nhập
       </button>
 
       {isOpen && (
-        <div className="login-page">
+        <div className="fixed inset-0 flex flex-col items-stretch justify-start bg-[#e996b1] z-[9999] px-6 py-8 text-[#2f2730] font-['Inter','Segoe_UI',system-ui,sans-serif] overflow-y-auto min-h-screen">
           {status && (
-            <div className="login-toast-overlay">
-              <div className={`login-toast ${status.type === 'success' ? 'success' : 'error'}`}>
+            <div className="absolute top-5 left-1/2 -translate-x-1/2 w-[min(520px,90%)] flex justify-center pointer-events-none z-[2]">
+              <div
+                className={`w-full px-[18px] py-3 rounded-[12px] text-[13px] font-semibold tracking-[0.1px] text-center border border-[rgba(255,255,255,0.12)] shadow-[0_12px_30px_rgba(0,0,0,0.24)] backdrop-blur-[10px] animate-[fadeIn_0.25s_ease-out] ${
+                  status.type === 'success'
+                    ? 'bg-[#4caf50] text-[#1b5e20]'
+                    : 'bg-[#e53935] text-white'
+                }`}
+              >
                 {status.message}
               </div>
             </div>
           )}
-          <div className="login-shell">
-            <div className="login-brand" aria-hidden="true">
-              <img className="login-logo" src="/LogoLogin.png" alt="" />
+          <div className="w-full max-w-[1240px] flex items-center justify-between gap-9 px-6 mx-auto mt-[clamp(12px,10vh,15vh)] mb-10 max-[480px]:flex-col max-[480px]:items-center max-[480px]:px-0">
+            <div
+              className="flex-1 flex flex-col items-center gap-0 select-none -translate-x-[10%] -translate-y-[15%] scale-[1.2] origin-center"
+              aria-hidden="true"
+            >
               <img
-                className="login-brand-wordmark"
+                className="w-[406px] h-[406px] block object-contain drop-shadow-[0_10px_24px_rgba(0,0,0,0.18)]"
+                src="/LogoLogin.png"
+                alt=""
+              />
+              <img
+                className="w-[420px] max-w-full h-auto mt-[-80px] select-none max-[480px]:w-[240px]"
                 src="/nura-logo-white.svg"
                 alt="NURA MOM & BABY MILK"
               />
             </div>
 
-            <div className="login-card">
-              <h1 className="login-title">Đăng nhập</h1>
-              <p className="login-subtitle">Đăng nhập để mua sắm và theo dõi đơn hàng</p>
+            <div className="w-[420px] bg-white rounded-[16px] border border-[#f0dbe4] shadow-[0_18px_50px_rgba(41,10,24,0.08)] pt-8 px-8 pb-6 max-[480px]:w-full max-[480px]:pt-[28px] max-[480px]:px-[22px] max-[480px]:pb-[22px]">
+              <h1 className="text-center text-[26px] m-0 text-[#2b2730]">Đăng nhập</h1>
+              <p className="text-center mt-2 mb-7 text-[#8b7b84] text-[14px]">
+                Đăng nhập để mua sắm và theo dõi đơn hàng
+              </p>
 
-              <form className="login-form" onSubmit={handleSubmit}>
-                <label className="field">
-                  <span className="field-label">Email</span>
-                  <span className="field-control">
-                    <span className="field-icon">
+              <form className="flex flex-col gap-[18px]" onSubmit={handleSubmit}>
+                <label className="flex flex-col gap-2 text-[14px] text-[#3b3339]">
+                  <span className="font-medium">Email</span>
+                  <span className="relative flex items-center">
+                    <span className="absolute left-[14px] text-[#d1a1b7]">
                       <MailIcon />
                     </span>
                     <input
                       type="email"
                       name="email"
-                      className="field-input"
+                      className="w-full h-[44px] pl-[42px] pr-[44px] rounded-[10px] border-[1.5px] border-[#f1d4e0] bg-white text-[14px] outline-none transition-[border-color,box-shadow] duration-200 focus:border-[#e996b1] focus:shadow-[0_0_0_3px_rgba(233,150,177,0.15)]"
                       placeholder="Nhập email của bạn"
                       autoComplete="email"
                       value={form.email}
@@ -227,16 +264,16 @@ function Login() {
                   </span>
                 </label>
 
-                <label className="field">
-                  <span className="field-label">Mật khẩu</span>
-                  <span className="field-control">
-                    <span className="field-icon">
+                <label className="flex flex-col gap-2 text-[14px] text-[#3b3339]">
+                  <span className="font-medium">Mật khẩu</span>
+                  <span className="relative flex items-center">
+                    <span className="absolute left-[14px] text-[#d1a1b7]">
                       <LockIcon />
                     </span>
                     <input
                       type={showPassword ? 'text' : 'password'}
                       name="password"
-                      className="field-input"
+                      className="w-full h-[44px] pl-[42px] pr-[44px] rounded-[10px] border-[1.5px] border-[#f1d4e0] bg-white text-[14px] outline-none transition-[border-color,box-shadow] duration-200 focus:border-[#e996b1] focus:shadow-[0_0_0_3px_rgba(233,150,177,0.15)]"
                       placeholder="Nhập mật khẩu"
                       autoComplete="current-password"
                       value={form.password}
@@ -246,7 +283,7 @@ function Login() {
                       required
                     />
                     <button
-                      className="field-toggle"
+                      className="absolute right-[12px] bg-transparent border-0 text-[#c78ea6] cursor-pointer p-1"
                       type="button"
                       aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
                       onClick={togglePassword}
@@ -256,304 +293,34 @@ function Login() {
                   </span>
                 </label>
 
-                <button className="login-button" type="submit" disabled={loading}>
+                <button
+                  className="h-[44px] rounded-[12px] border-0 bg-[#e996b1] text-white font-semibold text-[15px] cursor-pointer shadow-[0_8px_16px_rgba(233,150,177,0.35)] disabled:opacity-70 disabled:cursor-not-allowed"
+                  type="submit"
+                  disabled={loading}
+                >
                   {loading ? 'Đang xử lý...' : 'Đăng nhập'}
                 </button>
               </form>
 
-              <div className="login-footer">
+              <div className="mt-5 text-center text-[13px] text-[#7e6b75]">
                 Chưa có tài khoản?{' '}
-                <a className="login-link" href="/register" onClick={handleRegisterLink}>
+                <a
+                  className="text-[#e996b1] no-underline font-semibold hover:underline"
+                  href="/register"
+                  onClick={handleRegisterLink}
+                >
                   Đăng ký ngay
                 </a>
               </div>
             </div>
           </div>
-          <div className="login-footer-section">
+          <div className="w-[calc(100%+48px)] bg-white -mx-6 -mb-8 mt-auto pt-[3.25vh] [&_footer]:!block [&_footer]:!bg-white [&_footer]:text-[#2f2730] [&_footer.bg-gray-900]:!bg-white [&_footer_.bg-gray-950]:!bg-white [&_footer_.text-gray-300]:!text-[#5f4c55] [&_footer_.text-gray-400]:!text-[#5f4c55] [&_footer_.text-gray-500]:!text-[#5f4c55] [&_footer_.text-white]:!text-[#2f2730] [&_footer_a]:text-[#2f2730] [&_footer_a:hover]:text-[#2f2730] [&_footer_.border-gray-800]:!border-[#e8dfe3] [&_footer_.border-gray-700]:!border-[#e8dfe3] [&_footer_input]:!bg-white [&_footer_input]:!text-[#2f2730] [&_footer_input]:!border-[#e8dfe3] [&_footer_button]:!bg-[#e996b1] [&_footer_button]:!text-white">
             <Footer />
           </div>
         </div>
       )}
 
       <style>{`
-        body.login-page-active {
-          overflow: hidden;
-        }
-
-        body.login-page-active header,
-        body.login-page-active footer {
-          display: none !important;
-        }
-
-        body.login-page-active .fixed.inset-0.pointer-events-none.overflow-hidden {
-          display: none !important;
-        }
-
-        body.login-page-active .login-trigger {
-          display: none;
-        }
-
-        .login-trigger {
-          border: none;
-          padding: 8px 16px;
-          border-radius: 999px;
-          font-size: 14px;
-          font-weight: 600;
-          cursor: pointer;
-          background: #e996b1;
-          color: #2b1b24;
-          box-shadow: 0 6px 14px rgba(233, 150, 177, 0.35);
-        }
-
-        .login-page {
-          position: fixed;
-          inset: 0;
-          display: flex;
-          flex-direction: column;
-          align-items: stretch;
-          justify-content: flex-start;
-          background: #e996b1;
-          z-index: 9999;
-          padding: 32px 24px;
-          color: #2f2730;
-          font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-          overflow-y: auto;
-          min-height: 100vh;
-        }
-
-        .login-shell {
-          width: min(1240px, 100%);
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 36px;
-          padding: 0 24px;
-          margin: clamp(12px, 10vh, 15vh) auto 40px;
-        }
-        .login-footer-section {
-          width: 100%;
-          background: #ffffff;
-          margin: 0 -24px -32px;
-          width: calc(100% + 48px);
-          margin-top: auto;
-          padding-top: 3.25vh;
-        }
-
-        .login-page .login-footer-section footer {
-          display: block !important;
-          background: #ffffff !important;
-          color: #2f2730;
-        }
-
-        .login-page .login-footer-section footer.bg-gray-900 {
-          background: #ffffff !important;
-        }
-
-        .login-page .login-footer-section footer .bg-gray-950 {
-          background: #ffffff !important;
-        }
-
-        .login-page .login-footer-section footer .text-gray-300,
-        .login-page .login-footer-section footer .text-gray-400,
-        .login-page .login-footer-section footer .text-gray-500 {
-          color: #5f4c55 !important;
-        }
-
-        .login-page .login-footer-section footer .text-white {
-          color: #2f2730 !important;
-        }
-
-        .login-page .login-footer-section footer a {
-          color: #2f2730;
-        }
-
-        .login-page .login-footer-section footer a:hover {
-          color: #2f2730;
-        }
-
-        .login-page .login-footer-section footer .border-gray-800,
-        .login-page .login-footer-section footer .border-gray-700 {
-          border-color: #e8dfe3 !important;
-        }
-
-        .login-page .login-footer-section footer input {
-          background: #ffffff !important;
-          color: #2f2730 !important;
-          border-color: #e8dfe3 !important;
-        }
-
-        .login-page .login-footer-section footer button {
-          background: #e996b1 !important;
-          color: #ffffff !important;
-        }
-
-        .login-brand {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 0;
-          user-select: none;
-          transform: translate(-10%, -15%) scale(1.2);
-          transform-origin: center;
-        }
-
-        .login-logo {
-          width: 406px;
-          height: 406px;
-          display: block;
-          object-fit: contain;
-          filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.18));
-        }
-
-        .login-brand-wordmark {
-          width: 420px;
-          max-width: 100%;
-          height: auto;
-          margin-top: -80px;
-          user-select: none;
-        }
-
-        .login-card {
-          width: 420px;
-          background: #ffffff;
-          border-radius: 16px;
-          border: 1px solid #f0dbe4;
-          box-shadow: 0 18px 50px rgba(41, 10, 24, 0.08);
-          padding: 32px 32px 24px;
-        }
-
-        .login-title {
-          text-align: center;
-          font-size: 26px;
-          margin: 0;
-          color: #2b2730;
-        }
-
-        .login-subtitle {
-          text-align: center;
-          margin: 8px 0 28px;
-          color: #8b7b84;
-          font-size: 14px;
-        }
-
-        .login-form {
-          display: flex;
-          flex-direction: column;
-          gap: 18px;
-        }
-
-        .field {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          font-size: 14px;
-          color: #3b3339;
-        }
-
-        .field-label {
-          font-weight: 500;
-        }
-
-        .field-control {
-          position: relative;
-          display: flex;
-          align-items: center;
-        }
-
-        .field-icon {
-          position: absolute;
-          left: 14px;
-          color: #d1a1b7;
-        }
-
-        .field-icon svg,
-        .field-toggle svg {
-          width: 18px;
-          height: 18px;
-          fill: currentColor;
-        }
-
-        .field-input {
-          width: 100%;
-          height: 44px;
-          padding: 0 44px 0 42px;
-          border-radius: 10px;
-          border: 1.5px solid #f1d4e0;
-          background: #fff;
-          font-size: 14px;
-          outline: none;
-          transition: border-color 0.2s, box-shadow 0.2s;
-        }
-
-        .field-input:focus {
-          border-color: #e996b1;
-          box-shadow: 0 0 0 3px rgba(233, 150, 177, 0.15);
-        }
-
-        .field-toggle {
-          position: absolute;
-          right: 12px;
-          background: transparent;
-          border: none;
-          color: #c78ea6;
-          cursor: pointer;
-          padding: 4px;
-        }
-
-        .login-button {
-          height: 44px;
-          border-radius: 12px;
-          border: none;
-          background: #e996b1;
-          color: #ffffff;
-          font-weight: 600;
-          font-size: 15px;
-          cursor: pointer;
-          box-shadow: 0 8px 16px rgba(233, 150, 177, 0.35);
-        }
-
-        .login-button:disabled {
-          opacity: 0.7;
-          cursor: not-allowed;
-        }
-
-        .login-toast-overlay {
-          position: absolute;
-          top: 20px;
-          left: 50%;
-          transform: translateX(-50%);
-          width: min(520px, 90%);
-          display: flex;
-          justify-content: center;
-          pointer-events: none;
-          z-index: 2;
-        }
-
-        .login-toast {
-          width: 100%;
-          padding: 12px 18px;
-          border-radius: 12px;
-          font-size: 13px;
-          font-weight: 600;
-          letter-spacing: 0.1px;
-          text-align: center;
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24);
-          backdrop-filter: blur(10px);
-          animation: fadeIn 0.25s ease-out;
-        }
-
-        .login-toast.success {
-          background: #4caf50;
-          color: #1b5e20;
-        }
-
-        .login-toast.error {
-          background: #e53935;
-          color: #ffffff;
-        }
-
         @keyframes fadeIn {
           from {
             opacity: 0;
@@ -564,40 +331,6 @@ function Login() {
             transform: translateY(0);
           }
         }
-
-        .login-footer {
-          margin-top: 20px;
-          text-align: center;
-          font-size: 13px;
-          color: #7e6b75;
-        }
-
-        .login-link {
-          color: #e996b1;
-          text-decoration: none;
-          font-weight: 600;
-        }
-
-        .login-link:hover {
-          text-decoration: underline;
-        }
-
-        @media (max-width: 480px) {
-          .login-shell {
-            flex-direction: column;
-            align-items: center;
-            padding: 0;
-          }
-
-          .login-brand-wordmark {
-            width: 240px;
-          }
-
-          .login-card {
-            width: 100%;
-            padding: 28px 22px 22px;
-          }
-        }
       `}</style>
     </>
   );
@@ -605,7 +338,7 @@ function Login() {
 
 function MailIcon() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="w-[18px] h-[18px] fill-current">
       <path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4-8 5-8-5V6l8 5 8-5z" />
     </svg>
   );
@@ -613,7 +346,7 @@ function MailIcon() {
 
 function LockIcon() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="w-[18px] h-[18px] fill-current">
       <path d="M17 9h-1V7a4 4 0 0 0-8 0v2H7a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2zm-7-2a2 2 0 0 1 4 0v2h-4z" />
     </svg>
   );
@@ -621,7 +354,7 @@ function LockIcon() {
 
 function EyeIcon({ isOpen }) {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="w-[18px] h-[18px] fill-current">
       {isOpen ? (
         <path d="M12 4.5c-5.6 0-10.3 3.5-12 7.5 1.7 4 6.4 7.5 12 7.5s10.3-3.5 12-7.5c-1.7-4-6.4-7.5-12-7.5zm0 12.2a4.7 4.7 0 1 1 0-9.4 4.7 4.7 0 0 1 0 9.4z" />
       ) : (
