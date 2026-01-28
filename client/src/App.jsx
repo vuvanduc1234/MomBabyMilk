@@ -1,5 +1,10 @@
-// App.jsx
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+// App.jsx - FIXED VERSION
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Outlet,
+} from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 import { PreOrderProvider } from "./context/PreOrderContext";
@@ -25,6 +30,20 @@ import StaffOrders from "./pages/staff/Orders";
 import StaffProducts from "./pages/staff/Products";
 import StaffInventory from "./pages/staff/Inventory";
 
+// Public Layout Component
+function PublicLayout() {
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col relative">
+      {/* <SakuraFalling />  */}
+      <Header />
+      <main className="flex-1 relative z-10">
+        <Outlet />
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
 function App() {
   return (
     <AuthProvider>
@@ -41,37 +60,19 @@ function App() {
               </Route>
 
               {/* Public routes - with Header/Footer */}
-              <Route
-                path="/*"
-                element={
-                  <div className="min-h-screen bg-gray-50 flex flex-col relative">
-                    {/* <SakuraFalling />  */}
-                    <Header />
-                    <main className="flex-1 relative z-10">
-                      <Routes>
-                        <Route path="/" element={<Index />} />
-                        <Route path="/products" element={<ProductListing />} />
-                        <Route
-                          path="/product/:slug"
-                          element={<ProductDetail />}
-                        />
-                        <Route path="/cart" element={<Cart />} />
-                        <Route path="/checkout" element={<Checkout />} />
-                        <Route path="/login" element={<Login />} />
-                        <Route path="/register" element={<Register />} />
-                        <Route
-                          path="/forgot-password"
-                          element={<ForgotPassword />}
-                        />
-                        <Route path="/blog" element={<BlogList />} />
-                        <Route path="/blog/:id" element={<BlogPost />} />
-                        <Route path="/pre-order" element={<PreOrderList />} />
-                      </Routes>
-                    </main>
-                    <Footer />
-                  </div>
-                }
-              />
+              <Route element={<PublicLayout />}>
+                <Route path="/" element={<Index />} />
+                <Route path="/products" element={<ProductListing />} />
+                <Route path="/product/:slug" element={<ProductDetail />} />
+                <Route path="/cart" element={<Cart />} />
+                <Route path="/checkout" element={<Checkout />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/blog" element={<BlogList />} />
+                <Route path="/blog/:id" element={<BlogPost />} />
+                <Route path="/preorders" element={<PreOrderList />} />
+              </Route>
             </Routes>
           </Router>
         </PreOrderProvider>
