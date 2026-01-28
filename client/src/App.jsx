@@ -13,6 +13,7 @@ import Checkout from "./pages/Checkout/Checkout";
 import Index from "./pages/Index";
 import Login from "./pages/Auth/Login";
 import Register from "./pages/Auth/Register";
+import ForgotPassword from "./pages/Auth/ForgotPassword";
 import BlogList from "./pages/blog/BlogList";
 import BlogPost from "./pages/blog/BlogPost";
 
@@ -33,6 +34,7 @@ function App() {
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/blog" element={<BlogList />} />
                 <Route path="/blog/:id" element={<BlogPost />} />
               </Routes>
