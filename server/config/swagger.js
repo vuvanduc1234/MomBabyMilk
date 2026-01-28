@@ -151,6 +151,39 @@ const options = {
               description: "Brand description",
             },
           },
+        }, 
+        CartItem: {
+          type: "object",
+          properties: {
+            productId: {
+              type: "string",
+              description: "Product ID reference",
+            },
+            quantity: {
+              type: "number",
+              description: "Quantity of product",
+              example: 1,
+            },
+          },
+        },
+        Cart: {
+          type: "object",
+          properties: {
+            _id: { type: "string", description: "Cart ID" },
+            userId: { type: "string", description: "User ID owner" },
+            items: {
+              type: "array",
+              items: {
+                $ref: "#/components/schemas/CartItem",
+              },
+            },
+            totalPrice: {
+              type: "number",
+              description: "Calculated total price of items in cart",
+            },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+          },
         },
         Error: {
           type: "object",
