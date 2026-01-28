@@ -29,7 +29,13 @@ import StaffDashboard from "./pages/staff/Dashboard";
 import StaffOrders from "./pages/staff/Orders";
 import StaffProducts from "./pages/staff/Products";
 import StaffInventory from "./pages/staff/Inventory";
-
+import { AdminLayout } from "./components/layouts/AdminLayout";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AccountManagement from "./pages/admin/AccountManagement";
+import RoleManagement from "./pages/admin/RoleManagement";
+import RevenueStatistics from "./pages/admin/RevenueStatistics";
+import SystemReports from "./pages/admin/SystemReports";
+import { ProtectedRoute } from "./components/layouts/ProtectedRoute";
 // Public Layout Component
 function PublicLayout() {
   return (
@@ -57,6 +63,21 @@ function App() {
                 <Route path="orders" element={<StaffOrders />} />
                 <Route path="products" element={<StaffProducts />} />
                 <Route path="inventory" element={<StaffInventory />} />
+              </Route>
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                    <AdminLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<AdminDashboard />} />
+                <Route path="accounts" element={<AccountManagement />} />
+                <Route path="roles" element={<RoleManagement />} />
+                <Route path="revenue" element={<RevenueStatistics />} />
+                <Route path="reports" element={<SystemReports />} />
+                <Route path="protect" element={<ProtectedRoute />} />
               </Route>
 
               {/* Public routes - with Header/Footer */}
