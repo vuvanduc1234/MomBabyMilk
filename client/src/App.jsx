@@ -15,31 +15,36 @@ import Login from "./pages/Auth/Login";
 import Register from "./pages/Auth/Register";
 import BlogList from "./pages/blog/BlogList";
 import BlogPost from "./pages/blog/BlogPost";
+import { PreOrderProvider } from "./context/PreOrderContext";
+import PreOrderList from "./pages/PreOrder/PreOrderList";
 
 function App() {
   return (
     <AuthProvider>
       <CartProvider>
-        <Router>
-          <div className="min-h-screen bg-gray-50 flex flex-col relative">
-            {/* <SakuraFalling />  */}
-            <Header /> {/* Giữ sticky top-0 z-50 */}
-            <main className="flex-1 relative z-10">
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/products" element={<ProductListing />} />
-                <Route path="/product/:slug" element={<ProductDetail />} />
-                <Route path="/cart" element={<Cart />} />
-                <Route path="/checkout" element={<Checkout />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/blog" element={<BlogList />} />
-                <Route path="/blog/:id" element={<BlogPost />} />
-              </Routes>
-            </main>
-            <Footer />
-          </div>
-        </Router>
+        <PreOrderProvider>
+          <Router>
+            <div className="min-h-screen bg-gray-50 flex flex-col relative">
+              {/* <SakuraFalling />  */}
+              <Header /> {/* Giữ sticky top-0 z-50 */}
+              <main className="flex-1 relative z-10">
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/products" element={<ProductListing />} />
+                  <Route path="/product/:slug" element={<ProductDetail />} />
+                  <Route path="/cart" element={<Cart />} />
+                  <Route path="/checkout" element={<Checkout />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/blog" element={<BlogList />} />
+                  <Route path="/blog/:id" element={<BlogPost />} />
+                  <Route path="/preorders" element={<PreOrderList />} />
+                </Routes>
+              </main>
+              <Footer />
+            </div>
+          </Router>
+        </PreOrderProvider>
       </CartProvider>
     </AuthProvider>
   );

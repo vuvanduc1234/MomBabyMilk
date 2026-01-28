@@ -10,9 +10,12 @@ import {
   Truck,
 } from "lucide-react";
 import { useCart } from "../../context/CartContext";
+import { usePreOrder } from "../../context/PreOrderContext";
+import { Package } from "lucide-react";
 
 export default function Header() {
   const { getTotalItems } = useCart();
+  const { getTotalPreOrderItems } = usePreOrder();
 
   return (
     <header
@@ -98,6 +101,18 @@ export default function Header() {
               >
                 <User className="h-10 w-10" strokeWidth={1.5} />
                 <span className="text-xs">Tài khoản</span>
+              </Link>
+              <Link
+                to="/preorders"
+                className="relative flex items-center gap-2 text-gray-700 hover:text-pink-600 transition"
+              >
+                <Package className="h-5 w-5" />
+                <span className="font-medium">Đặt Trước</span>
+                {getTotalPreOrderItems() > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-lg">
+                    {getTotalPreOrderItems()}
+                  </span>
+                )}
               </Link>
               <div className="relative group">
                 <Link
