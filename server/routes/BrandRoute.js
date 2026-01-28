@@ -1,37 +1,33 @@
 const express = require("express");
-const {
-  updateUser,
-  deleteUser,
-  viewUser,
-  findById,
-  createUser,
-} = require("../controllers/UserController");
 const { authenticateToken } = require("../middleware/auth");
+const {
+  createBrand,
+  getAllBrands,
+  getBrandById,
+  updateBrand,
+  deleteBrand,
+} = require("../controllers/BrandController");
 
 const router = express.Router();
 
 /**
  * @swagger
- * /api/users:
+ * /api/brand:
  *   get:
- *     summary: Get all users
- *     tags: [Users]
- *     security:
- *       - bearerAuth: []
+ *     summary: Get all brands
+ *     tags: [Brands]
  *     responses:
  *       200:
- *         description: List of all users
+ *         description: List of brands
  */
-router.get("/", authenticateToken, viewUser);
+router.get("/", getAllBrands);
 
 /**
  * @swagger
- * /api/users/{id}:
+ * /api/brand/{id}:
  *   get:
- *     summary: Get user by ID
- *     tags: [Users]
- *     security:
- *       - bearerAuth: []
+ *     summary: Get brand by ID
+ *     tags: [Brands]
  *     parameters:
  *       - in: path
  *         name: id
@@ -40,16 +36,16 @@ router.get("/", authenticateToken, viewUser);
  *           type: string
  *     responses:
  *       200:
- *         description: User details
+ *         description: Brand details
  */
-router.get("/:id", authenticateToken, findById);
+router.get("/:id", getBrandById);
 
 /**
  * @swagger
- * /api/users:
+ * /api/brand:
  *   post:
- *     summary: Create new user
- *     tags: [Users]
+ *     summary: Create new brand
+ *     tags: [Brands]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -60,16 +56,16 @@ router.get("/:id", authenticateToken, findById);
  *             type: object
  *     responses:
  *       201:
- *         description: User created
+ *         description: Brand created
  */
-router.post("/", authenticateToken, createUser);
+router.post("/", authenticateToken, createBrand);
 
 /**
  * @swagger
- * /api/users/{id}:
+ * /api/brand/{id}:
  *   patch:
- *     summary: Update user
- *     tags: [Users]
+ *     summary: Update brand
+ *     tags: [Brands]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -80,16 +76,16 @@ router.post("/", authenticateToken, createUser);
  *           type: string
  *     responses:
  *       200:
- *         description: User updated
+ *         description: Brand updated
  */
-router.patch("/:id", authenticateToken, updateUser);
+router.patch("/:id", authenticateToken, updateBrand);
 
 /**
  * @swagger
- * /api/users/{id}:
+ * /api/brand/{id}:
  *   delete:
- *     summary: Delete user
- *     tags: [Users]
+ *     summary: Delete brand
+ *     tags: [Brands]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -100,8 +96,8 @@ router.patch("/:id", authenticateToken, updateUser);
  *           type: string
  *     responses:
  *       200:
- *         description: User deleted
+ *         description: Brand deleted
  */
-router.delete("/:id", authenticateToken, deleteUser);
+router.delete("/:id", authenticateToken, deleteBrand);
 
 module.exports = router;

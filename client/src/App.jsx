@@ -14,6 +14,8 @@ import Index from "./pages/Index";
 import Login from "./pages/Auth/Login";
 import Register from "./pages/Auth/Register";
 import ForgotPassword from "./pages/Auth/ForgotPassword";
+import BlogList from "./pages/blog/BlogList";
+import BlogPost from "./pages/blog/BlogPost";
 
 function App() {
   return (
@@ -21,7 +23,7 @@ function App() {
       <CartProvider>
         <Router>
           <div className="min-h-screen bg-gray-50 flex flex-col relative">
-            <SakuraFalling /> {/* Hoa rơi toàn trang */}
+            {/* <SakuraFalling />  */}
             <Header /> {/* Giữ sticky top-0 z-50 */}
             <main className="flex-1 relative z-10">
               <Routes>
@@ -33,6 +35,8 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/blog" element={<BlogList />} />
+                <Route path="/blog/:id" element={<BlogPost />} />
               </Routes>
             </main>
             <Footer />

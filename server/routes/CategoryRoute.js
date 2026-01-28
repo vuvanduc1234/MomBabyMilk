@@ -1,37 +1,33 @@
 const express = require("express");
-const {
-  updateUser,
-  deleteUser,
-  viewUser,
-  findById,
-  createUser,
-} = require("../controllers/UserController");
 const { authenticateToken } = require("../middleware/auth");
+const {
+  createCategory,
+  getAllCategories,
+  getCategoryById,
+  updateCategory,
+  deleteCategory,
+} = require("../controllers/CategoryController");
 
 const router = express.Router();
 
 /**
  * @swagger
- * /api/users:
+ * /api/category:
  *   get:
- *     summary: Get all users
- *     tags: [Users]
- *     security:
- *       - bearerAuth: []
+ *     summary: Get all categories
+ *     tags: [Categories]
  *     responses:
  *       200:
- *         description: List of all users
+ *         description: List of categories
  */
-router.get("/", authenticateToken, viewUser);
+router.get("/", getAllCategories);
 
 /**
  * @swagger
- * /api/users/{id}:
+ * /api/category/{id}:
  *   get:
- *     summary: Get user by ID
- *     tags: [Users]
- *     security:
- *       - bearerAuth: []
+ *     summary: Get category by ID
+ *     tags: [Categories]
  *     parameters:
  *       - in: path
  *         name: id
@@ -40,16 +36,16 @@ router.get("/", authenticateToken, viewUser);
  *           type: string
  *     responses:
  *       200:
- *         description: User details
+ *         description: Category details
  */
-router.get("/:id", authenticateToken, findById);
+router.get("/:id", getCategoryById);
 
 /**
  * @swagger
- * /api/users:
+ * /api/category:
  *   post:
- *     summary: Create new user
- *     tags: [Users]
+ *     summary: Create new category
+ *     tags: [Categories]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -60,16 +56,16 @@ router.get("/:id", authenticateToken, findById);
  *             type: object
  *     responses:
  *       201:
- *         description: User created
+ *         description: Category created
  */
-router.post("/", authenticateToken, createUser);
+router.post("/", authenticateToken, createCategory);
 
 /**
  * @swagger
- * /api/users/{id}:
+ * /api/category/{id}:
  *   patch:
- *     summary: Update user
- *     tags: [Users]
+ *     summary: Update category
+ *     tags: [Categories]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -80,16 +76,16 @@ router.post("/", authenticateToken, createUser);
  *           type: string
  *     responses:
  *       200:
- *         description: User updated
+ *         description: Category updated
  */
-router.patch("/:id", authenticateToken, updateUser);
+router.patch("/:id", authenticateToken, updateCategory);
 
 /**
  * @swagger
- * /api/users/{id}:
+ * /api/category/{id}:
  *   delete:
- *     summary: Delete user
- *     tags: [Users]
+ *     summary: Delete category
+ *     tags: [Categories]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -100,8 +96,8 @@ router.patch("/:id", authenticateToken, updateUser);
  *           type: string
  *     responses:
  *       200:
- *         description: User deleted
+ *         description: Category deleted
  */
-router.delete("/:id", authenticateToken, deleteUser);
+router.delete("/:id", authenticateToken, deleteCategory);
 
 module.exports = router;
