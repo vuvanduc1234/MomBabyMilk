@@ -1,11 +1,23 @@
+// src/pages/Checkout/Checkout.jsx (Enhanced with Pre-order Support)
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Truck, CreditCard, Smartphone, Building2 } from "lucide-react";
+import {
+  Truck,
+  CreditCard,
+  Smartphone,
+  Building2,
+  Package,
+  Calendar,
+  Info,
+} from "lucide-react";
 import { useCart } from "../../context/CartContext";
+import { usePreOrder } from "../../context/PreOrderContext";
 
 export default function Checkout() {
   const navigate = useNavigate();
-  const { cartItems, getTotalPrice } = useCart();
+  const { cartItems, getTotalPrice, clearCart } = useCart();
+  const { preOrderItems, getTotalPreOrderPrice, clearPreOrders } =
+    usePreOrder();
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -25,18 +37,40 @@ export default function Checkout() {
     }).format(price);
   };
 
-  const subtotal = cartItems.reduce(
+  // Tính toán cho giỏ hàng thường
+  const cartSubtotal = cartItems.reduce(
     (sum, item) => sum + (item.sale_price || item.price) * item.quantity,
     0,
   );
 
+  // Tính toán cho pre-order (chỉ tính những đơn thanh toán ngay)
+  const preOrderSubtotal = preOrderItems
+    .filter((item) => item.paymentOption === "PAY_NOW")
+    .reduce(
+      (sum, item) => sum + (item.sale_price || item.price) * item.quantity,
+      0,
+    );
+
+  // Tổng tạm tính
+  const subtotal = cartSubtotal + preOrderSubtotal;
+
+  // Phí vận chuyển
   const shipping = subtotal > 500000 ? 0 : 30000;
+
+  // Tổng cộng
   const total = subtotal + shipping;
+
+  // Lấy danh sách pre-order theo loại
+  const outOfStockItems = preOrderItems.filter(
+    (item) => item.preOrderType === "OUT_OF_STOCK",
+  );
+  const comingSoonItems = preOrderItems.filter(
+    (item) => item.preOrderType === "COMING_SOON",
+  );
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    // Xóa lỗi khi người dùng nhập
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
@@ -74,32 +108,62 @@ export default function Checkout() {
       return;
     }
 
-    // Giả lập đặt hàng thành công
-    alert(
-      `Đặt hàng thành công!\nPhương thức: ${
-        paymentMethod === "cod"
-          ? "COD"
-          : paymentMethod === "vnpay"
-            ? "VNPay"
-            : paymentMethod === "momo"
-              ? "Ví MoMo"
-              : "Chuyển khoản"
-      }\nTổng: ${formatVND(total)}`,
-    );
+    // Tạo message chi tiết
+    let message = `Đặt hàng thành công!\n\n`;
 
-    // Chuyển đến trang xác nhận hoặc trang chủ
+    if (cartItems.length > 0) {
+      message += `✓ Sản phẩm thường: ${cartItems.length} sản phẩm\n`;
+    }
+
+    if (
+      outOfStockItems.filter((i) => i.paymentOption === "PAY_NOW").length > 0
+    ) {
+      message += `✓ Đặt trước (hết hàng): ${outOfStockItems.filter((i) => i.paymentOption === "PAY_NOW").length} sản phẩm\n`;
+    }
+
+    if (comingSoonItems.length > 0) {
+      message += `✓ Đặt trước (sắp ra mắt): ${comingSoonItems.length} sản phẩm (đã đăng ký)\n`;
+    }
+
+    message += `\nPhương thức: ${
+      paymentMethod === "cod"
+        ? "COD"
+        : paymentMethod === "vnpay"
+          ? "VNPay"
+          : paymentMethod === "momo"
+            ? "Ví MoMo"
+            : "Chuyển khoản"
+    }\n`;
+
+    message += `Tổng thanh toán: ${formatVND(total)}`;
+
+    alert(message);
+
+    // Xóa giỏ hàng và pre-orders đã thanh toán
+    clearCart();
+    // Chỉ xóa những pre-order đã thanh toán
+    preOrderItems
+      .filter((item) => item.paymentOption === "PAY_NOW")
+      .forEach((item) => {
+        // TODO: Implement removeFromPreOrder for specific items
+      });
+
     navigate("/");
   };
 
-  if (cartItems.length === 0) {
+  // Kiểm tra nếu không có gì để thanh toán
+  if (
+    cartItems.length === 0 &&
+    preOrderItems.filter((i) => i.paymentOption === "PAY_NOW").length === 0
+  ) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-800 mb-2">
-            Giỏ hàng trống
+            Không có sản phẩm nào cần thanh toán
           </h2>
           <p className="text-gray-500 mb-6">
-            Vui lòng thêm sản phẩm vào giỏ hàng trước khi thanh toán
+            Vui lòng thêm sản phẩm vào giỏ hàng hoặc đặt trước sản phẩm
           </p>
           <Link
             to="/products"
@@ -129,7 +193,13 @@ export default function Checkout() {
         </div>
 
         {/* Tiêu đề */}
-        <h1 className="text-3xl font-bold text-gray-800 mb-8">Thanh toán</h1>
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">Thanh toán</h1>
+        <p className="text-gray-600 mb-8">
+          {cartItems.length > 0 && `${cartItems.length} sản phẩm thường`}
+          {cartItems.length > 0 && preOrderItems.length > 0 && " • "}
+          {preOrderItems.length > 0 &&
+            `${preOrderItems.filter((i) => i.paymentOption === "PAY_NOW").length} sản phẩm đặt trước`}
+        </p>
 
         <form onSubmit={handleSubmit}>
           <div className="grid lg:grid-cols-3 gap-6">
@@ -216,8 +286,8 @@ export default function Checkout() {
                     name="address"
                     value={formData.address}
                     onChange={handleInputChange}
-                    placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố"
                     rows="3"
+                    placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố"
                     className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 resize-none ${
                       errors.address ? "border-red-500" : "border-gray-300"
                     }`}
@@ -232,18 +302,98 @@ export default function Checkout() {
                 {/* Ghi chú */}
                 <div className="mt-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Ghi chú
+                    Ghi chú đơn hàng (tùy chọn)
                   </label>
                   <textarea
                     name="note"
                     value={formData.note}
                     onChange={handleInputChange}
-                    placeholder="Ghi chú thêm về đơn hàng (nếu có)"
-                    rows="3"
+                    rows="2"
+                    placeholder="Ghi chú về đơn hàng, ví dụ: thời gian hay chỉ dẫn địa điểm giao hàng chi tiết hơn."
                     className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 resize-none"
                   ></textarea>
                 </div>
               </div>
+
+              {/* Thông tin Pre-order (nếu có) */}
+              {preOrderItems.length > 0 && (
+                <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-6 shadow-sm border-2 border-purple-200">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Info className="h-5 w-5 text-purple-600" />
+                    <h2 className="text-xl font-bold text-gray-800">
+                      Thông Tin Đặt Trước
+                    </h2>
+                  </div>
+
+                  <div className="space-y-3 text-sm text-gray-700">
+                    {outOfStockItems.filter(
+                      (i) => i.paymentOption === "PAY_NOW",
+                    ).length > 0 && (
+                      <div className="bg-white rounded-lg p-3 border border-orange-200">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Package className="h-4 w-4 text-orange-500" />
+                          <strong className="text-orange-700">
+                            Sản phẩm hết hàng:
+                          </strong>
+                        </div>
+                        <p className="text-xs text-gray-600 leading-relaxed">
+                          • Bạn đã chọn thanh toán ngay để được ưu tiên giao
+                          hàng đầu tiên
+                          <br />
+                          • Sản phẩm sẽ được giao ngay khi hàng về kho
+                          <br />• Chúng tôi sẽ thông báo cho bạn qua số điện
+                          thoại và email
+                        </p>
+                      </div>
+                    )}
+
+                    {outOfStockItems.filter(
+                      (i) => i.paymentOption === "PAY_LATER",
+                    ).length > 0 && (
+                      <div className="bg-white rounded-lg p-3 border border-blue-200">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Package className="h-4 w-4 text-blue-500" />
+                          <strong className="text-blue-700">
+                            Giữ chỗ (thanh toán sau):
+                          </strong>
+                        </div>
+                        <p className="text-xs text-gray-600 leading-relaxed">
+                          •{" "}
+                          {
+                            outOfStockItems.filter(
+                              (i) => i.paymentOption === "PAY_LATER",
+                            ).length
+                          }{" "}
+                          sản phẩm đang giữ chỗ
+                          <br />
+                          • Bạn có 48 giờ để thanh toán khi nhận được thông báo
+                          hàng về
+                          <br />• Không cần thanh toán trong đơn hàng này
+                        </p>
+                      </div>
+                    )}
+
+                    {comingSoonItems.length > 0 && (
+                      <div className="bg-white rounded-lg p-3 border border-purple-200">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Calendar className="h-4 w-4 text-purple-500" />
+                          <strong className="text-purple-700">
+                            Sản phẩm sắp ra mắt:
+                          </strong>
+                        </div>
+                        <p className="text-xs text-gray-600 leading-relaxed">
+                          • {comingSoonItems.length} sản phẩm đã đăng ký nhận
+                          thông báo
+                          <br />
+                          • Chưa cần thanh toán, chỉ đăng ký ưu tiên
+                          <br />• Bạn sẽ nhận thông báo khi sản phẩm chính thức
+                          mở bán
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Phương thức thanh toán */}
               <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
@@ -379,31 +529,80 @@ export default function Checkout() {
                 </h2>
 
                 {/* Danh sách sản phẩm */}
-                <div className="space-y-4 mb-6 max-h-64 overflow-y-auto">
-                  {cartItems.map((item) => (
-                    <div key={item.id} className="flex gap-3">
-                      <img
-                        src={item.image_url || item.image}
-                        alt={item.name}
-                        className="w-16 h-16 object-cover rounded-lg"
-                      />
-                      <div className="flex-1">
-                        <h3 className="text-sm font-medium text-gray-800 line-clamp-2">
-                          {item.name}
-                        </h3>
-                        <p className="text-xs text-gray-500 mt-1">
-                          x{item.quantity}
-                        </p>
+                <div className="space-y-4 mb-6 max-h-80 overflow-y-auto">
+                  {/* Sản phẩm thường */}
+                  {cartItems.length > 0 && (
+                    <>
+                      <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                        Sản phẩm thường
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold text-pink-500">
-                          {formatVND(
-                            (item.sale_price || item.price) * item.quantity,
-                          )}
-                        </p>
+                      {cartItems.map((item) => (
+                        <div key={`cart-${item.id}`} className="flex gap-3">
+                          <img
+                            src={item.image_url || item.image}
+                            alt={item.name}
+                            className="w-16 h-16 object-cover rounded-lg"
+                          />
+                          <div className="flex-1">
+                            <h3 className="text-sm font-medium text-gray-800 line-clamp-2">
+                              {item.name}
+                            </h3>
+                            <p className="text-xs text-gray-500 mt-1">
+                              x{item.quantity}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-bold text-pink-500">
+                              {formatVND(
+                                (item.sale_price || item.price) * item.quantity,
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  )}
+
+                  {/* Sản phẩm đặt trước (thanh toán ngay) */}
+                  {preOrderItems.filter((i) => i.paymentOption === "PAY_NOW")
+                    .length > 0 && (
+                    <>
+                      <div className="text-xs font-bold text-orange-600 uppercase tracking-wide flex items-center gap-1 mt-4">
+                        <Package className="h-3 w-3" />
+                        Đặt trước (thanh toán ngay)
                       </div>
-                    </div>
-                  ))}
+                      {preOrderItems
+                        .filter((i) => i.paymentOption === "PAY_NOW")
+                        .map((item) => (
+                          <div
+                            key={`preorder-${item.id}`}
+                            className="flex gap-3 bg-orange-50 p-2 rounded-lg"
+                          >
+                            <img
+                              src={item.image_url || item.image}
+                              alt={item.name}
+                              className="w-16 h-16 object-cover rounded-lg"
+                            />
+                            <div className="flex-1">
+                              <h3 className="text-sm font-medium text-gray-800 line-clamp-2">
+                                {item.name}
+                              </h3>
+                              <p className="text-xs text-gray-500 mt-1">
+                                x{item.quantity}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-bold text-orange-600">
+                                {formatVND(
+                                  (item.sale_price || item.price) *
+                                    item.quantity,
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                    </>
+                  )}
                 </div>
 
                 {/* Tổng tiền */}
@@ -437,9 +636,9 @@ export default function Checkout() {
                 {/* Nút đặt hàng */}
                 <button
                   type="submit"
-                  className="w-full mt-6 bg-pink-400 text-white py-3 rounded-lg font-semibold hover:bg-pink-500 transition"
+                  className="w-full mt-6 bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition"
                 >
-                  Đặt hàng
+                  Đặt hàng ngay
                 </button>
 
                 <p className="text-xs text-center text-gray-500 mt-4">

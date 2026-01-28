@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Package, Calendar, ShoppingBag } from "lucide-react";
 
 export function FilterBar({ onFilterChange }) {
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [selectedBrands, setSelectedBrands] = useState([]);
+  const [selectedProductTypes, setSelectedProductTypes] = useState([]);
 
   const categories = [
     { id: "sua-bau", label: "Sữa bầu" },
@@ -13,13 +15,30 @@ export function FilterBar({ onFilterChange }) {
     { id: "sua-tren-3-tuoi", label: "Sữa cho bé trên 3 tuổi" },
   ];
 
-  // const brands = [
-  //   { id: "abbott", label: "Abbott", country: "Hoa Kỳ" },
-  //   { id: "friso", label: "Friso", country: "Hà Lan" },
-  //   { id: "meiji", label: "Meiji", country: "Nhật Bản" },
-  //   { id: "nestle", label: "Nestlé", country: "Thụy Sĩ" },
-  //   { id: "vinamilk", label: "Vinamilk", country: "Việt Nam" },
-  // ];
+  // Các loại sản phẩm
+  const productTypes = [
+    {
+      id: "in-stock",
+      label: "Hàng có sẵn",
+      icon: ShoppingBag,
+      color: "text-green-600",
+      bgColor: "bg-green-50",
+    },
+    {
+      id: "out-of-stock-preorder",
+      label: "Đặt trước - Hết hàng",
+      icon: Package,
+      color: "text-orange-600",
+      bgColor: "bg-orange-50",
+    },
+    {
+      id: "coming-soon-preorder",
+      label: "Đặt trước - Sắp ra mắt",
+      icon: Calendar,
+      color: "text-purple-600",
+      bgColor: "bg-purple-50",
+    },
+  ];
 
   const brands = [
     {
@@ -107,7 +126,11 @@ export function FilterBar({ onFilterChange }) {
       ? selectedCategories.filter((id) => id !== categoryId)
       : [...selectedCategories, categoryId];
     setSelectedCategories(updated);
-    onFilterChange?.({ categories: updated, brands: selectedBrands });
+    onFilterChange?.({
+      categories: updated,
+      brands: selectedBrands,
+      productTypes: selectedProductTypes,
+    });
   };
 
   const handleBrandChange = (brandId) => {
@@ -115,24 +138,93 @@ export function FilterBar({ onFilterChange }) {
       ? selectedBrands.filter((id) => id !== brandId)
       : [...selectedBrands, brandId];
     setSelectedBrands(updated);
-    onFilterChange?.({ categories: selectedCategories, brands: updated });
+    onFilterChange?.({
+      categories: selectedCategories,
+      brands: updated,
+      productTypes: selectedProductTypes,
+    });
+  };
+
+  const handleProductTypeChange = (typeId) => {
+    const updated = selectedProductTypes.includes(typeId)
+      ? selectedProductTypes.filter((id) => id !== typeId)
+      : [...selectedProductTypes, typeId];
+    setSelectedProductTypes(updated);
+    onFilterChange?.({
+      categories: selectedCategories,
+      brands: selectedBrands,
+      productTypes: updated,
+    });
   };
 
   const handleClearAll = () => {
     setSelectedCategories([]);
     setSelectedBrands([]);
-    onFilterChange?.({ categories: [], brands: [] });
+    setSelectedProductTypes([]);
+    onFilterChange?.({ categories: [], brands: [], productTypes: [] });
   };
 
   const hasActiveFilters =
-    selectedCategories.length > 0 || selectedBrands.length > 0;
+    selectedCategories.length > 0 ||
+    selectedBrands.length > 0 ||
+    selectedProductTypes.length > 0;
 
   return (
     <div className="bg-card border border-border rounded-lg p-4">
-      {/* Bộ lọc */}{" "}
+      {/* Bộ lọc */}
       <h3 className="text-base font-semibold text-foreground mb-4 pb-2 border-b border-border">
         Bộ lọc
       </h3>
+
+      {/* Loại sản phẩm */}
+      <div className="mb-8">
+        <h4 className="text-sm font-medium text-muted-foreground mb-4">
+          Loại sản phẩm
+        </h4>
+        <div className="space-y-2">
+          {productTypes.map((type) => {
+            const isChecked = selectedProductTypes.includes(type.id);
+            const Icon = type.icon;
+            return (
+              <label
+                key={type.id}
+                className={`flex items-center cursor-pointer p-3 rounded-lg border-2 transition-all ${
+                  isChecked
+                    ? `border-pink-400 ${type.bgColor}`
+                    : "border-gray-200 bg-white hover:border-gray-300"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={isChecked}
+                  onChange={() => handleProductTypeChange(type.id)}
+                  className="sr-only"
+                />
+                <div
+                  className={`flex items-center gap-2 flex-1 ${isChecked ? type.color : "text-gray-600"}`}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span className="text-sm font-medium">{type.label}</span>
+                </div>
+                <span
+                  className={`w-5 h-5 border-2 rounded-full flex items-center justify-center transition-all ${
+                    isChecked
+                      ? "border-pink-400 bg-white"
+                      : "border-gray-300 bg-white"
+                  }`}
+                >
+                  <span
+                    className={`w-3 h-3 bg-pink-400 rounded-full transition-all ${
+                      isChecked ? "scale-100 opacity-100" : "scale-0 opacity-0"
+                    }`}
+                  ></span>
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Danh mục */}
       <div className="mb-8">
         <h4 className="text-sm font-medium text-muted-foreground mb-4">
@@ -173,6 +265,7 @@ export function FilterBar({ onFilterChange }) {
           })}
         </div>
       </div>
+
       {/* Thương hiệu */}
       <div>
         <h4 className="text-sm font-medium text-muted-foreground mb-4">
@@ -203,6 +296,7 @@ export function FilterBar({ onFilterChange }) {
           })}
         </div>
       </div>
+
       {/* Xóa tất cả bộ lọc */}
       {hasActiveFilters && (
         <div className="mt-6 pt-4 border-t border-border">
@@ -211,7 +305,10 @@ export function FilterBar({ onFilterChange }) {
             className="w-full py-2.5 px-4 text-sm font-medium bg-pink-50 text-pink-500 hover:text-pink-600 hover:bg-pink-100 rounded-lg transition-colors cursor-pointer"
           >
             Xóa tất cả bộ lọc (
-            {selectedCategories.length + selectedBrands.length})
+            {selectedCategories.length +
+              selectedBrands.length +
+              selectedProductTypes.length}
+            )
           </button>
         </div>
       )}

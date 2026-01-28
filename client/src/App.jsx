@@ -16,6 +16,8 @@ import Register from "./pages/Auth/Register";
 import ForgotPassword from "./pages/Auth/ForgotPassword";
 import BlogList from "./pages/blog/BlogList";
 import BlogPost from "./pages/blog/BlogPost";
+import { PreOrderProvider } from "./context/PreOrderContext";
+import PreOrderList from "./pages/PreOrder/PreOrderList";
 
 import { StaffLayout } from "./components/layouts/StaffLayout";
 import StaffDashboard from "./pages/staff/Dashboard";
