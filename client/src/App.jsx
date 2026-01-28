@@ -17,30 +17,51 @@ import ForgotPassword from "./pages/Auth/ForgotPassword";
 import BlogList from "./pages/blog/BlogList";
 import BlogPost from "./pages/blog/BlogPost";
 
+import { StaffLayout } from "./components/layouts/StaffLayout";
+import StaffDashboard from "./pages/staff/Dashboard";
+import StaffOrders from "./pages/staff/Orders";
+import StaffProducts from "./pages/staff/Products";
+import StaffInventory from "./pages/staff/Inventory";
+
 function App() {
   return (
     <AuthProvider>
       <CartProvider>
         <Router>
-          <div className="min-h-screen bg-gray-50 flex flex-col relative">
-            {/* <SakuraFalling />  */}
-            <Header /> {/* Giữ sticky top-0 z-50 */}
-            <main className="flex-1 relative z-10">
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/products" element={<ProductListing />} />
-                <Route path="/product/:slug" element={<ProductDetail />} />
-                <Route path="/cart" element={<Cart />} />
-                <Route path="/checkout" element={<Checkout />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/blog" element={<BlogList />} />
-                <Route path="/blog/:id" element={<BlogPost />} />
-              </Routes>
-            </main>
-            <Footer />
-          </div>
+          <Routes>
+            {/* Staff routes - separate layout */}
+            <Route path="/staff" element={<StaffLayout />}>
+              <Route index element={<StaffDashboard />} />
+              <Route path="orders" element={<StaffOrders />} />
+              <Route path="products" element={<StaffProducts />} />
+              <Route path="inventory" element={<StaffInventory />} />
+            </Route>
+
+            {/* Public routes - with Header/Footer */}
+            <Route
+              path="/*"
+              element={
+                <div className="min-h-screen bg-gray-50 flex flex-col relative">
+                  {/* <SakuraFalling />  */}
+                  <Header />
+                  <main className="flex-1 relative z-10">
+                    <Routes>
+                      <Route path="/" element={<Index />} />
+                      <Route path="/products" element={<ProductListing />} />
+                      <Route path="/product/:slug" element={<ProductDetail />} />
+                      <Route path="/cart" element={<Cart />} />
+                      <Route path="/checkout" element={<Checkout />} />
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/register" element={<Register />} />
+                      <Route path="/blog" element={<BlogList />} />
+                      <Route path="/blog/:id" element={<BlogPost />} />
+                    </Routes>
+                  </main>
+                  <Footer />
+                </div>
+              }
+            />
+          </Routes>
         </Router>
       </CartProvider>
     </AuthProvider>
