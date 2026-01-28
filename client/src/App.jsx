@@ -23,6 +23,7 @@ import ForgotPassword from "./pages/Auth/ForgotPassword";
 import BlogList from "./pages/blog/BlogList";
 import BlogPost from "./pages/blog/BlogPost";
 import PreOrderList from "./pages/PreOrder/PreOrderList";
+import AccountPage from "./pages/Account";
 
 import { StaffLayout } from "./components/layouts/StaffLayout";
 import StaffDashboard from "./pages/staff/Dashboard";
@@ -90,6 +91,7 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/account" element={<AccountPage />} />
                 <Route path="/blog" element={<BlogList />} />
                 <Route path="/blog/:id" element={<BlogPost />} />
                 <Route path="/preorders" element={<PreOrderList />} />

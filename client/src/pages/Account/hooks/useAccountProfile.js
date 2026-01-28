@@ -1,0 +1,78 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useAuth } from "../../../context/AuthContext";
+import { decodeJwtPayload } from "../utils/authToken";
+import {
+  changePassword,
+  fetchUserProfile,
+  updateUserProfile,
+} from "../services/accountApi";
+
+const buildInitialState = () => ({
+  data: null,
+  loading: true,
+  error: "",
+});
+
+export const useAccountProfile = () => {
+  const { token } = useAuth();
+  const [state, setState] = useState(buildInitialState);
+
+  const decodedToken = useMemo(() => decodeJwtPayload(token), [token]);
+  const userId = decodedToken?.id;
+  const userEmail = decodedToken?.email;
+
+  const loadProfile = useCallback(async () => {
+    if (!token || !userId) {
+      setState({
+        data: null,
+        loading: false,
+        error: "Vui lòng đăng nhập để xem hồ sơ.",
+      });
+      return;
+    }
+    setState((prev) => ({ ...prev, loading: true, error: "" }));
+    try {
+      const response = await fetchUserProfile(userId, token);
+      setState({ data: response?.data || null, loading: false, error: "" });
+    } catch (error) {
+      setState({
+        data: null,
+        loading: false,
+        error: error?.message || "Không thể tải hồ sơ.",
+      });
+    }
+  }, [token, userId]);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
+
+  const updateProfile = async (payload) => {
+    if (!token || !userId) {
+      throw new Error("Vui lòng đăng nhập để cập nhật hồ sơ.");
+    }
+    const response = await updateUserProfile(userId, payload, token);
+    if (response?.data) {
+      setState((prev) => ({ ...prev, data: response.data }));
+    }
+    return response;
+  };
+
+  const updatePassword = async (payload) => {
+    if (!token) {
+      throw new Error("Vui lòng đăng nhập để đổi mật khẩu.");
+    }
+    return changePassword(payload, token);
+  };
+
+  return {
+    profile: state.data,
+    loading: state.loading,
+    error: state.error,
+    refresh: loadProfile,
+    updateProfile,
+    updatePassword,
+    userId,
+    userEmail,
+  };
+};
