@@ -48,11 +48,18 @@ function App() {
                     <Routes>
                       <Route path="/" element={<Index />} />
                       <Route path="/products" element={<ProductListing />} />
-                      <Route path="/product/:slug" element={<ProductDetail />} />
+                      <Route
+                        path="/product/:slug"
+                        element={<ProductDetail />}
+                      />
                       <Route path="/cart" element={<Cart />} />
                       <Route path="/checkout" element={<Checkout />} />
                       <Route path="/login" element={<Login />} />
                       <Route path="/register" element={<Register />} />
+                      <Route
+                        path="/forgot-password"
+                        element={<ForgotPassword />}
+                      />
                       <Route path="/blog" element={<BlogList />} />
                       <Route path="/blog/:id" element={<BlogPost />} />
                     </Routes>
