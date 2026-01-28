@@ -75,6 +75,14 @@ function Login() {
     }
   };
 
+  const handleForgotPasswordLink = (event) => {
+    event.preventDefault();
+    if (window.location.pathname !== '/forgot-password') {
+      window.history.pushState({}, '', '/forgot-password');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }
+  };
+
   const showStatus = (nextStatus, durationMs = 3500) => {
     if (statusTimerRef.current) {
       clearTimeout(statusTimerRef.current);
@@ -292,6 +300,16 @@ function Login() {
                     </button>
                   </span>
                 </label>
+
+                <div className="text-right text-[13px]">
+                  <a
+                    className="text-[#8b7b84] hover:underline"
+                    href="/forgot-password"
+                    onClick={handleForgotPasswordLink}
+                  >
+                    Quên mật khẩu?
+                  </a>
+                </div>
 
                 <button
                   className="h-[44px] rounded-[12px] border-0 bg-[#e996b1] text-white font-semibold text-[15px] cursor-pointer shadow-[0_8px_16px_rgba(233,150,177,0.35)] disabled:opacity-70 disabled:cursor-not-allowed"
