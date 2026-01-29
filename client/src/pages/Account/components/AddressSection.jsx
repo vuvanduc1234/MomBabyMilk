@@ -320,7 +320,7 @@ export default function AddressSection({
         <form className="flex flex-col gap-4" onSubmit={onSubmit}>
           <div>
             <h3 className="text-[18px] font-semibold text-[#2b2730]">
-              Địa chỉ mới (dùng thông tin trước sắp nhập)
+              Địa chỉ mới (dùng thông tin trước sáp nhập)
             </h3>
           </div>
 
