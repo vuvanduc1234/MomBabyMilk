@@ -1,25 +1,26 @@
-const API_BASE = window.__API_BASE__ || 'http://localhost:5000';
+import axios from "axios";
+
+const API_BASE = "http://localhost:3000";
 
 const request = async (path, payload) => {
-  const response = await fetch(`${API_BASE}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const message = data?.message || 'Yêu cầu thất bại. Vui lòng thử lại.';
+  try {
+    const response = await axios.post(`${API_BASE}${path}`, payload);
+    return response.data;
+  } catch (error) {
+    const message =
+      error?.response?.data?.error ||
+      error?.response?.data?.message ||
+      error?.message ||
+      "Yêu cầu thất bại. Vui lòng thử lại.";
     throw new Error(message);
   }
-
-  return data;
 };
 
-export const requestPasswordReset = (email) => request('/auth/forget-password', { email });
+export const requestPasswordReset = (email) =>
+  request("/api/auth/forget-password", { email });
 
 export const resetPassword = ({ otp, newPassword }) =>
-  request('/auth/reset-password', {
+  request("/api/auth/reset-password", {
     token: otp,
     newPassword,
   });

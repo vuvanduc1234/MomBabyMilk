@@ -1,16 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import Footer from '../../components/layouts/Footer';
-import { useAuth } from '../../context/AuthContext';
+import { useEffect, useRef, useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import Footer from "../../components/layouts/Footer";
+import { useAuth } from "../../context/AuthContext";
 
-const isLoginPath = () => window.location.pathname === '/login';
-const API_BASE = window.__API_BASE__ || 'http://localhost:5000';
+const isLoginPath = () => window.location.pathname === "/login";
+const API_BASE = "http://localhost:3000";
 
 function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [isOpen, setIsOpen] = useState(isLoginPath());
-  const [form, setForm] = useState({ email: '', password: '' });
+  const [form, setForm] = useState({ email: "", password: "" });
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -20,8 +21,8 @@ function Login() {
     const handlePopState = () => {
       setIsOpen(isLoginPath());
     };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
   useEffect(() => {
@@ -35,16 +36,16 @@ function Login() {
   useEffect(() => {
     if (!isOpen) return;
     const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
 
     const hiddenElements = [];
     const targets = document.querySelectorAll(
-      'header, footer, .fixed.inset-0.pointer-events-none.overflow-hidden'
+      "header, footer, .fixed.inset-0.pointer-events-none.overflow-hidden",
     );
     targets.forEach((element) => {
       if (!element.dataset.loginHidden) {
-        element.dataset.loginHidden = 'true';
-        element.classList.add('hidden');
+        element.dataset.loginHidden = "true";
+        element.classList.add("hidden");
         hiddenElements.push(element);
       }
     });
@@ -52,9 +53,9 @@ function Login() {
     return () => {
       document.body.style.overflow = previousOverflow;
       hiddenElements.forEach((element) => {
-        if (element.dataset.loginHidden === 'true') {
+        if (element.dataset.loginHidden === "true") {
           delete element.dataset.loginHidden;
-          element.classList.remove('hidden');
+          element.classList.remove("hidden");
         }
       });
     };
@@ -62,24 +63,24 @@ function Login() {
 
   const openLogin = () => {
     if (!isLoginPath()) {
-      window.history.pushState({}, '', '/login');
+      window.history.pushState({}, "", "/login");
     }
     setIsOpen(true);
   };
 
   const handleRegisterLink = (event) => {
     event.preventDefault();
-    if (window.location.pathname !== '/register') {
-      window.history.pushState({}, '', '/register');
-      window.dispatchEvent(new PopStateEvent('popstate'));
+    if (window.location.pathname !== "/register") {
+      window.history.pushState({}, "", "/register");
+      window.dispatchEvent(new PopStateEvent("popstate"));
     }
   };
 
   const handleForgotPasswordLink = (event) => {
     event.preventDefault();
-    if (window.location.pathname !== '/forgot-password') {
-      window.history.pushState({}, '', '/forgot-password');
-      window.dispatchEvent(new PopStateEvent('popstate'));
+    if (window.location.pathname !== "/forgot-password") {
+      window.history.pushState({}, "", "/forgot-password");
+      window.dispatchEvent(new PopStateEvent("popstate"));
     }
   };
 
@@ -96,22 +97,22 @@ function Login() {
   };
 
   const normalizeErrorMessage = (message) => {
-    if (!message) return 'Không thể kết nối máy chủ.';
+    if (!message) return "Không thể kết nối máy chủ.";
 
     const lowerMsg = message.toLowerCase();
 
     if (
-      lowerMsg.includes('failed to fetch') ||
-      lowerMsg.includes('network error') ||
-      lowerMsg.includes('networkerror') ||
-      lowerMsg.includes('fetch error') ||
-      lowerMsg.includes('net::')
+      lowerMsg.includes("failed to fetch") ||
+      lowerMsg.includes("network error") ||
+      lowerMsg.includes("networkerror") ||
+      lowerMsg.includes("fetch error") ||
+      lowerMsg.includes("net::")
     ) {
-      return 'Không thể kết nối máy chủ.';
+      return "Không thể kết nối máy chủ.";
     }
 
-    if (lowerMsg.includes('timeout')) {
-      return 'Kết nối bị timeout. Vui lòng thử lại.';
+    if (lowerMsg.includes("timeout")) {
+      return "Kết nối bị timeout. Vui lòng thử lại.";
     }
 
     return message;
@@ -120,8 +121,11 @@ function Login() {
   const handleChange = (event) => {
     const { name, value } = event.target;
     setForm((prev) => ({ ...prev, [name]: value }));
-    if (name === 'password' && value && !form.email.trim()) {
-      showStatus({ type: 'error', message: 'Vui lòng nhập email trước khi nhập mật khẩu.' });
+    if (name === "password" && value && !form.email.trim()) {
+      showStatus({
+        type: "error",
+        message: "Vui lòng nhập email trước khi nhập mật khẩu.",
+      });
     }
   };
 
@@ -132,25 +136,25 @@ function Login() {
   const handleEmailInvalid = (event) => {
     const input = event.target;
     if (input.validity.valueMissing) {
-      input.setCustomValidity('Vui lòng nhập email.');
+      input.setCustomValidity("Vui lòng nhập email.");
     } else if (input.validity.typeMismatch) {
-      input.setCustomValidity('Vui lòng nhập email hợp lệ.');
+      input.setCustomValidity("Vui lòng nhập email hợp lệ.");
     } else {
-      input.setCustomValidity('');
+      input.setCustomValidity("");
     }
   };
 
   const handlePasswordInvalid = (event) => {
     const input = event.target;
     if (input.validity.valueMissing) {
-      input.setCustomValidity('Vui lòng nhập mật khẩu.');
+      input.setCustomValidity("Vui lòng nhập mật khẩu.");
     } else {
-      input.setCustomValidity('');
+      input.setCustomValidity("");
     }
   };
 
   const handleInput = (event) => {
-    event.target.setCustomValidity('');
+    event.target.setCustomValidity("");
   };
 
   const handleSubmit = async (event) => {
@@ -160,39 +164,35 @@ function Login() {
 
     try {
       if (!form.email.trim() && form.password) {
-        showStatus({ type: 'error', message: 'Vui lòng nhập email trước khi nhập mật khẩu.' });
+        showStatus({
+          type: "error",
+          message: "Vui lòng nhập email trước khi nhập mật khẩu.",
+        });
+        setLoading(false);
         return;
       }
 
-      const response = await fetch(`${API_BASE}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: form.email.trim(),
-          password: form.password,
-        }),
+      const response = await axios.post(`${API_BASE}/api/auth/login`, {
+        email: form.email.trim(),
+        password: form.password,
       });
-
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        const errorMsg = data?.message || 'Đăng nhập thất bại.';
-        throw new Error(errorMsg);
-      }
-
-      const { accessToken, refreshToken, user } = data;
+      const { accessToken, refreshToken, user } = response?.data || {};
       if (accessToken) {
         login(accessToken, refreshToken, user);
       }
 
-      showStatus({ type: 'success', message: 'Đăng nhập thành công.' });
+      showStatus({ type: "success", message: "Đăng nhập thành công." });
 
       setTimeout(() => {
-        navigate('/products');
+        navigate("/products");
       }, 1000);
     } catch (error) {
-      const errorMessage = error?.message || 'Không thể kết nối máy chủ.';
+      const serverMessage =
+        error?.response?.data?.error || error?.response?.data?.message;
+      const errorMessage =
+        serverMessage || error?.message || "Không thể kết nối máy chủ.";
       showStatus({
-        type: 'error',
+        type: "error",
         message: normalizeErrorMessage(errorMessage),
       });
     } finally {
@@ -206,7 +206,7 @@ function Login() {
         type="button"
         onClick={openLogin}
         className={`${
-          isOpen ? 'hidden' : ''
+          isOpen ? "hidden" : ""
         } border-0 px-4 py-2 rounded-full text-[14px] font-semibold cursor-pointer bg-[#e996b1] text-[#2b1b24] shadow-[0_6px_14px_rgba(233,150,177,0.35)]`}
       >
         Đăng nhập
@@ -218,9 +218,9 @@ function Login() {
             <div className="absolute top-5 left-1/2 -translate-x-1/2 w-[min(520px,90%)] flex justify-center pointer-events-none z-[2]">
               <div
                 className={`w-full px-[18px] py-3 rounded-[12px] text-[13px] font-semibold tracking-[0.1px] text-center border border-[rgba(255,255,255,0.12)] shadow-[0_12px_30px_rgba(0,0,0,0.24)] backdrop-blur-[10px] animate-[fadeIn_0.25s_ease-out] ${
-                  status.type === 'success'
-                    ? 'bg-[#4caf50] text-[#1b5e20]'
-                    : 'bg-[#e53935] text-white'
+                  status.type === "success"
+                    ? "bg-[#4caf50] text-[#1b5e20]"
+                    : "bg-[#e53935] text-white"
                 }`}
               >
                 {status.message}
@@ -245,12 +245,17 @@ function Login() {
             </div>
 
             <div className="w-[420px] bg-white rounded-[16px] border border-[#f0dbe4] shadow-[0_18px_50px_rgba(41,10,24,0.08)] pt-8 px-8 pb-6 max-[480px]:w-full max-[480px]:pt-[28px] max-[480px]:px-[22px] max-[480px]:pb-[22px]">
-              <h1 className="text-center text-[26px] m-0 text-[#2b2730]">Đăng nhập</h1>
+              <h1 className="text-center text-[26px] m-0 text-[#2b2730]">
+                Đăng nhập
+              </h1>
               <p className="text-center mt-2 mb-7 text-[#8b7b84] text-[14px]">
                 Đăng nhập để mua sắm và theo dõi đơn hàng
               </p>
 
-              <form className="flex flex-col gap-[18px]" onSubmit={handleSubmit}>
+              <form
+                className="flex flex-col gap-[18px]"
+                onSubmit={handleSubmit}
+              >
                 <label className="flex flex-col gap-2 text-[14px] text-[#3b3339]">
                   <span className="font-medium">Email</span>
                   <span className="relative flex items-center">
@@ -279,7 +284,7 @@ function Login() {
                       <LockIcon />
                     </span>
                     <input
-                      type={showPassword ? 'text' : 'password'}
+                      type={showPassword ? "text" : "password"}
                       name="password"
                       className="w-full h-[44px] pl-[42px] pr-[44px] rounded-[10px] border-[1.5px] border-[#f1d4e0] bg-white text-[14px] outline-none transition-[border-color,box-shadow] duration-200 focus:border-[#e996b1] focus:shadow-[0_0_0_3px_rgba(233,150,177,0.15)]"
                       placeholder="Nhập mật khẩu"
@@ -293,7 +298,9 @@ function Login() {
                     <button
                       className="absolute right-[12px] bg-transparent border-0 text-[#c78ea6] cursor-pointer p-1"
                       type="button"
-                      aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                      aria-label={
+                        showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"
+                      }
                       onClick={togglePassword}
                     >
                       <EyeIcon isOpen={showPassword} />
@@ -316,12 +323,12 @@ function Login() {
                   type="submit"
                   disabled={loading}
                 >
-                  {loading ? 'Đang xử lý...' : 'Đăng nhập'}
+                  {loading ? "Đang xử lý..." : "Đăng nhập"}
                 </button>
               </form>
 
               <div className="mt-5 text-center text-[13px] text-[#7e6b75]">
-                Chưa có tài khoản?{' '}
+                Chưa có tài khoản?{" "}
                 <a
                   className="text-[#e996b1] no-underline font-semibold hover:underline"
                   href="/register"
@@ -356,7 +363,11 @@ function Login() {
 
 function MailIcon() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="w-[18px] h-[18px] fill-current">
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className="w-[18px] h-[18px] fill-current"
+    >
       <path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4-8 5-8-5V6l8 5 8-5z" />
     </svg>
   );
@@ -364,7 +375,11 @@ function MailIcon() {
 
 function LockIcon() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="w-[18px] h-[18px] fill-current">
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className="w-[18px] h-[18px] fill-current"
+    >
       <path d="M17 9h-1V7a4 4 0 0 0-8 0v2H7a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2zm-7-2a2 2 0 0 1 4 0v2h-4z" />
     </svg>
   );
@@ -372,7 +387,11 @@ function LockIcon() {
 
 function EyeIcon({ isOpen }) {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="w-[18px] h-[18px] fill-current">
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className="w-[18px] h-[18px] fill-current"
+    >
       {isOpen ? (
         <path d="M12 4.5c-5.6 0-10.3 3.5-12 7.5 1.7 4 6.4 7.5 12 7.5s10.3-3.5 12-7.5c-1.7-4-6.4-7.5-12-7.5zm0 12.2a4.7 4.7 0 1 1 0-9.4 4.7 4.7 0 0 1 0 9.4z" />
       ) : (

@@ -282,18 +282,6 @@ export default function AccountPage() {
       });
       return;
     }
-    if (isDemo) {
-      setPasswordStatus({
-        type: "success",
-        message: "Demo: Đổi mật khẩu thành công.",
-      });
-      setPasswordForm({
-        oldPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      });
-      return;
-    }
     setBusySection("password");
     try {
       await updatePassword({
