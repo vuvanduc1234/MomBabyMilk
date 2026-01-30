@@ -88,24 +88,26 @@ const updateBrand = async (req, res) => {
       });
     }
 
-    if (oldBrand.categories && oldBrand.categories.length > 0) {
-      await CategoryModel.updateMany(
-        { _id: { $in: oldBrand.categories } },
-        { $pull: { brands: id } },
-      );
+    if (req.body.hasOwnProperty('categories')) {
+      if (oldBrand.categories && oldBrand.categories.length > 0) {
+        await CategoryModel.updateMany(
+          { _id: { $in: oldBrand.categories } },
+          { $pull: { brands: id } },
+        );
+      }
+
+      if (categories && categories.length > 0) {
+        await CategoryModel.updateMany(
+          { _id: { $in: categories } },
+          { $addToSet: { brands: id } },
+        );
+      }
     }
 
     const brand = await BrandModel.findByIdAndUpdate(id, req.body, {
       new: true,
       runValidators: true,
     }).populate("categories");
-
-    if (categories && categories.length > 0) {
-      await CategoryModel.updateMany(
-        { _id: { $in: categories } },
-        { $addToSet: { brands: id } },
-      );
-    }
 
     res.status(200).json({
       message: "Cập nhật thương hiệu thành công",

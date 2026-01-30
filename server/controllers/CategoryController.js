@@ -92,24 +92,26 @@ const updateCategory = async (req, res) => {
       });
     }
 
-    if (oldCategory.brands && oldCategory.brands.length > 0) {
-      await BrandModel.updateMany(
-        { _id: { $in: oldCategory.brands } },
-        { $pull: { categories: id } }
-      );
+    if (req.body.hasOwnProperty('brands')) {
+      if (oldCategory.brands && oldCategory.brands.length > 0) {
+        await BrandModel.updateMany(
+          { _id: { $in: oldCategory.brands } },
+          { $pull: { categories: id } }
+        );
+      }
+
+      if (brands && brands.length > 0) {
+        await BrandModel.updateMany(
+          { _id: { $in: brands } },
+          { $addToSet: { categories: id } }
+        );
+      }
     }
 
     const category = await CategoryModel.findByIdAndUpdate(id, req.body, {
       new: true,
       runValidators: true,
     }).populate('brands').populate('parentCategory');
-
-    if (brands && brands.length > 0) {
-      await BrandModel.updateMany(
-        { _id: { $in: brands } },
-        { $addToSet: { categories: id } }
-      );
-    }
 
     res.status(200).json({
       message: "Cập nhật danh mục thành công",
