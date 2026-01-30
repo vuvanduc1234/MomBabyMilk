@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE = "http://localhost:3000";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 const request = async (path, payload) => {
   try {
@@ -21,6 +21,6 @@ export const requestPasswordReset = (email) =>
 
 export const resetPassword = ({ otp, newPassword }) =>
   request("/api/auth/reset-password", {
-    token: otp,
+    otp: otp,
     newPassword,
   });
