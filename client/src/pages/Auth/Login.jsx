@@ -5,7 +5,7 @@ import Footer from "../../components/layouts/Footer";
 import { useAuth } from "../../context/AuthContext";
 
 const isLoginPath = () => window.location.pathname === "/login";
-const API_BASE = "http://localhost:3000";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 function Login() {
   const navigate = useNavigate();
@@ -181,11 +181,11 @@ function Login() {
         login(accessToken, refreshToken, user);
       }
 
-      showStatus({ type: "success", message: "Đăng nhập thành công." });
-
-      setTimeout(() => {
-        navigate("/products");
-      }, 1000);
+      if (user?.role === "Admin") {
+        navigate("/Admin");
+      } else {
+        navigate("/");
+      }
     } catch (error) {
       const serverMessage =
         error?.response?.data?.error || error?.response?.data?.message;

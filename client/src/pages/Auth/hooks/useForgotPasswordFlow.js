@@ -2,13 +2,11 @@ import { useState } from "react";
 import {
   requestPasswordReset,
   resetPassword,
-} from "../../../services/auth/forgotPassword";
+} from "../services/forgotPassword";
 
 const STEPS = {
   EMAIL: "email",
-  OTP: "otp",
   RESET: "reset",
-  SUCCESS: "success",
 };
 
 const normalizeErrorMessage = (message, fallbackMessage) => {
@@ -60,7 +58,7 @@ export const useForgotPasswordFlow = () => {
 
     try {
       await requestPasswordReset(normalizedEmail);
-      setStep(STEPS.OTP);
+      setStep(STEPS.RESET);
       setMessage("Mã OTP đã được gửi về email của bạn.");
       return true;
     } catch (err) {
@@ -76,7 +74,7 @@ export const useForgotPasswordFlow = () => {
     }
   };
 
-  const handleSubmitOtp = async () => {
+  const handleSubmitReset = async () => {
     if (!otp.trim()) {
       setError("Vui lòng nhập mã OTP.");
       return false;
@@ -87,12 +85,6 @@ export const useForgotPasswordFlow = () => {
       return false;
     }
 
-    clearFeedback();
-    setStep(STEPS.RESET);
-    return true;
-  };
-
-  const handleSubmitReset = async () => {
     if (!newPassword || !confirmPassword) {
       setError("Vui lòng nhập đầy đủ mật khẩu.");
       return false;
@@ -111,10 +103,10 @@ export const useForgotPasswordFlow = () => {
         otp: otp.trim(),
         newPassword,
       });
-      setStep(STEPS.SUCCESS);
       setMessage("Đổi mật khẩu thành công.");
       return true;
     } catch (err) {
+      setOtp("");
       setError(
         normalizeErrorMessage(
           err?.message,
@@ -130,11 +122,6 @@ export const useForgotPasswordFlow = () => {
   const goToEmailStep = () => {
     clearFeedback();
     setStep(STEPS.EMAIL);
-  };
-
-  const goToOtpStep = () => {
-    clearFeedback();
-    setStep(STEPS.OTP);
   };
 
   const goToResetStep = () => {
@@ -156,10 +143,8 @@ export const useForgotPasswordFlow = () => {
     error,
     message,
     handleSubmitEmail,
-    handleSubmitOtp,
     handleSubmitReset,
     goToEmailStep,
-    goToOtpStep,
     goToResetStep,
   };
 };
