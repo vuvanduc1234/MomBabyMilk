@@ -130,7 +130,7 @@ const formatDateTime = (dateString) => {
 const cardClasses = {
   card: "",
   cardHeader: "flex flex-row items-center justify-between pb-2",
-  cardTitle: "font-medium text-muted-foreground tracking-tight",
+  cardTitle: "font-medium text-muted-foreground tracking-tight flex items-center",
   cardContent: "text-4xl font-medium tracking-tight mb-1",
 };
 
@@ -140,7 +140,7 @@ export default function StaffDashboard() {
 
   return (
     <div className="space-y-6">
-       <div className="px-4 pt-4">
+       <div className="pt-2">
         <h1 className="text-2xl font-semibold text-foreground tracking-tight">
           Staff Dashboard
         </h1>
@@ -152,7 +152,7 @@ export default function StaffDashboard() {
         <Card className={cardClasses.card}>
           <CardHeader className={cardClasses.cardHeader}>
             <CardTitle className={cardClasses.cardTitle}>
-              <Clock className="mr-2 inline-block" />
+              <Clock className="w-5 h-5 mr-2 inline-block" />
               Chờ xác nhận
             </CardTitle>
           </CardHeader>
@@ -167,7 +167,7 @@ export default function StaffDashboard() {
         <Card className={cardClasses.card}>
           <CardHeader className={cardClasses.cardHeader}>
             <CardTitle className={cardClasses.cardTitle}>
-              <CheckCircle className="mr-2 inline-block" />
+              <CheckCircle className="w-5 h-5 mr-2 inline-block" />
               Đang xử lý
             </CardTitle>
           </CardHeader>
@@ -182,7 +182,7 @@ export default function StaffDashboard() {
         <Card className={cardClasses.card}>
           <CardHeader className={cardClasses.cardHeader}>
             <CardTitle className={cardClasses.cardTitle}>
-              <Truck className="mr-2 inline-block" />
+              <Truck className="w-5 h-5 mr-2 inline-block" />
               Đang giao
             </CardTitle>
           </CardHeader>

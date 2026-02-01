@@ -29,7 +29,7 @@ import AccountPage from "./pages/Account";
 import { StaffLayout } from "./components/layouts/StaffLayout";
 import StaffDashboard from "./pages/staff/Dashboard";
 import StaffOrders from "./pages/staff/Orders";
-import StaffProducts from "./pages/staff/Products";
+import StaffProducts from "./pages/staff/products/Products";
 import StaffInventory from "./pages/staff/Inventory";
 import { AdminLayout } from "./components/layouts/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
