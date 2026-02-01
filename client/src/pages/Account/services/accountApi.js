@@ -1,4 +1,6 @@
-const API_BASE = window.__API_BASE__ || "http://localhost:5000";
+import axios from "axios";
+
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 const buildHeaders = (token) => {
   const headers = { "Content-Type": "application/json" };
@@ -8,36 +10,48 @@ const buildHeaders = (token) => {
   return headers;
 };
 
-const parseJson = async (response) => {
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const message = data?.message || data?.error || "Yêu cầu thất bại.";
-    throw new Error(message);
-  }
-  return data;
+const handleError = (error) => {
+  const message =
+    error?.response?.data?.message ||
+    error?.response?.data?.error ||
+    error?.message ||
+    "Yêu cầu thất bại.";
+  throw new Error(message);
 };
 
 export const fetchUserProfile = async (userId, token) => {
-  const response = await fetch(`${API_BASE}/users/${userId}`, {
-    headers: buildHeaders(token),
-  });
-  return parseJson(response);
+  try {
+    const response = await axios.get(`${API_BASE}/api/users/${userId}`, {
+      headers: buildHeaders(token),
+    });
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
 };
 
 export const updateUserProfile = async (userId, payload, token) => {
-  const response = await fetch(`${API_BASE}/users/${userId}`, {
-    method: "PATCH",
-    headers: buildHeaders(token),
-    body: JSON.stringify(payload),
-  });
-  return parseJson(response);
+  try {
+    const response = await axios.patch(
+      `${API_BASE}/api/users/${userId}`,
+      payload,
+      { headers: buildHeaders(token) }
+    );
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
 };
 
 export const changePassword = async (payload, token) => {
-  const response = await fetch(`${API_BASE}/auth/change-password`, {
-    method: "POST",
-    headers: buildHeaders(token),
-    body: JSON.stringify(payload),
-  });
-  return parseJson(response);
+  try {
+    const response = await axios.post(
+      `${API_BASE}/api/auth/change-password`,
+      payload,
+      { headers: buildHeaders(token) }
+    );
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
 };
