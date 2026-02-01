@@ -1,5 +1,10 @@
 // App.jsx
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 
@@ -19,8 +24,13 @@ import BlogPost from "./pages/blog/BlogPost";
 import { StaffLayout } from "./components/layouts/StaffLayout";
 import StaffDashboard from "./pages/staff/Dashboard";
 import StaffOrders from "./pages/staff/Orders";
-import StaffProducts from "./pages/staff/Products";
+import StaffProducts from "./pages/staff/products/Products";
 import StaffInventory from "./pages/staff/Inventory";
+import NotFound from "./pages/NotFound";
+import Articles from "./pages/staff/Articles";
+import Customers from "./pages/staff/Customers";
+import Vouchers from "./pages/staff/Vouchers";
+import Complaints from "./pages/staff/Complaints";
 
 function App() {
   return (
@@ -34,6 +44,10 @@ function App() {
               <Route path="orders" element={<StaffOrders />} />
               <Route path="products" element={<StaffProducts />} />
               <Route path="inventory" element={<StaffInventory />} />
+              <Route path="articles" element={<Articles />}/>
+              <Route path="customers" element={<Customers />}/>
+              <Route path="vouchers" element={<Vouchers />}/>
+              <Route path="complaints" element={<Complaints />}/>
             </Route>
 
             {/* Public routes - with Header/Footer */}
@@ -47,13 +61,17 @@ function App() {
                     <Routes>
                       <Route path="/" element={<Index />} />
                       <Route path="/products" element={<ProductListing />} />
-                      <Route path="/product/:slug" element={<ProductDetail />} />
+                      <Route
+                        path="/product/:slug"
+                        element={<ProductDetail />}
+                      />
                       <Route path="/cart" element={<Cart />} />
                       <Route path="/checkout" element={<Checkout />} />
                       <Route path="/login" element={<Login />} />
                       <Route path="/register" element={<Register />} />
                       <Route path="/blog" element={<BlogList />} />
                       <Route path="/blog/:id" element={<BlogPost />} />
+                      <Route path="*" element={<NotFound />} />
                     </Routes>
                   </main>
                   <Footer />

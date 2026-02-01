@@ -7,19 +7,35 @@ import {
   Warehouse,
   LogOut,
   Menu,
-  Home,
+  Newspaper,
+  Users,
+  TicketPercent,
+  MessageCircleWarning,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/staff" },
   { icon: ShoppingCart, label: "Đơn hàng", href: "/staff/orders" },
   { icon: Package, label: "Sản phẩm", href: "/staff/products" },
   { icon: Warehouse, label: "Kho hàng", href: "/staff/inventory" },
+  { icon: Newspaper, label: "Bài viết", href: "/staff/articles" },
+  { icon: Users, label: "Khách hàng", href: "/staff/customers" },
+  { icon: TicketPercent, label: "Voucher", href: "/staff/vouchers" },
+  { icon: MessageCircleWarning, label: "Phàn nàn", href: "/staff/complaints" },
 ];
 
 export function StaffLayout() {
@@ -48,7 +64,7 @@ export function StaffLayout() {
 
   const handleLogout = async () => {};
 
-  const Sidebar = () => (
+  const MobileSidebar = () => (
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="p-6">
@@ -72,7 +88,7 @@ export function StaffLayout() {
                 to={item.href}
                 onClick={() => setMobileOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-3 text-sm",
+                  "flex items-center gap-3 px-4 py-3 text-sm",
                   isActive
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -93,7 +109,7 @@ export function StaffLayout() {
         <div className="py-1">
           <Link
             to="/staff/profile"
-            className="flex items-center gap-3 px-3 py-3 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             <div className="w-10 h-10 bg-muted rounded-full"></div>
             <div>
@@ -103,17 +119,9 @@ export function StaffLayout() {
           </Link>
         </div>
 
-        {/* <Link
-          to="/"
-          className="flex items-center gap-3 px-3 py-3 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
-        >
-          <Home className="h-5 w-5" strokeWidth={1.75} />
-          Về trang chủ
-        </Link> */}
-        
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-3 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
         >
           <LogOut className="h-5 w-5" strokeWidth={1.75} />
           Đăng xuất
@@ -124,37 +132,98 @@ export function StaffLayout() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Desktop Sidebar */}
-      <aside className="hidden lg:m-4 lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col border rounded-2xl bg-card lg:shadow-2xs">
-        <Sidebar />
-      </aside>
+      {/* Horizontal Top Navigation */}
+      <header className="sticky top-0 z-40 bg-white border-b">
+        <div className="container mx-auto">
+          <div className="flex py-3 items-center justify-between gap-4">
+            {/* Logo */}
+            <Link to="/staff" className="flex items-center gap-3 shrink-0">
+              <img src="/nura-logo-accent.svg" className="max-h-8" alt="Logo" />
+              <div className="h-6 w-px bg-gray-300" />
+              <span className="text-xs text-secondary-foreground hidden sm:block">
+                Dành cho nhân viên
+              </span>
+            </Link>
 
-      {/* Mobile Header */}
-      <div className="lg:hidden p-4 sticky top-0 z-40 bg-gray-50/50 backdrop-blur-sm">
-        <header className="flex items-center justify-between h-16 px-4 border rounded-2xl bg-card">
-          <Link to="/staff" className="flex items-center gap-3">
-            <img src="/nura-logo-accent.svg" className="max-h-8" />
-            <div className="h-6 w-px bg-gray-300" />
-            <span className="text-xs text-secondary-foreground">
-              Dành cho nhân viên
-            </span>
-          </Link>
-          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Menu className="h-6 w-6" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-64">
-              <Sidebar />
-            </SheetContent>
-          </Sheet>
-        </header>
-      </div>
+            {/* Desktop Navigation */}
+            <nav className="hidden lg:flex items-center gap-2 flex-1 justify-center">
+              {menuItems.map((item) => {
+                const isActive = location.pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    to={item.href}
+                    className={cn(
+                      "px-3 py-2 text-sm rounded-full transition-colors",
+                      isActive
+                        ? "bg-primary/10 text-primary font-medium"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    )}
+                  >
+                    <item.icon className="h-6 w-6 xl:hidden" strokeWidth={1.75} />
+                    <div className="hidden xl:block">{item.label}</div>
+                  </Link>
+                );
+              })}
+            </nav>
+
+            {/* Desktop User Menu */}
+            <div className="hidden lg:flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
+                      <User className="h-4 w-4" />
+                    </div>
+                    <span className="text-sm">userName</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>
+                    <div>
+                      <p className="font-medium">userName</p>
+                      <p className="text-xs text-muted-foreground">
+                        Cửa hàng trưởng
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/staff/profile" className="cursor-pointer">
+                      <User className="mr-2 h-4 w-4" />
+                      Trang cá nhân
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    className="cursor-pointer text-red-600"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Đăng xuất
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* Mobile Menu Button */}
+            <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="lg:hidden">
+                  <Menu className="h-6 w-6" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-0 w-64">
+                <MobileSidebar />
+              </SheetContent>
+            </Sheet>
+          </div>
+        </div>
+      </header>
 
       {/* Main Content */}
-      <main className="lg:pl-68">
-        <div className="p-4">
+      <main className="container mx-auto flex py-4 gap-4">
+        <div className="w-full">
           <Outlet />
         </div>
       </main>
