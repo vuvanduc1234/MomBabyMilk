@@ -29,7 +29,21 @@ export function ProtectedRoute({ children, allowedRoles = [] }) {
   }
 
   // Kiểm tra quyền truy cập nếu có chỉ định allowedRoles
-  if (allowedRoles.length > 0 && user) {
+  if (allowedRoles.length > 0) {
+    // Nếu chưa có user data nhưng đã authenticated, đợi load
+    if (!user) {
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">
+              Đang kiểm tra quyền truy cập...
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     const userRole = user.role || "customer";
 
     if (!allowedRoles.includes(userRole)) {
