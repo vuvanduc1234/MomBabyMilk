@@ -1,9 +1,9 @@
-// App.jsx
+// App.jsx - FIXED VERSION
 import {
   BrowserRouter as Router,
   Routes,
   Route,
-  Navigate,
+  Outlet,
 } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
@@ -31,60 +31,86 @@ import StaffDashboard from "./pages/staff/Dashboard";
 import StaffOrders from "./pages/staff/Orders";
 import StaffProducts from "./pages/staff/products/Products";
 import StaffInventory from "./pages/staff/Inventory";
+import StaffVouchers from "./pages/staff/Vouchers";
+import StaffComplaints from "./pages/staff/Complaints";
+import StaffCustomers from "./pages/staff/Customers";
+import StaffArticles from "./pages/staff/Articles";
+import { AdminLayout } from "./components/layouts/AdminLayout";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AccountManagement from "./pages/admin/AccountManagement";
+import RoleManagement from "./pages/admin/RoleManagement";
+import RevenueStatistics from "./pages/admin/RevenueStatistics";
+import SystemReports from "./pages/admin/SystemReports";
+import { ProtectedRoute } from "./components/layouts/ProtectedRoute";
 import NotFound from "./pages/NotFound";
-import Articles from "./pages/staff/Articles";
-import Customers from "./pages/staff/Customers";
-import Vouchers from "./pages/staff/Vouchers";
-import Complaints from "./pages/staff/Complaints";
+// Public Layout Component
+function PublicLayout() {
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col relative">
+      {/* <SakuraFalling />  */}
+      <Header />
+      <main className="flex-1 relative z-10">
+        <Outlet />
+      </main>
+      <Footer />
+    </div>
+  );
+}
 
 function App() {
   return (
     <AuthProvider>
       <CartProvider>
-        <Router>
-          <Routes>
-            {/* Staff routes - separate layout */}
-            <Route path="/staff" element={<StaffLayout />}>
-              <Route index element={<StaffDashboard />} />
-              <Route path="orders" element={<StaffOrders />} />
-              <Route path="products" element={<StaffProducts />} />
-              <Route path="inventory" element={<StaffInventory />} />
-              <Route path="articles" element={<Articles />}/>
-              <Route path="customers" element={<Customers />}/>
-              <Route path="vouchers" element={<Vouchers />}/>
-              <Route path="complaints" element={<Complaints />}/>
-            </Route>
+        <PreOrderProvider>
+          <Router>
+            <Routes>
+              {/* Staff routes - separate layout */}
+              <Route path="/staff" element={<StaffLayout />}>
+                <Route index element={<StaffDashboard />} />
+                <Route path="orders" element={<StaffOrders />} />
+                <Route path="products" element={<StaffProducts />} />
+                <Route path="inventory" element={<StaffInventory />} />
+                <Route path="vouchers" element={<StaffVouchers />} />
+                <Route path="complaints" element={<StaffComplaints />} />
+                <Route path="customers" element={<StaffCustomers />} />
+                <Route path="articles" element={<StaffArticles />} />
+              </Route>
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                    <AdminLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<AdminDashboard />} />
+                <Route path="accounts" element={<AccountManagement />} />
+                <Route path="roles" element={<RoleManagement />} />
+                <Route path="revenue" element={<RevenueStatistics />} />
+                <Route path="reports" element={<SystemReports />} />
+                <Route path="protect" element={<ProtectedRoute />} />
+              </Route>
 
-            {/* Public routes - with Header/Footer */}
-            <Route
-              path="/*"
-              element={
-                <div className="min-h-screen bg-gray-50 flex flex-col relative">
-                  {/* <SakuraFalling />  */}
-                  <Header />
-                  <main className="flex-1 relative z-10">
-                    <Routes>
-                      <Route path="/" element={<Index />} />
-                      <Route path="/products" element={<ProductListing />} />
-                      <Route
-                        path="/product/:slug"
-                        element={<ProductDetail />}
-                      />
-                      <Route path="/cart" element={<Cart />} />
-                      <Route path="/checkout" element={<Checkout />} />
-                      <Route path="/login" element={<Login />} />
-                      <Route path="/register" element={<Register />} />
-                      <Route path="/blog" element={<BlogList />} />
-                      <Route path="/blog/:id" element={<BlogPost />} />
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                  </main>
-                  <Footer />
-                </div>
-              }
-            />
-          </Routes>
-        </Router>
+              {/* Public routes - with Header/Footer */}
+              <Route element={<PublicLayout />}>
+                <Route path="/" element={<Index />} />
+                <Route path="/products" element={<ProductListing />} />
+                <Route path="/product/:slug" element={<ProductDetail />} />
+                <Route path="/cart" element={<Cart />} />
+                <Route path="/checkout" element={<Checkout />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/verify-email" element={<VerifyEmailOTP />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/account" element={<AccountPage />} />
+                <Route path="/blog" element={<BlogList />} />
+                <Route path="/blog/:id" element={<BlogPost />} />
+                <Route path="/preorders" element={<PreOrderList />} />
+                <Route path="*" element={<NotFound />} />
+              </Route>
+            </Routes>
+          </Router>
+        </PreOrderProvider>
       </CartProvider>
     </AuthProvider>
   );
