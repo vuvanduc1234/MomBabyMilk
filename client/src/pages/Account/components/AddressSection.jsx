@@ -11,12 +11,12 @@ const addressTypeOptions = [
 const isDraftComplete = (draft) =>
   Boolean(
     draft?.fullName &&
-    draft?.phone &&
-    draft?.provinceCode &&
-    draft?.districtCode &&
-    draft?.wardCode &&
-    draft?.addressLine &&
-    draft?.type,
+      draft?.phone &&
+      draft?.provinceCode &&
+      draft?.districtCode &&
+      draft?.wardCode &&
+      draft?.addressLine &&
+      draft?.type
   );
 
 export default function AddressSection({
@@ -33,6 +33,7 @@ export default function AddressSection({
   onDelete,
   onSetDefault,
   limit,
+  phoneError,
 }) {
   const [provinceList, setProvinceList] = useState([]);
   const [regionLoading, setRegionLoading] = useState(false);
@@ -47,7 +48,7 @@ export default function AddressSection({
       setRegionError("");
       try {
         const response = await fetch(
-          "https://provinces.open-api.vn/api/?depth=3",
+          "https://provinces.open-api.vn/api/?depth=3"
         );
         const data = await response.json();
         if (!response.ok) {
@@ -59,7 +60,7 @@ export default function AddressSection({
       } catch (error) {
         if (isMounted) {
           setRegionError(
-            error?.message || "Không thể tải danh sách tỉnh thành.",
+            error?.message || "Không thể tải danh sách tỉnh thành."
           );
         }
       } finally {
@@ -93,16 +94,16 @@ export default function AddressSection({
   const selectedProvince = useMemo(
     () =>
       provinceList.find((item) => `${item.code}` === `${value?.provinceCode}`),
-    [provinceList, value?.provinceCode],
+    [provinceList, value?.provinceCode]
   );
 
   const districtList = selectedProvince?.districts || [];
   const selectedDistrict = districtList.find(
-    (item) => `${item.code}` === `${value?.districtCode}`,
+    (item) => `${item.code}` === `${value?.districtCode}`
   );
   const wardList = selectedDistrict?.wards || [];
   const selectedWard = wardList.find(
-    (item) => `${item.code}` === `${value?.wardCode}`,
+    (item) => `${item.code}` === `${value?.wardCode}`
   );
 
   const emitChange = (name, nextValue) => {
@@ -136,10 +137,10 @@ export default function AddressSection({
     emitChange("districtCode", nextCode);
     emitChange("wardCode", "");
     const nextProvince = provinceList.find(
-      (item) => `${item.code}` === `${value?.provinceCode}`,
+      (item) => `${item.code}` === `${value?.provinceCode}`
     );
     const nextDistrict = nextProvince?.districts?.find(
-      (item) => `${item.code}` === `${nextCode}`,
+      (item) => `${item.code}` === `${nextCode}`
     );
     syncRegionText(nextProvince, nextDistrict, null);
   };
@@ -148,13 +149,13 @@ export default function AddressSection({
     const nextCode = event.target.value;
     emitChange("wardCode", nextCode);
     const nextProvince = provinceList.find(
-      (item) => `${item.code}` === `${value?.provinceCode}`,
+      (item) => `${item.code}` === `${value?.provinceCode}`
     );
     const nextDistrict = nextProvince?.districts?.find(
-      (item) => `${item.code}` === `${value?.districtCode}`,
+      (item) => `${item.code}` === `${value?.districtCode}`
     );
     const nextWard = nextDistrict?.wards?.find(
-      (item) => `${item.code}` === `${nextCode}`,
+      (item) => `${item.code}` === `${nextCode}`
     );
     syncRegionText(nextProvince, nextDistrict, nextWard);
   };
@@ -177,7 +178,7 @@ export default function AddressSection({
     options,
     selectedLabel,
     disabled,
-    placeholder,
+    placeholder
   ) => (
     <div className="relative">
       <button
@@ -325,22 +326,35 @@ export default function AddressSection({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input
-              type="text"
-              name="fullName"
-              value={value?.fullName || ""}
-              onChange={onChange}
-              className={fieldClassName}
-              placeholder="Họ và tên"
-            />
-            <input
-              type="text"
-              name="phone"
-              value={value?.phone || ""}
-              onChange={onChange}
-              className={fieldClassName}
-              placeholder="Số điện thoại"
-            />
+            <div className="flex flex-col gap-1">
+              <span className="min-h-[18px] text-[13px] text-transparent">
+                placeholder
+              </span>
+              <input
+                type="text"
+                name="fullName"
+                value={value?.fullName || ""}
+                onChange={onChange}
+                className={fieldClassName}
+                placeholder="Họ và tên"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <span
+                className="min-h-[18px] text-[13px] text-[#b71c1c]"
+                aria-live="polite"
+              >
+                {phoneError || ""}
+              </span>
+              <input
+                type="text"
+                name="phone"
+                value={value?.phone || ""}
+                onChange={onChange}
+                className={fieldClassName}
+                placeholder="Số điện thoại"
+              />
+            </div>
           </div>
 
           <div className="flex flex-col gap-3">
@@ -349,21 +363,21 @@ export default function AddressSection({
               provinceList,
               selectedProvince?.name,
               regionLoading || !provinceList.length,
-              regionLoading ? "Đang tải tỉnh/thành..." : "Tỉnh/Thành phố",
+              regionLoading ? "Đang tải tỉnh/thành..." : "Tỉnh/Thành phố"
             )}
             {renderDropdown(
               "district",
               districtList,
               selectedDistrict?.name,
               !value?.provinceCode,
-              "Quận/Huyện",
+              "Quận/Huyện"
             )}
             {renderDropdown(
               "ward",
               wardList,
               selectedWard?.name,
               !value?.districtCode,
-              "Phường/Xã",
+              "Phường/Xã"
             )}
 
             {regionError && (

@@ -56,18 +56,6 @@ export default function PasswordSection({
           />
         </label>
 
-        {status?.message && (
-          <div
-            className={`px-4 py-3 rounded-[12px] text-[13px] font-semibold ${
-              status.type === "success"
-                ? "bg-[#e9f7ef] text-[#1b5e20]"
-                : "bg-[#ffeaea] text-[#b71c1c]"
-            }`}
-          >
-            {status.message}
-          </div>
-        )}
-
         <div>
           <button
             type="submit"

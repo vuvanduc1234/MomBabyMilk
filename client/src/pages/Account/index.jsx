@@ -54,12 +54,12 @@ const buildAddressDraft = (profile) => ({
 const isAddressDraftComplete = (draft) =>
   Boolean(
     draft?.fullName &&
-    draft?.phone &&
-    draft?.provinceCode &&
-    draft?.districtCode &&
-    draft?.wardCode &&
-    draft?.addressLine &&
-    draft?.type,
+      draft?.phone &&
+      draft?.provinceCode &&
+      draft?.districtCode &&
+      draft?.wardCode &&
+      draft?.addressLine &&
+      draft?.type
   );
 
 export default function AccountPage() {
@@ -75,7 +75,7 @@ export default function AccountPage() {
 
   const [activeSection, setActiveSection] = useState("profile");
   const [profileForm, setProfileForm] = useState(
-    buildProfileForm(profile, userEmail),
+    buildProfileForm(profile, userEmail)
   );
   const [addresses, setAddresses] = useState([]);
   const [addressDraft, setAddressDraft] = useState(buildAddressDraft(profile));
@@ -92,6 +92,7 @@ export default function AccountPage() {
   const [passwordStatus, setPasswordStatus] = useState(DEFAULT_STATUS);
   const [busySection, setBusySection] = useState("");
   const [avatarPreview, setAvatarPreview] = useState("");
+  const [phoneError, setPhoneError] = useState("");
 
   useEffect(() => {
     if (profile) {
@@ -125,6 +126,9 @@ export default function AccountPage() {
 
   const handleAddressChange = (event) => {
     const { name, value, type, checked } = event.target;
+    if (name === "phone") {
+      setPhoneError("");
+    }
     setAddressDraft((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -174,6 +178,17 @@ export default function AccountPage() {
   const handleAddressSubmit = async (event) => {
     event.preventDefault();
     setAddressStatus(DEFAULT_STATUS);
+    setPhoneError("");
+    if (addressDraft.phone && /\D/.test(addressDraft.phone)) {
+      setPhoneError("Không được ghi chữ ở ô số điện thoại.");
+      setAddressDraft((prev) => ({ ...prev, phone: "" }));
+      return;
+    }
+    if (addressDraft.phone && addressDraft.phone.length > 10) {
+      setPhoneError("Số điện thoại không được vượt quá 10 số.");
+      setAddressDraft((prev) => ({ ...prev, phone: "" }));
+      return;
+    }
     if (!isAddressDraftComplete(addressDraft)) {
       setAddressStatus({
         type: "error",
@@ -198,7 +213,6 @@ export default function AccountPage() {
           ? await updateAddress(userId, editingAddressId, addressDraft)
           : await createAddress(userId, addressDraft);
       setAddresses(nextList);
-      setAddressStatus({ type: "success", message: "Lưu địa chỉ thành công." });
       setIsAddressFormOpen(false);
       setAddressDraft(buildAddressDraft(profile));
       setAddressMode("create");
@@ -215,6 +229,7 @@ export default function AccountPage() {
 
   const handleAddressAdd = () => {
     setAddressStatus(DEFAULT_STATUS);
+    setPhoneError("");
     if (addresses.length >= ADDRESS_LIMIT) {
       setAddressStatus({
         type: "error",
@@ -230,6 +245,7 @@ export default function AccountPage() {
 
   const handleAddressEdit = (item) => {
     setAddressStatus(DEFAULT_STATUS);
+    setPhoneError("");
     setAddressDraft({
       fullName: item.fullName,
       phone: item.phone,
@@ -251,12 +267,12 @@ export default function AccountPage() {
     if (!userId) return;
     deleteAddress(userId, id)
       .then((next) => setAddresses(next))
-      .catch((error) =>
+      .catch((error) => {
         setAddressStatus({
           type: "error",
           message: error?.message || "Không thể xóa địa chỉ.",
-        }),
-      );
+        });
+      });
   };
 
   const handleSetDefaultAddress = (id) => {
@@ -264,12 +280,12 @@ export default function AccountPage() {
     if (!userId) return;
     setDefaultAddress(userId, id)
       .then((next) => setAddresses(next))
-      .catch((error) =>
+      .catch((error) => {
         setAddressStatus({
           type: "error",
           message: error?.message || "Không thể đặt mặc định.",
-        }),
-      );
+        });
+      });
   };
 
   const handlePasswordSubmit = async (event) => {
@@ -310,7 +326,7 @@ export default function AccountPage() {
 
   const ActiveSection = useMemo(
     () => SECTION_COMPONENTS[activeSection] || ProfileSection,
-    [activeSection],
+    [activeSection]
   );
 
   return (
@@ -342,31 +358,31 @@ export default function AccountPage() {
                         activeSection === "profile"
                           ? profileForm
                           : activeSection === "address"
-                            ? addressDraft
-                            : activeSection === "password"
-                              ? passwordForm
-                              : null
+                          ? addressDraft
+                          : activeSection === "password"
+                          ? passwordForm
+                          : null
                       }
                       onChange={
                         activeSection === "profile"
                           ? handleProfileChange
                           : activeSection === "address"
-                            ? handleAddressChange
-                            : handlePasswordChange
+                          ? handleAddressChange
+                          : handlePasswordChange
                       }
                       onSubmit={
                         activeSection === "profile"
                           ? handleProfileSubmit
                           : activeSection === "address"
-                            ? handleAddressSubmit
-                            : handlePasswordSubmit
+                          ? handleAddressSubmit
+                          : handlePasswordSubmit
                       }
                       status={
                         activeSection === "profile"
                           ? profileStatus
                           : activeSection === "address"
-                            ? addressStatus
-                            : passwordStatus
+                          ? addressStatus
+                          : passwordStatus
                       }
                       loading={busySection === activeSection}
                       addresses={addresses}
@@ -377,6 +393,7 @@ export default function AccountPage() {
                       onDelete={handleAddressDelete}
                       onSetDefault={handleSetDefaultAddress}
                       limit={ADDRESS_LIMIT}
+                      phoneError={phoneError}
                     />
                   </div>
 
