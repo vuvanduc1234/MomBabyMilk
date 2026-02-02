@@ -7,7 +7,7 @@ import {
 } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
-import { PreOrderProvider } from "./context/PreOrderContext";
+// ❌ ĐÃ XÓA: import { PreOrderProvider } from "./context/PreOrderContext";
 
 import ProductListing from "./pages/Products/ProductListing";
 import ProductDetail from "./pages/Products/ProductDetail";
@@ -23,7 +23,7 @@ import VerifyEmailOTP from "./pages/Auth/VerifyEmailOTP";
 import ForgotPassword from "./pages/Auth/ForgotPassword";
 import BlogList from "./pages/blog/BlogList";
 import BlogPost from "./pages/blog/BlogPost";
-import PreOrderList from "./pages/PreOrder/PreOrderList";
+// ❌ ĐÃ XÓA: import PreOrderList from "./pages/PreOrder/PreOrderList";
 import AccountPage from "./pages/Account";
 
 import { StaffLayout } from "./components/layouts/StaffLayout";
@@ -39,6 +39,7 @@ import RevenueStatistics from "./pages/admin/RevenueStatistics";
 import SystemReports from "./pages/admin/SystemReports";
 import { ProtectedRoute } from "./components/layouts/ProtectedRoute";
 import OrderTracking from "./pages/Orders/OrderTracking";
+
 // Public Layout Component
 function PublicLayout() {
   return (
@@ -57,52 +58,54 @@ function App() {
   return (
     <AuthProvider>
       <CartProvider>
-        <PreOrderProvider>
-          <Router>
-            <Routes>
-              {/* Staff routes - separate layout */}
-              <Route path="/staff" element={<StaffLayout />}>
-                <Route index element={<StaffDashboard />} />
-                <Route path="orders" element={<StaffOrders />} />
-                <Route path="products" element={<StaffProducts />} />
-                <Route path="inventory" element={<StaffInventory />} />
-              </Route>
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute allowedRoles={["Admin"]}>
-                    <AdminLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<AdminDashboard />} />
-                <Route path="accounts" element={<AccountManagement />} />
-                <Route path="roles" element={<RoleManagement />} />
-                <Route path="revenue" element={<RevenueStatistics />} />
-                <Route path="reports" element={<SystemReports />} />
-                <Route path="protect" element={<ProtectedRoute />} />
-              </Route>
+        {/* ❌ ĐÃ XÓA: <PreOrderProvider> */}
+        <Router>
+          <Routes>
+            {/* Staff routes - separate layout */}
+            <Route path="/staff" element={<StaffLayout />}>
+              <Route index element={<StaffDashboard />} />
+              <Route path="orders" element={<StaffOrders />} />
+              <Route path="products" element={<StaffProducts />} />
+              <Route path="inventory" element={<StaffInventory />} />
+            </Route>
 
-              {/* Public routes - with Header/Footer */}
-              <Route element={<PublicLayout />}>
-                <Route path="/" element={<Index />} />
-                <Route path="/products" element={<ProductListing />} />
-                <Route path="/product/:slug" element={<ProductDetail />} />
-                <Route path="/cart" element={<Cart />} />
-                <Route path="/checkout" element={<Checkout />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/verify-email" element={<VerifyEmailOTP />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/account" element={<AccountPage />} />
-                <Route path="/blog" element={<BlogList />} />
-                <Route path="/blog/:id" element={<BlogPost />} />
-                <Route path="/preorders" element={<PreOrderList />} />
-                <Route path="/track-order" element={<OrderTracking />} />
-              </Route>
-            </Routes>
-          </Router>
-        </PreOrderProvider>
+            {/* Admin routes */}
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute allowedRoles={["Admin"]}>
+                  <AdminLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<AdminDashboard />} />
+              <Route path="accounts" element={<AccountManagement />} />
+              <Route path="roles" element={<RoleManagement />} />
+              <Route path="revenue" element={<RevenueStatistics />} />
+              <Route path="reports" element={<SystemReports />} />
+              <Route path="protect" element={<ProtectedRoute />} />
+            </Route>
+
+            {/* Public routes - with Header/Footer */}
+            <Route element={<PublicLayout />}>
+              <Route path="/" element={<Index />} />
+              <Route path="/products" element={<ProductListing />} />
+              <Route path="/product/:slug" element={<ProductDetail />} />
+              <Route path="/cart" element={<Cart />} />
+              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/verify-email" element={<VerifyEmailOTP />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/account" element={<AccountPage />} />
+              <Route path="/blog" element={<BlogList />} />
+              <Route path="/blog/:id" element={<BlogPost />} />
+
+              <Route path="/track-order" element={<OrderTracking />} />
+            </Route>
+          </Routes>
+        </Router>
+        {/* ❌ ĐÃ XÓA: </PreOrderProvider> */}
       </CartProvider>
     </AuthProvider>
   );

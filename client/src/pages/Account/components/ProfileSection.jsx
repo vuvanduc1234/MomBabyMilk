@@ -24,16 +24,6 @@ export default function ProfileSection({
       <form className="flex flex-col gap-4" onSubmit={onSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <label className="flex flex-col gap-2 text-[14px] text-[#3b3339]">
-            <span className="font-medium">Tên đăng nhập</span>
-            <input
-              type="text"
-              value={value?.email || ""}
-              className={`${fieldClassName} bg-[#faf7f9] text-[#8b7b84]`}
-              readOnly
-            />
-          </label>
-
-          <label className="flex flex-col gap-2 text-[14px] text-[#3b3339]">
             <span className="font-medium">Tên</span>
             <input
               type="text"
