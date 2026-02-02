@@ -35,7 +35,7 @@ export const updateUserProfile = async (userId, payload, token) => {
     const response = await axios.patch(
       `${API_BASE}/api/users/${userId}`,
       payload,
-      { headers: buildHeaders(token) }
+      { headers: buildHeaders(token) },
     );
     return response.data;
   } catch (error) {
@@ -48,7 +48,28 @@ export const changePassword = async (payload, token) => {
     const response = await axios.post(
       `${API_BASE}/api/auth/change-password`,
       payload,
-      { headers: buildHeaders(token) }
+      { headers: buildHeaders(token) },
+    );
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const uploadAvatar = async (file, token) => {
+  try {
+    const formData = new FormData();
+    formData.append("avatar", file);
+
+    const response = await axios.post(
+      `${API_BASE}/api/upload/avatar`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${token}`,
+        },
+      },
     );
     return response.data;
   } catch (error) {

@@ -1,4 +1,6 @@
 const ProductModel = require("../models/ProductModel");
+const CategoryModel = require("../models/CategoryModel");
+const BrandModel = require("../models/BrandModel");
 
 const createProduct = async (req, res) => {
   const {
@@ -35,13 +37,13 @@ const createProduct = async (req, res) => {
       return res.status(400).json({ message: "Thương hiệu không tồn tại" });
     }
 
-    const existProduct = await ProductModel.findOne({name})
+    const existProduct = await ProductModel.findOne({ name });
     if (existProduct) {
-        return res.status(400).json({message: "Sản phẩm đã tồn tại"})
+      return res.status(400).json({ message: "Sản phẩm đã tồn tại" });
     }
     const product = new ProductModel(req.body);
     await product.save();
-    await product.populate('category brand');
+    await product.populate("category brand");
     res.status(200).json({ message: "Tạo sản phẩm thành công", data: product });
   } catch (err) {
     res.status(500).json({ message: "Lỗi server:" + err.message });
@@ -67,7 +69,7 @@ const updateProduct = async (req, res) => {
     const product = await ProductModel.findByIdAndUpdate(id, req.body, {
       new: true,
       runValidators: true,
-    }).populate('category brand');
+    }).populate("category brand");
     if (!product) {
       return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
     }
@@ -94,7 +96,7 @@ const deleteProduct = async (req, res) => {
 
 const viewProduct = async (req, res) => {
   try {
-    const product = await ProductModel.find({}).populate('category brand');
+    const product = await ProductModel.find({}).populate("category brand");
     if (!product) {
       return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
     }
@@ -107,7 +109,7 @@ const viewProduct = async (req, res) => {
 const getProductsById = async (req, res) => {
   const { id } = req.params;
   try {
-    const product = await ProductModel.findById(id).populate('category brand');
+    const product = await ProductModel.findById(id).populate("category brand");
     if (!product) {
       return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
     }
@@ -119,10 +121,12 @@ const getProductsById = async (req, res) => {
 
 const getProductsByCategory = async (req, res) => {
   const { id } = req.params;
-  
+
   try {
-    const products = await ProductModel.find({ category: id }).populate('category brand');
-    
+    const products = await ProductModel.find({ category: id }).populate(
+      "category brand",
+    );
+
     res.status(200).json({
       message: "Lấy sản phẩm theo danh mục thành công",
       data: products,
@@ -135,10 +139,12 @@ const getProductsByCategory = async (req, res) => {
 
 const getProductsByBrand = async (req, res) => {
   const { id } = req.params;
-  
+
   try {
-    const products = await ProductModel.find({ brand: id }).populate('category brand');
-    
+    const products = await ProductModel.find({ brand: id }).populate(
+      "category brand",
+    );
+
     res.status(200).json({
       message: "Lấy sản phẩm theo thương hiệu thành công",
       data: products,
@@ -148,4 +154,12 @@ const getProductsByBrand = async (req, res) => {
     res.status(500).json({ message: "Lỗi server: " + err.message });
   }
 };
-module.exports = { createProduct, updateProduct, deleteProduct, viewProduct, getProductsById, getProductsByCategory, getProductsByBrand };
+module.exports = {
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  viewProduct,
+  getProductsById,
+  getProductsByCategory,
+  getProductsByBrand,
+};

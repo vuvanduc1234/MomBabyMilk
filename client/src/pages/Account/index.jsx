@@ -54,12 +54,12 @@ const buildAddressDraft = (profile) => ({
 const isAddressDraftComplete = (draft) =>
   Boolean(
     draft?.fullName &&
-      draft?.phone &&
-      draft?.provinceCode &&
-      draft?.districtCode &&
-      draft?.wardCode &&
-      draft?.addressLine &&
-      draft?.type
+    draft?.phone &&
+    draft?.provinceCode &&
+    draft?.districtCode &&
+    draft?.wardCode &&
+    draft?.addressLine &&
+    draft?.type,
   );
 
 export default function AccountPage() {
@@ -75,7 +75,7 @@ export default function AccountPage() {
 
   const [activeSection, setActiveSection] = useState("profile");
   const [profileForm, setProfileForm] = useState(
-    buildProfileForm(profile, userEmail)
+    buildProfileForm(profile, userEmail),
   );
   const [addresses, setAddresses] = useState([]);
   const [addressDraft, setAddressDraft] = useState(buildAddressDraft(profile));
@@ -98,6 +98,10 @@ export default function AccountPage() {
     if (profile) {
       setProfileForm(buildProfileForm(profile, userEmail));
       setAddressDraft(buildAddressDraft(profile));
+      // Set initial avatar from profile
+      if (profile.avatar) {
+        setAvatarPreview(profile.avatar);
+      }
     }
   }, [profile, userEmail]);
 
@@ -140,13 +144,57 @@ export default function AccountPage() {
     setPasswordForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleAvatarChange = (event) => {
+  const handleAvatarChange = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    // Validate file size (1MB max)
+    if (file.size > 1 * 1024 * 1024) {
+      setProfileStatus({
+        type: "error",
+        message: "Dung lượng file không được vượt quá 1MB.",
+      });
+      return;
+    }
+
+    // Validate file type
+    if (!["image/jpeg", "image/png"].includes(file.type)) {
+      setProfileStatus({
+        type: "error",
+        message: "Chỉ chấp nhận file PNG hoặc JPEG.",
+      });
+      return;
+    }
+
+    // Preview immediately
     if (avatarPreview) {
       URL.revokeObjectURL(avatarPreview);
     }
     setAvatarPreview(URL.createObjectURL(file));
+
+    // Upload to Cloudinary
+    setProfileStatus(DEFAULT_STATUS);
+    setBusySection("avatar");
+    try {
+      const token = localStorage.getItem("accessToken");
+      const { uploadAvatar } = await import("./services/accountApi");
+      const response = await uploadAvatar(file, token);
+
+      setProfileStatus({
+        type: "success",
+        message: "Upload avatar thành công.",
+      });
+
+      // Update preview with actual uploaded URL
+      setAvatarPreview(response.data.avatar);
+    } catch (error) {
+      setProfileStatus({
+        type: "error",
+        message: error?.message || "Upload avatar thất bại.",
+      });
+    } finally {
+      setBusySection("");
+    }
   };
 
   const handleProfileSubmit = async (event) => {
@@ -326,7 +374,7 @@ export default function AccountPage() {
 
   const ActiveSection = useMemo(
     () => SECTION_COMPONENTS[activeSection] || ProfileSection,
-    [activeSection]
+    [activeSection],
   );
 
   return (
@@ -358,31 +406,31 @@ export default function AccountPage() {
                         activeSection === "profile"
                           ? profileForm
                           : activeSection === "address"
-                          ? addressDraft
-                          : activeSection === "password"
-                          ? passwordForm
-                          : null
+                            ? addressDraft
+                            : activeSection === "password"
+                              ? passwordForm
+                              : null
                       }
                       onChange={
                         activeSection === "profile"
                           ? handleProfileChange
                           : activeSection === "address"
-                          ? handleAddressChange
-                          : handlePasswordChange
+                            ? handleAddressChange
+                            : handlePasswordChange
                       }
                       onSubmit={
                         activeSection === "profile"
                           ? handleProfileSubmit
                           : activeSection === "address"
-                          ? handleAddressSubmit
-                          : handlePasswordSubmit
+                            ? handleAddressSubmit
+                            : handlePasswordSubmit
                       }
                       status={
                         activeSection === "profile"
                           ? profileStatus
                           : activeSection === "address"
-                          ? addressStatus
-                          : passwordStatus
+                            ? addressStatus
+                            : passwordStatus
                       }
                       loading={busySection === activeSection}
                       addresses={addresses}
@@ -402,6 +450,7 @@ export default function AccountPage() {
                       <AvatarUploader
                         previewUrl={avatarPreview}
                         onChange={handleAvatarChange}
+                        loading={busySection === "avatar"}
                       />
                     </div>
                   )}
