@@ -31,10 +31,6 @@ import StaffDashboard from "./pages/staff/Dashboard";
 import StaffOrders from "./pages/staff/Orders";
 import StaffProducts from "./pages/staff/products/Products";
 import StaffInventory from "./pages/staff/Inventory";
-import StaffVouchers from "./pages/staff/Vouchers";
-import StaffComplaints from "./pages/staff/Complaints";
-import StaffCustomers from "./pages/staff/Customers";
-import StaffArticles from "./pages/staff/Articles";
 import { AdminLayout } from "./components/layouts/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AccountManagement from "./pages/admin/AccountManagement";
@@ -42,7 +38,7 @@ import RoleManagement from "./pages/admin/RoleManagement";
 import RevenueStatistics from "./pages/admin/RevenueStatistics";
 import SystemReports from "./pages/admin/SystemReports";
 import { ProtectedRoute } from "./components/layouts/ProtectedRoute";
-import NotFound from "./pages/NotFound";
+import OrderTracking from "./pages/Orders/OrderTracking";
 // Public Layout Component
 function PublicLayout() {
   return (
@@ -70,15 +66,11 @@ function App() {
                 <Route path="orders" element={<StaffOrders />} />
                 <Route path="products" element={<StaffProducts />} />
                 <Route path="inventory" element={<StaffInventory />} />
-                <Route path="vouchers" element={<StaffVouchers />} />
-                <Route path="complaints" element={<StaffComplaints />} />
-                <Route path="customers" element={<StaffCustomers />} />
-                <Route path="articles" element={<StaffArticles />} />
               </Route>
               <Route
                 path="/admin"
                 element={
-                  <ProtectedRoute allowedRoles={["admin"]}>
+                  <ProtectedRoute allowedRoles={["Admin"]}>
                     <AdminLayout />
                   </ProtectedRoute>
                 }
@@ -106,7 +98,7 @@ function App() {
                 <Route path="/blog" element={<BlogList />} />
                 <Route path="/blog/:id" element={<BlogPost />} />
                 <Route path="/preorders" element={<PreOrderList />} />
-                <Route path="*" element={<NotFound />} />
+                <Route path="/track-order" element={<OrderTracking />} />
               </Route>
             </Routes>
           </Router>
