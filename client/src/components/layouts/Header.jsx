@@ -1,5 +1,5 @@
 // src/components/Layout/Header.jsx
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   ShoppingCart,
   User,
@@ -8,14 +8,23 @@ import {
   Phone,
   Gift,
   Truck,
+  LogOut,
+  UserCircle,
+  Settings,
+  Package,
 } from "lucide-react";
 import { useCart } from "../../context/CartContext";
-import { usePreOrder } from "../../context/PreOrderContext";
-import { Package } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 
 export default function Header() {
-  const { getTotalItems } = useCart();
-  const { getTotalPreOrderItems } = usePreOrder();
+  const { getTotalUniqueItems } = useCart();
+  const { user, logout, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
 
   return (
     <header
@@ -95,25 +104,85 @@ export default function Header() {
                 <Heart className="h-10 w-10" strokeWidth={1.5} />
                 <span className="text-xs">Yêu thích</span>
               </Link>
-              <Link
-                to="/login"
-                className="flex flex-col items-center text-gray-600 hover:text-pink-600 transition"
-              >
-                <User className="h-10 w-10" strokeWidth={1.5} />
-                <span className="text-xs">Tài khoản</span>
-              </Link>
-              <Link
-                to="/preorders"
-                className="relative flex items-center gap-2 text-gray-700 hover:text-pink-600 transition"
-              >
-                <Package className="h-5 w-5" />
-                <span className="font-medium">Đặt Trước</span>
-                {getTotalPreOrderItems() > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-lg">
-                    {getTotalPreOrderItems()}
+
+              {/* Account Dropdown */}
+              <div className="relative group">
+                <div className="flex flex-col items-center text-gray-600 hover:text-pink-600 transition cursor-pointer">
+                  <User className="h-10 w-10" strokeWidth={1.5} />
+                  <span className="text-xs">
+                    {isAuthenticated()
+                      ? user?.fullname || "Tài khoản"
+                      : "Tài khoản"}
                   </span>
-                )}
-              </Link>
+                </div>
+
+                {/* Dropdown Menu */}
+                <div className="absolute top-full right-0 pt-2 hidden group-hover:block z-50 transition-all duration-300 ease-in-out">
+                  <div className="bg-white rounded-lg shadow-lg border border-gray-100 min-w-[220px] overflow-hidden">
+                    {/* Arrow */}
+                    <div className="absolute -top-1.5 right-8 w-3 h-3 bg-white border-t border-l border-gray-100 transform rotate-45"></div>
+
+                    {isAuthenticated() ? (
+                      // Logged in menu
+                      <div className="relative">
+                        {/* User Info Header */}
+                        <div className="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-pink-50 to-purple-50">
+                          <p className="text-sm font-semibold text-gray-800 truncate">
+                            {user?.fullname || user?.email}
+                          </p>
+                          <p className="text-xs text-gray-500 truncate">
+                            {user?.email}
+                          </p>
+                        </div>
+
+                        {/* Menu Items */}
+                        <div className="py-2">
+                          <Link
+                            to="/account"
+                            className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-pink-50 hover:text-pink-600 transition-colors"
+                          >
+                            <UserCircle className="h-4 w-4" />
+                            <span className="text-sm font-medium">
+                              Hồ sơ của tôi
+                            </span>
+                          </Link>
+                        </div>
+
+                        {/* Logout */}
+                        <div className="border-t border-gray-100 py-2">
+                          <button
+                            onClick={handleLogout}
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-red-600 hover:bg-red-50 transition-colors"
+                          >
+                            <LogOut className="h-4 w-4" />
+                            <span className="text-sm font-medium">
+                              Đăng xuất
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      // Not logged in menu
+                      <div className="py-2">
+                        <Link
+                          to="/login"
+                          className="block px-4 py-3 text-sm text-gray-700 hover:bg-pink-50 hover:text-pink-600 font-medium transition-colors"
+                        >
+                          Đăng nhập
+                        </Link>
+                        <Link
+                          to="/register"
+                          className="block px-4 py-3 text-sm text-gray-700 hover:bg-pink-50 hover:text-pink-600 font-medium transition-colors"
+                        >
+                          Đăng ký
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Cart */}
               <div className="relative group">
                 <Link
                   to="/cart"
@@ -121,40 +190,12 @@ export default function Header() {
                 >
                   <ShoppingCart className="h-10 w-10" strokeWidth={1.5} />
                   <span className="text-xs">Giỏ hàng</span>
-                  {getTotalItems() > 0 && (
+                  {getTotalUniqueItems() > 0 && (
                     <span className="absolute -top-1 -right-1 bg-pink-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                      {getTotalItems()}
+                      {getTotalUniqueItems()}
                     </span>
                   )}
                 </Link>
-                <div className="absolute top-full right-0 pt-2 hidden group-hover:block z-50 transition-all duration-300 ease-in-out">
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 min-w-75 relative">
-                    {/* Arrow */}
-                    <div className="absolute -top-1.5 right-5 w-3 h-3 bg-white border-t border-l border-gray-100 transform rotate-45"></div>
-
-                    {getTotalItems() === 0 ? (
-                      <div className="text-center text-gray-500 text-sm py-2">
-                        Giỏ hàng chưa có sản phẩm.
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-3">
-                        <p className="text-gray-600 text-sm text-center">
-                          Có{" "}
-                          <span className="font-bold text-pink-500">
-                            {getTotalItems()}
-                          </span>{" "}
-                          sản phẩm trong giỏ hàng
-                        </p>
-                        <Link
-                          to="/cart"
-                          className="w-full bg-pink-600 text-white text-sm py-2 rounded hover:bg-pink-700 transition text-center"
-                        >
-                          Xem giỏ hàng
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -175,8 +216,10 @@ export default function Header() {
             >
               <div className="p-3">Khuyến mãi</div>
             </Link>
-
-            <Link to="/track-order" className="...">
+            <Link
+              to="/track-order"
+              className="text-gray-700 hover:text-pink-600 font-medium transition"
+            >
               <div className="p-3">Theo dõi đơn hàng</div>
             </Link>
             <Link
@@ -185,7 +228,6 @@ export default function Header() {
             >
               <div className="p-3">Hỗ trợ</div>
             </Link>
-            {/* Thêm link Blog */}
             <Link
               to="/blog"
               className="text-gray-700 hover:text-pink-600 font-medium transition"
@@ -196,7 +238,7 @@ export default function Header() {
         </nav>
       </div>
 
-      {/* CSS Animation cho chữ chạy */}
+      {/* CSS Animation */}
       <style>{`
         @keyframes marquee {
           0% {

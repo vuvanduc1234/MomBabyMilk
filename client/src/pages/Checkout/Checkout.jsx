@@ -1,4 +1,4 @@
-// src/pages/Checkout/Checkout.jsx (Enhanced with Pre-order Support)
+// src/pages/Checkout/Checkout.jsx
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -11,13 +11,16 @@ import {
   Info,
 } from "lucide-react";
 import { useCart } from "../../context/CartContext";
-import { usePreOrder } from "../../context/PreOrderContext";
 
 export default function Checkout() {
   const navigate = useNavigate();
-  const { cartItems, getTotalPrice, clearCart } = useCart();
-  const { preOrderItems, getTotalPreOrderPrice, clearPreOrders } =
-    usePreOrder();
+  const {
+    cartItems,
+    getRegularItems,
+    getPreOrdersByType,
+    getTotalPayNow,
+    clearCart,
+  } = useCart();
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -37,36 +40,17 @@ export default function Checkout() {
     }).format(price);
   };
 
-  // Tính toán cho giỏ hàng thường
-  const cartSubtotal = cartItems.reduce(
-    (sum, item) => sum + (item.sale_price || item.price) * item.quantity,
-    0,
+  // Lấy các loại sản phẩm
+  const regularItems = getRegularItems();
+  const outOfStockItems = getPreOrdersByType("OUT_OF_STOCK").filter(
+    (item) => item.paymentOption === "PAY_NOW",
   );
+  const comingSoonItems = getPreOrdersByType("COMING_SOON");
 
-  // Tính toán cho pre-order (chỉ tính những đơn thanh toán ngay)
-  const preOrderSubtotal = preOrderItems
-    .filter((item) => item.paymentOption === "PAY_NOW")
-    .reduce(
-      (sum, item) => sum + (item.sale_price || item.price) * item.quantity,
-      0,
-    );
-
-  // Tổng tạm tính
-  const subtotal = cartSubtotal + preOrderSubtotal;
-
-  // Phí vận chuyển
+  // Tính toán
+  const subtotal = getTotalPayNow();
   const shipping = subtotal > 500000 ? 0 : 30000;
-
-  // Tổng cộng
   const total = subtotal + shipping;
-
-  // Lấy danh sách pre-order theo loại
-  const outOfStockItems = preOrderItems.filter(
-    (item) => item.preOrderType === "OUT_OF_STOCK",
-  );
-  const comingSoonItems = preOrderItems.filter(
-    (item) => item.preOrderType === "COMING_SOON",
-  );
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -111,14 +95,12 @@ export default function Checkout() {
     // Tạo message chi tiết
     let message = `Đặt hàng thành công!\n\n`;
 
-    if (cartItems.length > 0) {
-      message += `✓ Sản phẩm thường: ${cartItems.length} sản phẩm\n`;
+    if (regularItems.length > 0) {
+      message += `✓ Sản phẩm thường: ${regularItems.length} sản phẩm\n`;
     }
 
-    if (
-      outOfStockItems.filter((i) => i.paymentOption === "PAY_NOW").length > 0
-    ) {
-      message += `✓ Đặt trước (hết hàng): ${outOfStockItems.filter((i) => i.paymentOption === "PAY_NOW").length} sản phẩm\n`;
+    if (outOfStockItems.length > 0) {
+      message += `✓ Đặt trước (hết hàng): ${outOfStockItems.length} sản phẩm\n`;
     }
 
     if (comingSoonItems.length > 0) {
@@ -139,23 +121,15 @@ export default function Checkout() {
 
     alert(message);
 
-    // Xóa giỏ hàng và pre-orders đã thanh toán
+    // Xóa tất cả items đã thanh toán
+    // TODO: Implement logic để chỉ xóa items đã thanh toán
     clearCart();
-    // Chỉ xóa những pre-order đã thanh toán
-    preOrderItems
-      .filter((item) => item.paymentOption === "PAY_NOW")
-      .forEach((item) => {
-        // TODO: Implement removeFromPreOrder for specific items
-      });
 
     navigate("/");
   };
 
   // Kiểm tra nếu không có gì để thanh toán
-  if (
-    cartItems.length === 0 &&
-    preOrderItems.filter((i) => i.paymentOption === "PAY_NOW").length === 0
-  ) {
+  if (regularItems.length === 0 && outOfStockItems.length === 0) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
@@ -195,10 +169,10 @@ export default function Checkout() {
         {/* Tiêu đề */}
         <h1 className="text-3xl font-bold text-gray-800 mb-2">Thanh toán</h1>
         <p className="text-gray-600 mb-8">
-          {cartItems.length > 0 && `${cartItems.length} sản phẩm thường`}
-          {cartItems.length > 0 && preOrderItems.length > 0 && " • "}
-          {preOrderItems.length > 0 &&
-            `${preOrderItems.filter((i) => i.paymentOption === "PAY_NOW").length} sản phẩm đặt trước`}
+          {regularItems.length > 0 && `${regularItems.length} sản phẩm thường`}
+          {regularItems.length > 0 && outOfStockItems.length > 0 && " • "}
+          {outOfStockItems.length > 0 &&
+            `${outOfStockItems.length} sản phẩm đặt trước`}
         </p>
 
         <form onSubmit={handleSubmit}>
@@ -211,7 +185,7 @@ export default function Checkout() {
                   Thông tin giao hàng
                 </h2>
 
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-4">
                   {/* Họ và tên */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -222,13 +196,13 @@ export default function Checkout() {
                       name="fullName"
                       value={formData.fullName}
                       onChange={handleInputChange}
-                      placeholder="Nguyễn Văn A"
-                      className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 ${
+                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 ${
                         errors.fullName ? "border-red-500" : "border-gray-300"
                       }`}
+                      placeholder="Nguyễn Văn A"
                     />
                     {errors.fullName && (
-                      <p className="text-red-500 text-xs mt-1">
+                      <p className="text-red-500 text-sm mt-1">
                         {errors.fullName}
                       </p>
                     )}
@@ -244,156 +218,78 @@ export default function Checkout() {
                       name="phone"
                       value={formData.phone}
                       onChange={handleInputChange}
-                      placeholder="0912345678"
-                      className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 ${
+                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 ${
                         errors.phone ? "border-red-500" : "border-gray-300"
                       }`}
+                      placeholder="0912345678"
                     />
                     {errors.phone && (
-                      <p className="text-red-500 text-xs mt-1">
+                      <p className="text-red-500 text-sm mt-1">
                         {errors.phone}
                       </p>
                     )}
                   </div>
-                </div>
 
-                {/* Email */}
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    placeholder="email@example.com"
-                    className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 ${
-                      errors.email ? "border-red-500" : "border-gray-300"
-                    }`}
-                  />
-                  {errors.email && (
-                    <p className="text-red-500 text-xs mt-1">{errors.email}</p>
-                  )}
-                </div>
+                  {/* Email */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 ${
+                        errors.email ? "border-red-500" : "border-gray-300"
+                      }`}
+                      placeholder="example@email.com"
+                    />
+                    {errors.email && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.email}
+                      </p>
+                    )}
+                  </div>
 
-                {/* Địa chỉ */}
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Địa chỉ giao hàng <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    name="address"
-                    value={formData.address}
-                    onChange={handleInputChange}
-                    rows="3"
-                    placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố"
-                    className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 resize-none ${
-                      errors.address ? "border-red-500" : "border-gray-300"
-                    }`}
-                  ></textarea>
-                  {errors.address && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.address}
-                    </p>
-                  )}
-                </div>
+                  {/* Địa chỉ */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Địa chỉ giao hàng <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      name="address"
+                      value={formData.address}
+                      onChange={handleInputChange}
+                      rows="3"
+                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 ${
+                        errors.address ? "border-red-500" : "border-gray-300"
+                      }`}
+                      placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố"
+                    />
+                    {errors.address && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.address}
+                      </p>
+                    )}
+                  </div>
 
-                {/* Ghi chú */}
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Ghi chú đơn hàng (tùy chọn)
-                  </label>
-                  <textarea
-                    name="note"
-                    value={formData.note}
-                    onChange={handleInputChange}
-                    rows="2"
-                    placeholder="Ghi chú về đơn hàng, ví dụ: thời gian hay chỉ dẫn địa điểm giao hàng chi tiết hơn."
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 resize-none"
-                  ></textarea>
+                  {/* Ghi chú */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Ghi chú đơn hàng (tùy chọn)
+                    </label>
+                    <textarea
+                      name="note"
+                      value={formData.note}
+                      onChange={handleInputChange}
+                      rows="3"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
+                      placeholder="Ghi chú về đơn hàng, ví dụ: thời gian giao hàng..."
+                    />
+                  </div>
                 </div>
               </div>
-
-              {/* Thông tin Pre-order (nếu có) */}
-              {preOrderItems.length > 0 && (
-                <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-6 shadow-sm border-2 border-purple-200">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Info className="h-5 w-5 text-purple-600" />
-                    <h2 className="text-xl font-bold text-gray-800">
-                      Thông Tin Đặt Trước
-                    </h2>
-                  </div>
-
-                  <div className="space-y-3 text-sm text-gray-700">
-                    {outOfStockItems.filter(
-                      (i) => i.paymentOption === "PAY_NOW",
-                    ).length > 0 && (
-                      <div className="bg-white rounded-lg p-3 border border-orange-200">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Package className="h-4 w-4 text-orange-500" />
-                          <strong className="text-orange-700">
-                            Sản phẩm hết hàng:
-                          </strong>
-                        </div>
-                        <p className="text-xs text-gray-600 leading-relaxed">
-                          • Bạn đã chọn thanh toán ngay để được ưu tiên giao
-                          hàng đầu tiên
-                          <br />
-                          • Sản phẩm sẽ được giao ngay khi hàng về kho
-                          <br />• Chúng tôi sẽ thông báo cho bạn qua số điện
-                          thoại và email
-                        </p>
-                      </div>
-                    )}
-
-                    {outOfStockItems.filter(
-                      (i) => i.paymentOption === "PAY_LATER",
-                    ).length > 0 && (
-                      <div className="bg-white rounded-lg p-3 border border-blue-200">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Package className="h-4 w-4 text-blue-500" />
-                          <strong className="text-blue-700">
-                            Giữ chỗ (thanh toán sau):
-                          </strong>
-                        </div>
-                        <p className="text-xs text-gray-600 leading-relaxed">
-                          •{" "}
-                          {
-                            outOfStockItems.filter(
-                              (i) => i.paymentOption === "PAY_LATER",
-                            ).length
-                          }{" "}
-                          sản phẩm đang giữ chỗ
-                          <br />
-                          • Bạn có 48 giờ để thanh toán khi nhận được thông báo
-                          hàng về
-                          <br />• Không cần thanh toán trong đơn hàng này
-                        </p>
-                      </div>
-                    )}
-
-                    {comingSoonItems.length > 0 && (
-                      <div className="bg-white rounded-lg p-3 border border-purple-200">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Calendar className="h-4 w-4 text-purple-500" />
-                          <strong className="text-purple-700">
-                            Sản phẩm sắp ra mắt:
-                          </strong>
-                        </div>
-                        <p className="text-xs text-gray-600 leading-relaxed">
-                          • {comingSoonItems.length} sản phẩm đã đăng ký nhận
-                          thông báo
-                          <br />
-                          • Chưa cần thanh toán, chỉ đăng ký ưu tiên
-                          <br />• Bạn sẽ nhận thông báo khi sản phẩm chính thức
-                          mở bán
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
 
               {/* Phương thức thanh toán */}
               <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
@@ -426,7 +322,7 @@ export default function Checkout() {
                         </span>
                       </div>
                       <p className="text-sm text-gray-600 mt-1">
-                        Thanh toán tiền mặt khi nhận hàng
+                        Thanh toán bằng tiền mặt khi nhận hàng
                       </p>
                     </div>
                   </label>
@@ -531,12 +427,12 @@ export default function Checkout() {
                 {/* Danh sách sản phẩm */}
                 <div className="space-y-4 mb-6 max-h-80 overflow-y-auto">
                   {/* Sản phẩm thường */}
-                  {cartItems.length > 0 && (
+                  {regularItems.length > 0 && (
                     <>
                       <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                         Sản phẩm thường
                       </div>
-                      {cartItems.map((item) => (
+                      {regularItems.map((item) => (
                         <div key={`cart-${item.id}`} className="flex gap-3">
                           <img
                             src={item.image_url || item.image}
@@ -564,43 +460,39 @@ export default function Checkout() {
                   )}
 
                   {/* Sản phẩm đặt trước (thanh toán ngay) */}
-                  {preOrderItems.filter((i) => i.paymentOption === "PAY_NOW")
-                    .length > 0 && (
+                  {outOfStockItems.length > 0 && (
                     <>
                       <div className="text-xs font-bold text-orange-600 uppercase tracking-wide flex items-center gap-1 mt-4">
                         <Package className="h-3 w-3" />
                         Đặt trước (thanh toán ngay)
                       </div>
-                      {preOrderItems
-                        .filter((i) => i.paymentOption === "PAY_NOW")
-                        .map((item) => (
-                          <div
-                            key={`preorder-${item.id}`}
-                            className="flex gap-3 bg-orange-50 p-2 rounded-lg"
-                          >
-                            <img
-                              src={item.image_url || item.image}
-                              alt={item.name}
-                              className="w-16 h-16 object-cover rounded-lg"
-                            />
-                            <div className="flex-1">
-                              <h3 className="text-sm font-medium text-gray-800 line-clamp-2">
-                                {item.name}
-                              </h3>
-                              <p className="text-xs text-gray-500 mt-1">
-                                x{item.quantity}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-sm font-bold text-orange-600">
-                                {formatVND(
-                                  (item.sale_price || item.price) *
-                                    item.quantity,
-                                )}
-                              </p>
-                            </div>
+                      {outOfStockItems.map((item) => (
+                        <div
+                          key={`preorder-${item.id}`}
+                          className="flex gap-3 bg-orange-50 p-2 rounded-lg"
+                        >
+                          <img
+                            src={item.image_url || item.image}
+                            alt={item.name}
+                            className="w-16 h-16 object-cover rounded-lg"
+                          />
+                          <div className="flex-1">
+                            <h3 className="text-sm font-medium text-gray-800 line-clamp-2">
+                              {item.name}
+                            </h3>
+                            <p className="text-xs text-gray-500 mt-1">
+                              x{item.quantity}
+                            </p>
                           </div>
-                        ))}
+                          <div className="text-right">
+                            <p className="text-sm font-bold text-orange-600">
+                              {formatVND(
+                                (item.sale_price || item.price) * item.quantity,
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
                     </>
                   )}
                 </div>
