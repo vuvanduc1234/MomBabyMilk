@@ -29,7 +29,7 @@ import AccountPage from "./pages/Account";
 import { StaffLayout } from "./components/layouts/StaffLayout";
 import StaffDashboard from "./pages/staff/Dashboard";
 import StaffOrders from "./pages/staff/Orders";
-import StaffProducts from "./pages/staff/Products";
+import StaffProducts from "./pages/staff/products/Products";
 import StaffInventory from "./pages/staff/Inventory";
 import { AdminLayout } from "./components/layouts/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -38,6 +38,7 @@ import RoleManagement from "./pages/admin/RoleManagement";
 import RevenueStatistics from "./pages/admin/RevenueStatistics";
 import SystemReports from "./pages/admin/SystemReports";
 import { ProtectedRoute } from "./components/layouts/ProtectedRoute";
+import OrderTracking from "./pages/Orders/OrderTracking";
 // Public Layout Component
 function PublicLayout() {
   return (
@@ -69,7 +70,7 @@ function App() {
               <Route
                 path="/admin"
                 element={
-                  <ProtectedRoute allowedRoles={["admin"]}>
+                  <ProtectedRoute allowedRoles={["Admin"]}>
                     <AdminLayout />
                   </ProtectedRoute>
                 }
@@ -97,6 +98,7 @@ function App() {
                 <Route path="/blog" element={<BlogList />} />
                 <Route path="/blog/:id" element={<BlogPost />} />
                 <Route path="/preorders" element={<PreOrderList />} />
+                <Route path="/track-order" element={<OrderTracking />} />
               </Route>
             </Routes>
           </Router>

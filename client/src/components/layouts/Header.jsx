@@ -175,10 +175,8 @@ export default function Header() {
             >
               <div className="p-3">Khuyến mãi</div>
             </Link>
-            <Link
-              to="#"
-              className="text-gray-700 hover:text-pink-600 font-medium transition"
-            >
+
+            <Link to="/track-order" className="...">
               <div className="p-3">Theo dõi đơn hàng</div>
             </Link>
             <Link

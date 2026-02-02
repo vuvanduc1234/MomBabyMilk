@@ -1,7 +1,6 @@
-// src/pages/Products/ProductListing.jsx (Updated with Product Type Filters)
+// src/pages/Products/ProductListing.jsx (Updated - Removed Search & Stats)
 import React, { useState } from "react";
 import { FilterBar } from "../../components/Products/FilterBar";
-import { Search } from "lucide-react";
 import { ProductCard } from "../../components/Products/ProductCard";
 
 // Dữ liệu mẫu sản phẩm (bao gồm pre-order)
@@ -175,7 +174,6 @@ const getProductType = (product) => {
 };
 
 export default function ProductListing() {
-  const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState({
     categories: [],
     brands: [],
@@ -187,10 +185,6 @@ export default function ProductListing() {
   };
 
   const filteredProducts = mockProducts.filter((product) => {
-    const matchesSearch = product.name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-
     const matchesBrand =
       filters.brands.length === 0 || filters.brands.includes(product.brand.id);
 
@@ -200,20 +194,8 @@ export default function ProductListing() {
       filters.productTypes.length === 0 ||
       filters.productTypes.includes(productType);
 
-    return matchesSearch && matchesBrand && matchesProductType;
+    return matchesBrand && matchesProductType;
   });
-
-  // Đếm số lượng từng loại sản phẩm
-  const productTypeCounts = {
-    inStock: mockProducts.filter((p) => getProductType(p) === "in-stock")
-      .length,
-    outOfStock: mockProducts.filter(
-      (p) => getProductType(p) === "out-of-stock-preorder",
-    ).length,
-    comingSoon: mockProducts.filter(
-      (p) => getProductType(p) === "coming-soon-preorder",
-    ).length,
-  };
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -237,58 +219,6 @@ export default function ProductListing() {
 
           {/* Main Content */}
           <div className="col-span-9">
-            {/* Search Bar */}
-            <div className="mb-6 flex gap-3">
-              <div className="flex-1 relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Tìm kiếm sản phẩm..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent"
-                />
-              </div>
-              <button className="px-8 py-3 bg-pink-400 text-white font-medium rounded-full hover:bg-pink-500 transition-colors shadow-md">
-                Tìm kiếm
-              </button>
-            </div>
-
-            {/* Thống kê nhanh */}
-            <div className="mb-6 grid grid-cols-3 gap-4">
-              <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-sm text-gray-600">Hàng có sẵn</span>
-                </div>
-                <span className="text-2xl font-bold text-green-600">
-                  {productTypeCounts.inStock}
-                </span>
-              </div>
-
-              <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                  <span className="text-sm text-gray-600">
-                    Đặt trước - Hết hàng
-                  </span>
-                </div>
-                <span className="text-2xl font-bold text-orange-600">
-                  {productTypeCounts.outOfStock}
-                </span>
-              </div>
-
-              <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                  <span className="text-sm text-gray-600">Sắp ra mắt</span>
-                </div>
-                <span className="text-2xl font-bold text-purple-600">
-                  {productTypeCounts.comingSoon}
-                </span>
-              </div>
-            </div>
-
             {/* Product Count */}
             <div className="mb-6">
               <p className="text-gray-600">
