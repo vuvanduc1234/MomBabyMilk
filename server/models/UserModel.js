@@ -42,6 +42,7 @@ const user = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    avatar: {type: String},
     emailVerificationToken: String,
     emailVerificationExpires: Date,
 
