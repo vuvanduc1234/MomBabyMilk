@@ -2,7 +2,6 @@ const multer = require("multer");
 const cloudinary = require("../config/cloudinary");
 const UserModel = require("../models/UserModel");
 
-// Configure multer to use memory storage
 const storage = multer.memoryStorage();
 const upload = multer({
   storage: storage,
@@ -18,10 +17,7 @@ const upload = multer({
   },
 });
 
-/**
- * Upload avatar to Cloudinary
- * @route POST /api/upload/avatar
- */
+
 const uploadAvatar = async (req, res) => {
   try {
     if (!req.file) {
@@ -30,9 +26,8 @@ const uploadAvatar = async (req, res) => {
       });
     }
 
-    const userId = req.user.id; // From auth middleware
+    const userId = req.user.id; 
 
-    // Upload to Cloudinary using buffer
     const result = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
@@ -52,7 +47,6 @@ const uploadAvatar = async (req, res) => {
       uploadStream.end(req.file.buffer);
     });
 
-    // Update user avatar in database
     const user = await UserModel.findByIdAndUpdate(
       userId,
       { avatar: result.secure_url },
