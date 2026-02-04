@@ -5,6 +5,7 @@ const {
   viewUser,
   findById,
   createUser,
+  getUserVouchers,
 } = require("../controllers/UserController");
 const { authenticateToken } = require("../middleware/auth");
 
@@ -23,6 +24,20 @@ const router = express.Router();
  *         description: List of all users
  */
 router.get("/", authenticateToken, viewUser);
+
+/**
+ * @swagger
+ * /api/users/my-vouchers:
+ *   get:
+ *     summary: Get my vouchers with quantity (auto get from logged-in user)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User vouchers list with quantity
+ */
+router.get("/my-vouchers", authenticateToken, getUserVouchers);
 
 /**
  * @swagger
