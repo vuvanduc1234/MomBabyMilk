@@ -5,6 +5,13 @@ export const ACCOUNT_SECTIONS = [
   { id: "orders", label: "Đơn Mua" },
 ];
 
+export const MEMBER_SECTIONS = [
+  { id: "loyalty", label: "Chương trình thành viên" },
+  { id: "rewards", label: "Đổi điểm" },
+  { id: "vouchers", label: "Vouchers" },
+  // { id: "reviews", label: "Đánh giá" },
+];
+
 export const GENDER_OPTIONS = [
   { value: "male", label: "Nam" },
   { value: "female", label: "Nữ" },
