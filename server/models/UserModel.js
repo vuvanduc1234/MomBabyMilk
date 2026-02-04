@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
-const user = new mongoose.Schema(
+
+const userSchema = new mongoose.Schema(
   {
     email: {
       type: String,
@@ -9,8 +10,8 @@ const user = new mongoose.Schema(
       lowercase: true,
     },
     phone: {
-      unique: true,
       type: Number,
+      unique: true,
     },
     fullname: {
       type: String,
@@ -38,6 +39,15 @@ const user = new mongoose.Schema(
       enum: ["Admin", "StaffManager", "User"],
       default: "User",
     },
+    vouchers: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Voucher", 
+    }],
+    userVouchers: [{
+      _id: false,
+      voucherId: { type: mongoose.Schema.Types.ObjectId, ref: "Voucher" },
+      quantity: { type: Number, default: 1 }
+    }],
     isVerified: {
       type: Boolean,
       default: false,
@@ -45,12 +55,24 @@ const user = new mongoose.Schema(
     avatar: {type: String},
     emailVerificationToken: String,
     emailVerificationExpires: Date,
-
     passwordResetToken: String,
     passwordResetExpires: Date,
   },
   {
     timestamps: true,
-  },
+    toJSON: {
+      transform: function(doc, ret) {
+        delete ret.vouchers;
+        if (ret.userVouchers) {
+          ret.userVouchers = ret.userVouchers.map(v => ({
+            voucherId: v.voucherId,
+            quantity: v.quantity
+          }));
+        }
+        return ret;
+      }
+    }
+  }
 );
-module.exports = mongoose.models.User || mongoose.model("User", user);
+
+module.exports = mongoose.models.User || mongoose.model("User", userSchema);

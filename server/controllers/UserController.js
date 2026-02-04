@@ -124,19 +124,52 @@ const deleteUser = async (req, res) => {
 
 const viewUser = async (req, res) => {
   try {
-    const user = await UserModel.find({});
-    if (!user) {
+    const users = await UserModel.find({})
+      .select('-vouchers') // Không hiển thị field vouchers cũ
+      .populate('userVouchers.voucherId', 'code discountPercentage expiryDate');
+    if (!users) {
       return res.status(404).json({ message: "Không tìm thấy người dùng" });
     }
-    res.status(200).json({ message: "Hiện thị tất cả người dùng", data: user });
+    res.status(200).json({ message: "Hiện thị tất cả người dùng", data: users });
   } catch (err) {
     res.status(500).json({ message: "Lỗi server: " + err.message });
   }
 };
+
+// Lấy danh sách vouchers của user (userVouchers với quantity)
+// Endpoint này gộp cả my-vouchers cũ và user vouchers
+const getUserVouchers = async (req, res) => {
+  try {
+    // Tự động lấy từ req.user.id (người đang đăng nhập)
+    const userId = req.user?.id || req.user?._id;
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+    
+    const user = await UserModel.findById(userId).populate('userVouchers.voucherId');
+    if (!user) return res.status(404).json({ message: 'User không tồn tại' });
+    
+    // Lọc voucher hợp lệ (chưa hết hạn)
+    const validVouchers = (user.userVouchers || []).filter(uv => {
+      return uv.voucherId && new Date(uv.voucherId.expiryDate) > new Date();
+    }).map(uv => ({
+      voucherId: uv.voucherId,
+      quantity: uv.quantity
+    }));
+    
+    if (validVouchers.length === 0) {
+      return res.json({ message: 'Bạn chưa sở hữu mã giảm giá nào', vouchers: [] });
+    }
+    
+    res.json({ message: 'Lấy vouchers thành công', vouchers: validVouchers });
+  } catch (err) {
+    res.status(500).json({ message: 'Lỗi server: ' + err.message });
+  }
+};
+
 module.exports = {
   updateUser,
   deleteUser,
   viewUser,
   findById,
   createUser,
+  getUserVouchers,
 };

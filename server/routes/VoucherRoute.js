@@ -1,26 +1,126 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const { authenticateToken } = require("../middleware/auth");
+const { authenticateToken } = require('../middleware/auth');
+const VoucherModel = require('../models/VoucherModel');
 const {
   createManualVoucher,
   createRandomVoucher,
   assignVoucherToUser,
   assignVoucherToAll,
   getMyVouchers,
-} = require("../controllers/VoucherController");
+  applyVoucher
+} = require('../controllers/VoucherController');
 
 /**
  * @swagger
- * tags:
- *   - name: Voucher
- *     description: Quản lý Voucher khuyến mãi
+ * /api/voucher:
+ *   get:
+ *     summary: Get all vouchers in system
+ *     tags: [Voucher]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of all vouchers
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *       500:
+ *         description: Server error
  */
+router.get('/', authenticateToken, async (req, res) => {
+  try {
+    const vouchers = await VoucherModel.find();
+    res.status(200).json({ message: "Danh sách voucher", data: vouchers });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 /**
  * @swagger
- * /api/voucher/manual:
+ * /api/voucher/validate:
  *   post:
- *     summary: Tạo voucher thủ công (Admin)
+ *     summary: Validate a voucher code (alias for /apply)
+ *     tags: [Voucher]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - code
+ *               - orderTotal
+ *             properties:
+ *               code:
+ *                 type: string
+ *                 description: Voucher code
+ *               orderTotal:
+ *                 type: number
+ *                 description: Total order amount
+ *     responses:
+ *       200:
+ *         description: Voucher validated successfully
+ *       400:
+ *         description: Invalid voucher or conditions not met
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Voucher not found
+ *       500:
+ *         description: Server error
+ */
+router.post('/validate', authenticateToken, applyVoucher);
+
+/**
+ * @swagger
+ * /api/voucher/apply:
+ *   post:
+ *     summary: Apply/Validate a voucher code for order
+ *     tags: [Voucher]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - code
+ *               - orderTotal
+ *             properties:
+ *               code:
+ *                 type: string
+ *                 description: Voucher code
+ *               orderTotal:
+ *                 type: number
+ *                 description: Total order amount
+ *     responses:
+ *       200:
+ *         description: Voucher applied successfully
+ *       400:
+ *         description: Invalid voucher or conditions not met
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Voucher not found
+ *       500:
+ *         description: Server error
+ */
+router.post('/apply', authenticateToken, applyVoucher);
+
+/**
+ * @swagger
+ * /api/voucher/create-manual:
+ *   post:
+ *     summary: Create voucher with custom code (Admin only)
  *     tags: [Voucher]
  *     security:
  *       - bearerAuth: []
@@ -37,32 +137,32 @@ const {
  *             properties:
  *               code:
  *                 type: string
- *                 example: "SALE20"
  *               discountPercentage:
  *                 type: number
- *                 example: 20
- *               expiryDate:
- *                 type: string
- *                 format: date-time
- *                 example: "2024-12-31T23:59:59.000Z"
- *               minOrderValue:
- *                 type: number
- *                 description: Giá trị đơn hàng tối thiểu
- *                 example: 200000
  *               description:
  *                 type: string
- *                 example: "Giảm 20% cho đơn trên 200k"
+ *               expiryDate:
+ *                 type: string
+ *                 format: date
+ *               minOrderValue:
+ *                 type: number
  *     responses:
  *       201:
- *         description: Tạo thành công
+ *         description: Voucher created successfully
+ *       400:
+ *         description: Invalid input or code exists
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
  */
-router.post("/manual", authenticateToken, createManualVoucher);
+router.post('/create-manual', authenticateToken, createManualVoucher);
 
 /**
  * @swagger
- * /api/voucher/random:
+ * /api/voucher/create-random:
  *   post:
- *     summary: Tạo voucher mã random (Admin)
+ *     summary: Create voucher with random code (Admin only)
  *     tags: [Voucher]
  *     security:
  *       - bearerAuth: []
@@ -78,29 +178,30 @@ router.post("/manual", authenticateToken, createManualVoucher);
  *             properties:
  *               discountPercentage:
  *                 type: number
- *                 example: 15
- *               expiryDate:
- *                 type: string
- *                 format: date-time
- *                 example: "2024-12-31T23:59:59.000Z"
- *               minOrderValue:
- *                 type: number
- *                 description: Giá trị đơn hàng tối thiểu
- *                 example: 100000
  *               description:
  *                 type: string
- *                 example: "Voucher ngẫu nhiên cho sự kiện"
+ *               expiryDate:
+ *                 type: string
+ *                 format: date
+ *               minOrderValue:
+ *                 type: number
  *     responses:
  *       201:
- *         description: Tạo thành công
+ *         description: Random voucher created successfully
+ *       400:
+ *         description: Invalid input
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
  */
-router.post("/random", authenticateToken, createRandomVoucher);
+router.post('/create-random', authenticateToken, createRandomVoucher);
 
 /**
  * @swagger
- * /api/voucher/assign-user:
+ * /api/voucher/assign-to-user:
  *   post:
- *     summary: Tặng voucher cho 1 User cụ thể (Admin)
+ *     summary: Assign voucher to specific user (Admin only)
  *     tags: [Voucher]
  *     security:
  *       - bearerAuth: []
@@ -111,30 +212,35 @@ router.post("/random", authenticateToken, createRandomVoucher);
  *           schema:
  *             type: object
  *             required:
- *               - userId
  *               - voucherId
+ *               - userId
  *             properties:
+ *               voucherId:
+ *                 type: string
  *               userId:
  *                 type: string
- *                 example: "65fa1c2b..."
- *               voucherId:
- *                 type: string
- *                 example: "660ab123..."
  *               quantity:
  *                 type: number
- *                 description: Số lượng voucher muốn tặng (Mặc định 1)
- *                 example: 2
+ *                 default: 1
  *     responses:
  *       200:
- *         description: Gửi thành công
+ *         description: Voucher assigned successfully
+ *       400:
+ *         description: Invalid input
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Voucher or user not found
+ *       500:
+ *         description: Server error
  */
-router.post("/assign-user", authenticateToken, assignVoucherToUser);
+router.post('/assign-to-user', authenticateToken, assignVoucherToUser);
 
 /**
  * @swagger
- * /api/voucher/assign-all:
+ * /api/voucher/assign-to-all:
  *   post:
- *     summary: Tặng voucher cho TẤT CẢ User (Admin)
+ *     summary: Assign voucher to all users (Admin only)
  *     tags: [Voucher]
  *     security:
  *       - bearerAuth: []
@@ -149,29 +255,174 @@ router.post("/assign-user", authenticateToken, assignVoucherToUser);
  *             properties:
  *               voucherId:
  *                 type: string
- *                 example: "660ab123..."
  *               quantity:
  *                 type: number
- *                 description: Số lượng voucher muốn tặng mỗi người (Mặc định 1)
- *                 example: 1
+ *                 default: 1
  *     responses:
  *       200:
- *         description: Gửi thành công
+ *         description: Voucher assigned to all users successfully
+ *       400:
+ *         description: Invalid input or expired voucher
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Voucher not found
+ *       500:
+ *         description: Server error
  */
-router.post("/assign-all", authenticateToken, assignVoucherToAll);
+router.post('/assign-to-all', authenticateToken, assignVoucherToAll);
 
 /**
  * @swagger
- * /api/voucher/my-vouchers:
- *   get:
- *     summary: Xem kho voucher của tôi (User)
+ * /api/voucher/{id}:
+ *   put:
+ *     summary: Update voucher (Admin only)
  *     tags: [Voucher]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Voucher ID
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               code:
+ *                 type: string
+ *               discountPercentage:
+ *                 type: number
+ *               description:
+ *                 type: string
+ *               expiryDate:
+ *                 type: string
+ *                 format: date
+ *               minOrderValue:
+ *                 type: number
+ *               isActive:
+ *                 type: boolean
  *     responses:
  *       200:
- *         description: Danh sách voucher còn hạn và còn số lượng
+ *         description: Voucher updated successfully
+ *       400:
+ *         description: Invalid input or invalid ID
+ *       404:
+ *         description: Voucher not found
+ *       500:
+ *         description: Server error
  */
-router.get("/my-vouchers", authenticateToken, getMyVouchers);
+router.put('/:id', authenticateToken, async (req, res) => {
+  try {
+    const mongoose = require('mongoose');
+    if (!mongoose.Types.ObjectId.isValid(req.params.id) || req.params.id.length !== 24) {
+      return res.status(400).json({ message: 'ID không hợp lệ' });
+    }
+    
+    const updatedVoucher = await VoucherModel.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    );
+    if (!updatedVoucher) {
+      return res.status(404).json({ message: 'Voucher không tồn tại' });
+    }
+    res.status(200).json({ message: 'Cập nhật voucher thành công', data: updatedVoucher });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * @swagger
+ * /api/voucher/{id}:
+ *   delete:
+ *     summary: Delete voucher (Admin only)
+ *     tags: [Voucher]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Voucher ID
+ *     responses:
+ *       200:
+ *         description: Voucher deleted successfully
+ *       400:
+ *         description: Invalid ID
+ *       404:
+ *         description: Voucher not found
+ *       500:
+ *         description: Server error
+ */
+router.delete('/:id', authenticateToken, async (req, res) => {
+  try {
+    const mongoose = require('mongoose');
+    if (!mongoose.Types.ObjectId.isValid(req.params.id) || req.params.id.length !== 24) {
+      return res.status(400).json({ message: 'ID không hợp lệ' });
+    }
+    
+    const deletedVoucher = await VoucherModel.findByIdAndDelete(req.params.id);
+    if (!deletedVoucher) {
+      return res.status(404).json({ message: 'Voucher không tồn tại' });
+    }
+    res.status(200).json({ message: 'Xóa voucher thành công' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * @swagger
+ * /api/voucher/{idOrCode}:
+ *   get:
+ *     summary: Get voucher by ID or Code
+ *     tags: [Voucher]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: idOrCode
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Voucher ID (24 chars) or Code (string)
+ *     responses:
+ *       200:
+ *         description: Voucher details
+ *       404:
+ *         description: Voucher not found
+ *       500:
+ *         description: Server error
+ */
+router.get('/:idOrCode', authenticateToken, async (req, res) => {
+  try {
+    const { idOrCode } = req.params;
+    let voucher;
+    
+    // Check if it's a valid MongoDB ObjectId (24 hex characters)
+    const mongoose = require('mongoose');
+    if (mongoose.Types.ObjectId.isValid(idOrCode) && idOrCode.length === 24) {
+      voucher = await VoucherModel.findById(idOrCode);
+    } else {
+      // Search by code
+      voucher = await VoucherModel.findOne({ code: idOrCode.toUpperCase() });
+    }
+    
+    if (!voucher) {
+      return res.status(404).json({ message: 'Voucher không tồn tại' });
+    }
+    res.status(200).json({ message: "Chi tiết voucher", data: voucher });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 module.exports = router;

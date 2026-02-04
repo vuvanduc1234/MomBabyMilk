@@ -19,5 +19,8 @@
     "milk-shop"
   ],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "multer": "^2.0.2"
+  }
 }
