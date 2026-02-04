@@ -2,6 +2,8 @@ const express = require("express");
 const { authenticateToken } = require("../middleware/auth");
 const {
   login,
+  logout,
+  token,
   register,
   forgetPassword,
   resetPassword,
@@ -88,6 +90,65 @@ router.post("/login", login);
 
 /**
  * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     summary: Logout user
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Logout successful
+ *       401:
+ *         description: Unauthorized
+ */
+router.post("/logout", authenticateToken, logout);
+
+/**
+ * @swagger
+ * /api/auth/token:
+ *   post:
+ *     summary: Refresh access token
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Token refreshed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 accessToken:
+ *                   type: string
+ *       401:
+ *         description: Invalid refresh token
+ */
+router.post("/token", token);
+
+/**
+ * @swagger
  * /api/auth/verify-email:
  *   post:
  *     summary: Verify email with OTP
@@ -152,10 +213,10 @@ router.post("/forget-password", forgetPassword);
  *           schema:
  *             type: object
  *             required:
- *               - token
+ *               - otp
  *               - newPassword
  *             properties:
- *               token:
+ *               otp:
  *                 type: string
  *               newPassword:
  *                 type: string

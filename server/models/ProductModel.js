@@ -8,7 +8,7 @@ const productSchema = new mongoose.Schema(
     category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
     brand: { type: mongoose.Schema.Types.ObjectId, ref: 'Brand', required: true},
     quantity: { type: Number, default: 0, required: true },
-    imageUrl: { type: String, required: true },
+    imageUrl: [{ type: String, required: true }],
     manufacture: { type: String },
     expiry: { type: String },
     storageInstructions: { type: String },

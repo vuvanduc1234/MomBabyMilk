@@ -2,9 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Footer from "../../components/layouts/Footer";
 import ForgotPasswordEmailForm from "./components/ForgotPasswordEmailForm";
-import ForgotPasswordOtpForm from "./components/ForgotPasswordOtpForm";
-import ForgotPasswordResetForm from "./components/ForgotPasswordResetForm";
-import ForgotPasswordSuccess from "./components/ForgotPasswordSuccess";
+import ForgotPasswordOtpResetForm from "./components/ForgotPasswordOtpResetForm";
 import { useForgotPasswordFlow } from "./hooks/useForgotPasswordFlow";
 
 const STEP_CONTENT = {
@@ -12,17 +10,9 @@ const STEP_CONTENT = {
     title: "Quên mật khẩu",
     description: "Nhập email để nhận mã OTP đặt lại mật khẩu.",
   },
-  otp: {
-    title: "Xác thực OTP",
-    description: "Nhập mã OTP được gửi về email của bạn.",
-  },
   reset: {
     title: "Đặt lại mật khẩu",
-    description: "Tạo mật khẩu mới để tiếp tục đăng nhập.",
-  },
-  success: {
-    title: "Hoàn tất",
-    description: "Mật khẩu của bạn đã được cập nhật.",
+    description: "Nhập mã OTP và mật khẩu mới để đặt lại mật khẩu.",
   },
 };
 
@@ -44,11 +34,8 @@ function ForgotPassword() {
     error,
     message,
     handleSubmitEmail,
-    handleSubmitOtp,
     handleSubmitReset,
     goToEmailStep,
-    goToOtpStep,
-    goToResetStep,
   } = useForgotPasswordFlow();
 
   const showStatus = (nextStatus, durationMs = 3500) => {
@@ -111,12 +98,12 @@ function ForgotPassword() {
   }, []);
 
   useEffect(() => {
-    if (step !== "success") return;
+    if (message !== "Đổi mật khẩu thành công.") return;
     const timer = setTimeout(() => {
       navigate("/login");
-    }, 2200);
+    }, 2000);
     return () => clearTimeout(timer);
-  }, [step, navigate]);
+  }, [message, navigate]);
 
   const content = useMemo(
     () => STEP_CONTENT[step] || STEP_CONTENT.email,
@@ -174,33 +161,19 @@ function ForgotPassword() {
             />
           )}
 
-          {step === "otp" && (
-            <ForgotPasswordOtpForm
-              email={email}
+          {step === "reset" && (
+            <ForgotPasswordOtpResetForm
               otp={otp}
+              newPassword={newPassword}
+              confirmPassword={confirmPassword}
               onOtpChange={setOtp}
-              onSubmit={handleSubmitOtp}
+              onNewPasswordChange={setNewPassword}
+              onConfirmPasswordChange={setConfirmPassword}
+              onSubmit={handleSubmitReset}
               onBack={goToEmailStep}
               loading={loading}
               error={null}
             />
-          )}
-
-          {step === "reset" && (
-            <ForgotPasswordResetForm
-              newPassword={newPassword}
-              confirmPassword={confirmPassword}
-              onNewPasswordChange={setNewPassword}
-              onConfirmPasswordChange={setConfirmPassword}
-              onSubmit={handleSubmitReset}
-              onBack={goToOtpStep}
-              loading={loading}
-              error={null}
-            />
-          )}
-
-          {step === "success" && (
-            <ForgotPasswordSuccess onLogin={() => navigate("/login")} />
           )}
         </div>
       </div>

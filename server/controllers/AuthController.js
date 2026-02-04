@@ -41,6 +41,7 @@ const login = async (req, res) => {
       id: userRecord._id,
       email: userRecord.email,
       name: userRecord.fullname,
+      role: userRecord.role,
     };
     const accessToken = generateAccessToken(user);
     const refreshToken = jwt.sign(user, process.env.REFRESH_TOKEN_SECRET, {
@@ -55,7 +56,15 @@ const login = async (req, res) => {
       sameSite: "Strict",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
-    res.json({ accessToken });
+    res.json({
+      accessToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+    });
   } catch (error) {
     console.error("Lỗi đăng nhập:", error);
     res.status(500).json({ error: "Lỗi máy chủ nội bộ" });
@@ -95,8 +104,13 @@ const token = async (req, res) => {
         if (err) return res.status(403).json({ error: "Token không hợp lệ" });
 
         try {
+          const userRecord = await User.findById(user.id);
+          if (!userRecord) {
+            return res.status(404).json({ error: "Người dùng không tồn tại" });
+          }
+
           const newRefreshToken = jwt.sign(
-            { id: user.id, email: user.email, name: user.name },
+            { id: user.id, email: user.email, name: user.name, role: userRecord.role },
             process.env.REFRESH_TOKEN_SECRET,
             { expiresIn: "7d" },
           );
@@ -106,6 +120,7 @@ const token = async (req, res) => {
             id: user.id,
             email: user.email,
             name: user.name,
+            role: userRecord.role,
           });
           res.cookie("refreshToken", newRefreshToken, {
             httpOnly: true,
@@ -130,13 +145,11 @@ const generateAccessToken = (user) => {
 };
 
 const register = async (req, res) => {
-  const { email, password, fullname, role } =
-    req.body;
+  const { email, password, fullname, role } = req.body;
 
   if (!email || !password || !fullname) {
     return res.status(400).json({
-      message:
-        "Vui lòng cung cấp email, mật khẩu, họ tên",
+      message: "Vui lòng cung cấp email, mật khẩu, họ tên",
     });
   }
 
@@ -214,11 +227,11 @@ const forgetPassword = async (req, res) => {
 };
 
 const resetPassword = async (req, res) => {
-  const { token, newPassword } = req.body;
-  if (!token || !newPassword) {
+  const { otp, newPassword } = req.body;
+  if (!otp || !newPassword) {
     return res
       .status(400)
-      .json({ message: "Vui lòng cung cấp mã token và mật khẩu mới" });
+      .json({ message: "Vui lòng cung cấp mã otp và mật khẩu mới" });
   }
 
   if (!isStrongPassword(newPassword)) {
@@ -230,7 +243,7 @@ const resetPassword = async (req, res) => {
 
   try {
     const user = await UserModel.findOne({
-      passwordResetToken: token,
+      passwordResetToken: otp,
       passwordResetExpires: { $gt: Date.now() },
     });
 
@@ -332,10 +345,11 @@ const verifyEmail = async (req, res) => {
       id: user._id,
       email: user.email,
       name: user.fullname,
+      role: user.role,
     });
 
     const refreshToken = jwt.sign(
-      { id: user._id, email: user.email, name: user.fullname },
+      { id: user._id, email: user.email, name: user.fullname, role: user.role, },
       process.env.REFRESH_TOKEN_SECRET,
       { expiresIn: "7d" },
     );
@@ -366,17 +380,17 @@ const sendResetOTP = async (req, res) => {
   }
 
   try {
-    const user = await UserModel.findOne({email});
+    const user = await UserModel.findOne({ email });
     if (!user) {
-      return res.json({message: "Không tìm thấy người dùng"})
+      return res.json({ message: "Không tìm thấy người dùng" });
     }
     const otp = crypto.randomInt(100000, 999999).toString();
     const otpExpires = Date.now() + 15 * 60 * 1000;
-    user.emailVerificationToken =  otp;
+    user.emailVerificationToken = otp;
     user.emailVerificationExpires = otpExpires;
-    await sendVerificationEmail(email, otp, user.fullname)
+    await sendVerificationEmail(email, otp, user.fullname);
     await user.save();
-    res.status(200).json({message: "Gửi OTP Thành công"})
+    res.status(200).json({ message: "Gửi OTP Thành công" });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -391,5 +405,5 @@ module.exports = {
   resetPassword,
   changePassword,
   verifyEmail,
-  sendResetOTP
+  sendResetOTP,
 };

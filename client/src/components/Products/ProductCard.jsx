@@ -1,14 +1,12 @@
-// src/components/Products/ProductCard.jsx (Enhanced Version)
+// src/components/Products/ProductCard.jsx
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ShoppingCart, Star, Calendar, Clock, Package } from "lucide-react";
 import { useCart } from "../../context/CartContext";
-import { usePreOrder } from "../../context/PreOrderContext";
 import { PreOrderModal } from "../PreOrder/PreOrderModal";
 
 export function ProductCard({ product }) {
   const { addToCart } = useCart();
-  const { addToPreOrder } = usePreOrder();
   const [showPreOrderModal, setShowPreOrderModal] = useState(false);
 
   const handleAddToCart = (e) => {
@@ -23,6 +21,7 @@ export function ProductCard({ product }) {
     if (isPreOrderProduct) {
       setShowPreOrderModal(true);
     } else {
+      // Sản phẩm thường - thêm vào giỏ hàng bình thường
       addToCart(product);
     }
   };
@@ -33,11 +32,17 @@ export function ProductCard({ product }) {
     preOrderType,
     paymentOption,
   }) => {
-    addToPreOrder(product, preOrderType, paymentOption);
+    // Thêm vào giỏ hàng với thông tin pre-order VÀ quantity
+    addToCart(product, {
+      quantity,
+      preOrderType,
+      paymentOption,
+      releaseDate: product.releaseDate,
+    });
 
     const message =
       preOrderType === "OUT_OF_STOCK"
-        ? "Đã thêm vào danh sách đặt trước!"
+        ? "Đã thêm vào giỏ hàng (Đặt trước)!"
         : "Đã đăng ký đặt trước thành công!";
 
     alert(message);

@@ -1,11 +1,12 @@
-import { useState } from 'react';
-import { requestPasswordReset, resetPassword } from '../../../services/auth/forgotPassword';
+import { useState } from "react";
+import {
+  requestPasswordReset,
+  resetPassword,
+} from "../services/forgotPassword";
 
 const STEPS = {
-  EMAIL: 'email',
-  OTP: 'otp',
-  RESET: 'reset',
-  SUCCESS: 'success',
+  EMAIL: "email",
+  RESET: "reset",
 };
 
 const normalizeErrorMessage = (message, fallbackMessage) => {
@@ -14,17 +15,17 @@ const normalizeErrorMessage = (message, fallbackMessage) => {
   const lowerMsg = message.toLowerCase();
 
   if (
-    lowerMsg.includes('failed to fetch') ||
-    lowerMsg.includes('network error') ||
-    lowerMsg.includes('networkerror') ||
-    lowerMsg.includes('fetch error') ||
-    lowerMsg.includes('net::')
+    lowerMsg.includes("failed to fetch") ||
+    lowerMsg.includes("network error") ||
+    lowerMsg.includes("networkerror") ||
+    lowerMsg.includes("fetch error") ||
+    lowerMsg.includes("net::")
   ) {
-    return 'Không thể kết nối máy chủ.';
+    return "Không thể kết nối máy chủ.";
   }
 
-  if (lowerMsg.includes('timeout')) {
-    return 'Kết nối bị timeout. Vui lòng thử lại.';
+  if (lowerMsg.includes("timeout")) {
+    return "Kết nối bị timeout. Vui lòng thử lại.";
   }
 
   return message;
@@ -32,10 +33,10 @@ const normalizeErrorMessage = (message, fallbackMessage) => {
 
 export const useForgotPasswordFlow = () => {
   const [step, setStep] = useState(STEPS.EMAIL);
-  const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [message, setMessage] = useState(null);
@@ -48,7 +49,7 @@ export const useForgotPasswordFlow = () => {
   const handleSubmitEmail = async () => {
     const normalizedEmail = email.trim();
     if (!normalizedEmail) {
-      setError('Vui lòng nhập email.');
+      setError("Vui lòng nhập email.");
       return false;
     }
 
@@ -57,12 +58,15 @@ export const useForgotPasswordFlow = () => {
 
     try {
       await requestPasswordReset(normalizedEmail);
-      setStep(STEPS.OTP);
-      setMessage('Mã OTP đã được gửi về email của bạn.');
+      setStep(STEPS.RESET);
+      setMessage("Mã OTP đã được gửi về email của bạn.");
       return true;
     } catch (err) {
       setError(
-        normalizeErrorMessage(err?.message, 'Không thể gửi mã OTP. Vui lòng thử lại.')
+        normalizeErrorMessage(
+          err?.message,
+          "Không thể gửi mã OTP. Vui lòng thử lại.",
+        ),
       );
       return false;
     } finally {
@@ -70,30 +74,24 @@ export const useForgotPasswordFlow = () => {
     }
   };
 
-  const handleSubmitOtp = async () => {
-    if (!otp.trim()) {
-      setError('Vui lòng nhập mã OTP.');
-      return false;
-    }
-
-    if (otp.trim().length !== 6) {
-      setError('Mã OTP phải gồm 6 chữ số.');
-      return false;
-    }
-
-    clearFeedback();
-    setStep(STEPS.RESET);
-    return true;
-  };
-
   const handleSubmitReset = async () => {
+    if (!otp.trim()) {
+      setError("Vui lòng nhập mã OTP.");
+      return false;
+    }
+
+    if (!/^\d{6}$/.test(otp.trim())) {
+      setError("Mã OTP phải gồm 6 chữ số.");
+      return false;
+    }
+
     if (!newPassword || !confirmPassword) {
-      setError('Vui lòng nhập đầy đủ mật khẩu.');
+      setError("Vui lòng nhập đầy đủ mật khẩu.");
       return false;
     }
 
     if (newPassword !== confirmPassword) {
-      setError('Mật khẩu xác nhận không khớp.');
+      setError("Mật khẩu xác nhận không khớp.");
       return false;
     }
 
@@ -105,12 +103,15 @@ export const useForgotPasswordFlow = () => {
         otp: otp.trim(),
         newPassword,
       });
-      setStep(STEPS.SUCCESS);
-      setMessage('Đổi mật khẩu thành công.');
+      setMessage("Đổi mật khẩu thành công.");
       return true;
     } catch (err) {
+      setOtp("");
       setError(
-        normalizeErrorMessage(err?.message, 'Không thể đổi mật khẩu. Vui lòng thử lại.')
+        normalizeErrorMessage(
+          err?.message,
+          "Không thể đổi mật khẩu. Vui lòng thử lại.",
+        ),
       );
       return false;
     } finally {
@@ -121,11 +122,6 @@ export const useForgotPasswordFlow = () => {
   const goToEmailStep = () => {
     clearFeedback();
     setStep(STEPS.EMAIL);
-  };
-
-  const goToOtpStep = () => {
-    clearFeedback();
-    setStep(STEPS.OTP);
   };
 
   const goToResetStep = () => {
@@ -147,10 +143,8 @@ export const useForgotPasswordFlow = () => {
     error,
     message,
     handleSubmitEmail,
-    handleSubmitOtp,
     handleSubmitReset,
     goToEmailStep,
-    goToOtpStep,
     goToResetStep,
   };
 };

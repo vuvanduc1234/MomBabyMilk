@@ -1,41 +1,47 @@
-import { useEffect, useState } from 'react';
-import Footer from '../../components/layouts/Footer';
+import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import Footer from "../../components/layouts/Footer";
 
-const isRegisterPath = () => window.location.pathname === '/register';
-const API_BASE = window.__API_BASE__ || 'http://localhost:5000';
+const isRegisterPath = () => window.location.pathname === "/register";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 function Register() {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(isRegisterPath());
   const [form, setForm] = useState({
-    fullName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
+    fullName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [status, setStatus] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const statusTimerRef = useRef(null);
 
   useEffect(() => {
     const handlePopState = () => {
       setIsOpen(isRegisterPath());
     };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
   useEffect(() => {
     if (!isOpen) return;
     const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
 
     const hiddenElements = [];
     const targets = document.querySelectorAll(
-      'header, footer, .fixed.inset-0.pointer-events-none.overflow-hidden'
+      "header, footer, .fixed.inset-0.pointer-events-none.overflow-hidden",
     );
     targets.forEach((element) => {
       if (!element.dataset.loginHidden) {
-        element.dataset.loginHidden = 'true';
-        element.classList.add('hidden');
+        element.dataset.loginHidden = "true";
+        element.classList.add("hidden");
         hiddenElements.push(element);
       }
     });
@@ -43,13 +49,33 @@ function Register() {
     return () => {
       document.body.style.overflow = previousOverflow;
       hiddenElements.forEach((element) => {
-        if (element.dataset.loginHidden === 'true') {
+        if (element.dataset.loginHidden === "true") {
           delete element.dataset.loginHidden;
-          element.classList.remove('hidden');
+          element.classList.remove("hidden");
         }
       });
     };
   }, [isOpen]);
+
+  useEffect(() => {
+    return () => {
+      if (statusTimerRef.current) {
+        clearTimeout(statusTimerRef.current);
+      }
+    };
+  }, []);
+
+  const showStatus = (nextStatus, durationMs = 3500) => {
+    if (statusTimerRef.current) {
+      clearTimeout(statusTimerRef.current);
+    }
+    setStatus(nextStatus);
+    if (nextStatus) {
+      statusTimerRef.current = setTimeout(() => {
+        setStatus(null);
+      }, durationMs);
+    }
+  };
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -58,29 +84,51 @@ function Register() {
 
   const handleLoginLink = (event) => {
     event.preventDefault();
-    if (window.location.pathname !== '/login') {
-      window.history.pushState({}, '', '/login');
-      window.dispatchEvent(new PopStateEvent('popstate'));
+    if (window.location.pathname !== "/login") {
+      window.history.pushState({}, "", "/login");
+      window.dispatchEvent(new PopStateEvent("popstate"));
     }
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    setStatus(null);
+    setLoading(true);
+
+    if (form.password !== form.confirmPassword) {
+      showStatus({
+        type: "error",
+        message: "Mật khẩu xác nhận không khớp.",
+      });
+      setLoading(false);
+      return;
+    }
     const payload = {
-      fullName: form.fullName.trim(),
+      fullname: form.fullName.trim(),
       email: form.email.trim(),
       password: form.password,
-      confirmPassword: form.confirmPassword,
     };
 
     try {
-      await fetch(`${API_BASE}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+      await axios.post(`${API_BASE}/api/auth/register`, payload);
+      showStatus({
+        type: "success",
+        message: "Đăng ký thành công! Vui lòng xác thực email.",
       });
+      setTimeout(() => {
+        navigate("/verify-email", { state: { email: payload.email } });
+      }, 1500);
     } catch (error) {
-      console.error(error);
+      const serverMessage =
+        error?.response?.data?.error || error?.response?.data?.message;
+      const errorMessage =
+        serverMessage || error?.message || "Không thể kết nối máy chủ.";
+      showStatus({
+        type: "error",
+        message: errorMessage,
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -88,6 +136,19 @@ function Register() {
 
   return (
     <div className="fixed inset-0 flex flex-col items-stretch justify-start bg-[#e996b1] z-[9999] px-6 py-8 text-[#2f2730] font-['Inter','Segoe_UI',system-ui,sans-serif] overflow-y-auto min-h-screen">
+      {status && (
+        <div className="absolute top-5 left-1/2 -translate-x-1/2 w-[min(520px,90%)] flex justify-center pointer-events-none z-[2]">
+          <div
+            className={`w-full px-[18px] py-3 rounded-[12px] text-[13px] font-semibold tracking-[0.1px] text-center border border-[rgba(255,255,255,0.12)] shadow-[0_12px_30px_rgba(0,0,0,0.24)] backdrop-blur-[10px] animate-[fadeIn_0.25s_ease-out] ${
+              status.type === "success"
+                ? "bg-[#4caf50] text-[#1b5e20]"
+                : "bg-[#e53935] text-white"
+            }`}
+          >
+            {status.message}
+          </div>
+        </div>
+      )}
       <div className="w-full max-w-[1240px] flex items-center justify-between gap-9 px-6 mx-auto mt-[clamp(12px,7.225vh,10.8375vh)] mb-10 max-[480px]:flex-col max-[480px]:items-center max-[480px]:px-0">
         <div
           className="flex-1 flex flex-col items-center gap-0 select-none -translate-x-[10%] -translate-y-[25%] scale-[1.2] origin-center max-[480px]:-translate-y-[10%] max-[480px]:scale-[1.05]"
@@ -106,7 +167,9 @@ function Register() {
         </div>
 
         <div className="w-[420px] bg-white rounded-[16px] border border-[#f0dbe4] shadow-[0_18px_50px_rgba(41,10,24,0.08)] pt-8 px-8 pb-6 mt-[-5%] max-[480px]:w-full max-[480px]:pt-[28px] max-[480px]:px-[22px] max-[480px]:pb-[22px] max-[480px]:mt-0">
-          <h1 className="text-center text-[26px] m-0 text-[#2b2730]">Đăng ký tài khoản</h1>
+          <h1 className="text-center text-[26px] m-0 text-[#2b2730]">
+            Đăng ký tài khoản
+          </h1>
           <p className="text-center mt-2 mb-7 text-[#8b7b84] text-[14px]">
             Tạo tài khoản để nhận ưu đãi độc quyền
           </p>
@@ -157,7 +220,7 @@ function Register() {
                   <LockIcon />
                 </span>
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   name="password"
                   className="w-full h-[44px] pl-[42px] pr-[44px] rounded-[10px] border-[1.5px] border-[#f1d4e0] bg-white text-[14px] outline-none transition-[border-color,box-shadow] duration-200 focus:border-[#e996b1] focus:shadow-[0_0_0_3px_rgba(233,150,177,0.15)]"
                   placeholder="Nhập mật khẩu"
@@ -169,7 +232,7 @@ function Register() {
                 <button
                   className="absolute right-[12px] bg-transparent border-0 text-[#c78ea6] cursor-pointer p-1"
                   type="button"
-                  aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                  aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
                   onClick={() => setShowPassword((prev) => !prev)}
                 >
                   <EyeIcon isOpen={showPassword} />
@@ -184,7 +247,7 @@ function Register() {
                   <LockIcon />
                 </span>
                 <input
-                  type={showConfirmPassword ? 'text' : 'password'}
+                  type={showConfirmPassword ? "text" : "password"}
                   name="confirmPassword"
                   className="w-full h-[44px] pl-[42px] pr-[44px] rounded-[10px] border-[1.5px] border-[#f1d4e0] bg-white text-[14px] outline-none transition-[border-color,box-shadow] duration-200 focus:border-[#e996b1] focus:shadow-[0_0_0_3px_rgba(233,150,177,0.15)]"
                   placeholder="Xác nhận mật khẩu"
@@ -196,7 +259,9 @@ function Register() {
                 <button
                   className="absolute right-[12px] bg-transparent border-0 text-[#c78ea6] cursor-pointer p-1"
                   type="button"
-                  aria-label={showConfirmPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                  aria-label={
+                    showConfirmPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"
+                  }
                   onClick={() => setShowConfirmPassword((prev) => !prev)}
                 >
                   <EyeIcon isOpen={showConfirmPassword} />
@@ -205,15 +270,16 @@ function Register() {
             </label>
 
             <button
-              className="h-[44px] rounded-[12px] border-0 bg-[#e996b1] text-white font-semibold text-[15px] cursor-pointer shadow-[0_8px_16px_rgba(233,150,177,0.35)]"
+              className="h-[44px] rounded-[12px] border-0 bg-[#e996b1] text-white font-semibold text-[15px] cursor-pointer shadow-[0_8px_16px_rgba(233,150,177,0.35)] disabled:opacity-70 disabled:cursor-not-allowed"
               type="submit"
+              disabled={loading}
             >
-              Đăng ký
+              {loading ? "Đang xử lý..." : "Đăng ký"}
             </button>
           </form>
 
           <div className="mt-5 text-center text-[13px] text-[#7e6b75]">
-            Đã có tài khoản?{' '}
+            Đã có tài khoản?{" "}
             <a
               className="text-[#e996b1] no-underline font-semibold hover:underline"
               href="/login"
@@ -228,13 +294,30 @@ function Register() {
       <div className="w-[calc(100%+48px)] bg-white -mx-6 -mb-8 mt-auto pt-[3.25vh] [&_footer]:!block [&_footer]:!bg-white [&_footer]:text-[#2f2730] [&_footer.bg-gray-900]:!bg-white [&_footer_.bg-gray-950]:!bg-white [&_footer_.text-gray-300]:!text-[#5f4c55] [&_footer_.text-gray-400]:!text-[#5f4c55] [&_footer_.text-gray-500]:!text-[#5f4c55] [&_footer_.text-white]:!text-[#2f2730] [&_footer_a]:text-[#2f2730] [&_footer_a:hover]:text-[#2f2730] [&_footer_.border-gray-800]:!border-[#e8dfe3] [&_footer_.border-gray-700]:!border-[#e8dfe3] [&_footer_input]:!bg-white [&_footer_input]:!text-[#2f2730] [&_footer_input]:!border-[#e8dfe3] [&_footer_button]:!bg-[#e996b1] [&_footer_button]:!text-white">
         <Footer />
       </div>
+
+      <style>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(-8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </div>
   );
 }
 
 function UserIcon() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="w-[18px] h-[18px] fill-current">
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className="w-[18px] h-[18px] fill-current"
+    >
       <path d="M12 12c2.8 0 5-2.2 5-5s-2.2-5-5-5-5 2.2-5 5 2.2 5 5 5zm0 2c-4.2 0-8 2.2-8 5v3h16v-3c0-2.8-3.8-5-8-5z" />
     </svg>
   );
@@ -242,7 +325,11 @@ function UserIcon() {
 
 function MailIcon() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="w-[18px] h-[18px] fill-current">
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className="w-[18px] h-[18px] fill-current"
+    >
       <path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4-8 5-8-5V6l8 5 8-5z" />
     </svg>
   );
@@ -250,7 +337,11 @@ function MailIcon() {
 
 function LockIcon() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="w-[18px] h-[18px] fill-current">
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className="w-[18px] h-[18px] fill-current"
+    >
       <path d="M17 9h-1V7a4 4 0 0 0-8 0v2H7a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2zm-7-2a2 2 0 0 1 4 0v2h-4z" />
     </svg>
   );
@@ -258,7 +349,11 @@ function LockIcon() {
 
 function EyeIcon({ isOpen }) {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="w-[18px] h-[18px] fill-current">
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className="w-[18px] h-[18px] fill-current"
+    >
       {isOpen ? (
         <path d="M12 4.5c-5.6 0-10.3 3.5-12 7.5 1.7 4 6.4 7.5 12 7.5s10.3-3.5 12-7.5c-1.7-4-6.4-7.5-12-7.5zm0 12.2a4.7 4.7 0 1 1 0-9.4 4.7 4.7 0 0 1 0 9.4z" />
       ) : (

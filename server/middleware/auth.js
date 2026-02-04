@@ -10,4 +10,16 @@ const authenticateToken = (req, res, next) => {
     next();
   });
 };
-module.exports = { authenticateToken };
+
+const checkRole = (roleDuocPhep) => {
+  return (req, res, next) => {
+    const userRole = req.user.role; 
+    if (roleDuocPhep.includes(userRole)) {
+      next();
+    } else {
+      res.status(403).json({ message: "Chặn lại! Bạn không đủ quyền." });
+    }
+  };
+};
+
+module.exports = { authenticateToken, checkRole };
