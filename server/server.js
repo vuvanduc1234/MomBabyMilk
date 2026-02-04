@@ -13,7 +13,7 @@ const BrandRoute = require("./routes/BrandRoute");
 const CheckoutRoute = require("./routes/CheckoutRoute");
 const VoucherRoute = require("./routes/VoucherRoute");
 const UploadRoute = require("./routes/UploadRoute");
-const paymentRoutes = require('./routes/paymentRoutes');
+const paymentRoutes = require('./routes/PaymentRoutes');
 const app = express();
 database.connect();
 
