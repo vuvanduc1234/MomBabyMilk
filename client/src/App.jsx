@@ -31,6 +31,10 @@ import StaffDashboard from "./pages/staff/Dashboard";
 import StaffOrders from "./pages/staff/Orders";
 import StaffProducts from "./pages/staff/products/Products";
 import StaffInventory from "./pages/staff/Inventory";
+import Articles from "./pages/staff/Articles";
+import Customers from "./pages/staff/Customers";
+import Vouchers from "./pages/staff/Vouchers";
+import Complaints from "./pages/staff/Complaints";
 import { AdminLayout } from "./components/layouts/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AccountManagement from "./pages/admin/AccountManagement";
@@ -67,6 +71,10 @@ function App() {
               <Route path="orders" element={<StaffOrders />} />
               <Route path="products" element={<StaffProducts />} />
               <Route path="inventory" element={<StaffInventory />} />
+              <Route path="articles" element={<Articles />} />
+              <Route path="customers" element={<Customers />} />
+              <Route path="vouchers" element={<Vouchers />} />
+              <Route path="complaints" element={<Complaints />} />
             </Route>
 
             {/* Admin routes */}

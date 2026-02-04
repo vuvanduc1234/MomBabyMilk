@@ -35,7 +35,7 @@ const menuItems = [
   { icon: Newspaper, label: "Bài viết", href: "/staff/articles" },
   { icon: Users, label: "Khách hàng", href: "/staff/customers" },
   { icon: TicketPercent, label: "Voucher", href: "/staff/vouchers" },
-  { icon: MessageCircleWarning, label: "Phàn nàn", href: "/staff/complaints" },
+  { icon: MessageCircleWarning, label: "Khiếu nại", href: "/staff/complaints" },
 ];
 
 export function StaffLayout() {
