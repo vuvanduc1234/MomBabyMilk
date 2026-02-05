@@ -18,15 +18,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { FieldDescription } from "@/components/ui/field";
-import { Checkbox } from "@/components/ui/checkbox";
-import { CircleQuestionMarkIcon, Package } from "lucide-react";
+import { Package } from "lucide-react";
 import { useState } from "react";
+import NewBrandDialog from "./NewBrandDialog";
+import NewCategoryDialog from "./NewCategoryDialog";
 
 export default function NewProductDialog({
   isOpen,
@@ -44,20 +39,32 @@ export default function NewProductDialog({
       name: "",
       short_description: "",
       price: 0,
-      sale_percentage: null,
       discount_end_datetime: null,
       stock: 0,
-      low_stock_threshold: 0,
       is_active: true,
       category_id: "",
       brand_id: "",
     });
-    setIsDiscountEnabled(false);
-    setDate(undefined);
+    setImagePreview(null);
   };
-  const [open, setOpen] = useState(false);
-  const [date, setDate] = useState(undefined);
-  const [isDiscountEnabled, setIsDiscountEnabled] = useState(false);
+  const [isBrandDialogOpen, setIsBrandDialogOpen] = useState(false);
+  const [newBrand, setNewBrand] = useState({ name: "", description: "" });
+  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+  const [newCategory, setNewCategory] = useState({ name: "", description: "" });
+  const [imagePreview, setImagePreview] = useState(null);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+      // Store the file in newProduct state
+      setNewProduct({ ...newProduct, image: file });
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -71,11 +78,37 @@ export default function NewProductDialog({
             {/* Image Upload */}
             <div className="space-y-2">
               <Label>Hình ảnh sản phẩm</Label>
-              <div className="border-2 border-dashed border-muted rounded-lg h-64 flex items-center justify-center bg-muted/10 hover:bg-muted/20 transition-colors cursor-pointer">
-                <div className="text-center text-muted-foreground">
-                  <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Upload Image</p>
+              <div className="border-2 border-dashed border-muted rounded-lg p-4 flex flex-col items-center gap-3 bg-background">
+                <div className="w-full aspect-square rounded-lg border-2 border-muted bg-muted/10 overflow-hidden flex items-center justify-center">
+                  {imagePreview ? (
+                    <img
+                      src={imagePreview}
+                      alt="Product preview"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="text-center text-muted-foreground">
+                      <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">Ảnh sản phẩm</p>
+                    </div>
+                  )}
                 </div>
+                <label className="w-full">
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg"
+                    className="hidden"
+                    onChange={handleImageChange}
+                  />
+                  <span className="block w-full text-center px-3 py-2 rounded-md border border-input text-sm font-medium cursor-pointer hover:bg-accent transition">
+                    Chọn ảnh
+                  </span>
+                </label>
+                <p className="text-xs text-muted-foreground text-center">
+                  Dung lượng file tối đa 1MB
+                  <br />
+                  Định dạng .JPEG, .PNG
+                </p>
               </div>
             </div>
 
@@ -122,7 +155,12 @@ export default function NewProductDialog({
                     <Label htmlFor="new-brand">
                       Thương hiệu<span className="text-red-700">*</span>
                     </Label>
-                    <Button variant="link" size="small">
+                    <Button
+                      variant="link"
+                      size="small"
+                      onClick={() => setIsBrandDialogOpen(true)}
+                      type="button"
+                    >
                       Tạo mới
                     </Button>
                   </div>
@@ -152,7 +190,12 @@ export default function NewProductDialog({
                     <Label htmlFor="new-category">
                       Danh mục<span className="text-red-700">*</span>
                     </Label>
-                    <Button variant="link" size="small">
+                    <Button
+                      variant="link"
+                      size="small"
+                      onClick={() => setIsCategoryDialogOpen(true)}
+                      type="button"
+                    >
                       Tạo mới
                     </Button>
                   </div>
@@ -195,148 +238,53 @@ export default function NewProductDialog({
                   rows={4}
                 />
               </div>
+
+              {/* Price and Stock */}
+              <div className="flex gap-4">
+                <div className="space-y-2 flex-1">
+                  <Label htmlFor="new-stock">
+                    Tồn kho<span className="text-red-700">*</span>
+                  </Label>
+                  <Input
+                    id="new-stock"
+                    type="number"
+                    placeholder="Storage"
+                    value={newProduct.stock}
+                    onChange={(e) =>
+                      setNewProduct({
+                        ...newProduct,
+                        stock: parseInt(e.target.value) || 0,
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2 flex-1">
+                  <Label htmlFor="new-price">
+                    Giá (VND)<span className="text-red-700">*</span>
+                  </Label>
+                  <Input
+                    id="new-price"
+                    type="number"
+                    placeholder="Price"
+                    value={newProduct.price}
+                    onChange={(e) =>
+                      setNewProduct({
+                        ...newProduct,
+                        price: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    step="1000"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Price, Storage, Discount */}
           <div className="grid grid-cols-3 gap-4">
-            <div className="flex flex-col gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="new-stock">
-                  Tồn kho<span className="text-red-700">*</span>
-                </Label>
-                <Input
-                  id="new-stock"
-                  type="number"
-                  placeholder="Storage"
-                  value={newProduct.stock}
-                  onChange={(e) =>
-                    setNewProduct({ ...newProduct, stock: parseInt(e.target.value) || 0 })
-                  }
-                />
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="new-stock">
-                    Định mức tồn thấp nhất
-                    <span className="text-red-700">*</span>
-                  </Label>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <CircleQuestionMarkIcon className="w-4 h-4" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>
-                        Khi tổn kho chạm đến định mức, bạn sẽ nhận được cảnh báo
-                        từ hệ thống
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-
-                <Input
-                  id="new-low-stock-threshold"
-                  type="number"
-                  placeholder="Minimum stock level"
-                  value={newProduct.low_stock_threshold}
-                  onChange={(e) =>
-                    setNewProduct({ ...newProduct, low_stock_threshold: parseInt(e.target.value) || 0 })
-                  }
-                />
-              </div>
-            </div>
-
             <div className="col-span-2 flex flex-col gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="new-price">
-                  Giá (VND)<span className="text-red-700">*</span>
-                </Label>
-                <Input
-                  id="new-price"
-                  type="number"
-                  placeholder="Price"
-                  value={newProduct.price}
-                  onChange={(e) =>
-                    setNewProduct({ ...newProduct, price: parseFloat(e.target.value) || 0 })
-                  }
-                  step="1000"
-                  className="max-w-68"
-                />
-              </div>
-
-              <div className="flex gap-4">
-                <div className="space-y-2 flex-1">
-                  <div className="flex items-baseline justify-between">
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        checked={isDiscountEnabled}
-                        onCheckedChange={(checked) => {
-                          setIsDiscountEnabled(checked);
-                          if (!checked) {
-                            setNewProduct({
-                              ...newProduct,
-                              sale_percentage: null,
-                              discount_end_datetime: null,
-                            });
-                          }
-                        }}
-                      />
-                      <Label htmlFor="new-sale-percentage">Giảm giá (%)</Label>
-                    </div>
-                  </div>
-
-                  <Input
-                    id="new-sale-percentage"
-                    type="number"
-                    placeholder="Discount (%)"
-                    min="0"
-                    max="100"
-                    value={newProduct.sale_percentage || ""}
-                    onChange={(e) =>
-                      setNewProduct({
-                        ...newProduct,
-                        sale_percentage: parseFloat(e.target.value) || null,
-                      })
-                    }
-                    disabled={!isDiscountEnabled}
-                    className="max-w-68"
-                  />
-                  {isDiscountEnabled && newProduct.sale_percentage ? (
-                    <FieldDescription>
-                      Giá sau giảm:{" "}
-                      {(newProduct.price * (100 - newProduct.sale_percentage)) / 100}
-                    </FieldDescription>
-                  ) : null}
-                </div>
-                {isDiscountEnabled && (
-                  <>
-                    <div className="space-y-2 flex-1">
-                      <Label htmlFor="discount-end-datetime">
-                        Thời gian kết thúc khuyến mại
-                      </Label>
-                      <Input
-                        type="datetime-local"
-                        id="discount-end-datetime"
-                        value={
-                          newProduct.discount_end_datetime
-                            ? new Date(new Date(newProduct.discount_end_datetime).getTime() - new Date(newProduct.discount_end_datetime).getTimezoneOffset() * 60000)
-                                .toISOString()
-                                .slice(0, 16)
-                            : ""
-                        }
-                        onChange={(e) =>
-                          setNewProduct({
-                            ...newProduct,
-                            discount_end_datetime: e.target.value ? new Date(e.target.value).toISOString() : null,
-                          })
-                        }
-                        className="bg-background appearance-none"
-                      />
-                    </div>
-                  </>
-                )}
-              </div>
+              <div className="flex gap-4"></div>
             </div>
           </div>
 
@@ -375,6 +323,30 @@ export default function NewProductDialog({
           </div>
         </DialogFooter>
       </DialogContent>
+
+      <NewBrandDialog
+        isOpen={isBrandDialogOpen}
+        onClose={() => setIsBrandDialogOpen(false)}
+        newBrand={newBrand}
+        setNewBrand={setNewBrand}
+        onCreateBrand={() => {
+          // TODO: Handle brand creation
+          console.log("Creating brand:", newBrand);
+          setIsBrandDialogOpen(false);
+        }}
+      />
+
+      <NewCategoryDialog
+        isOpen={isCategoryDialogOpen}
+        onClose={() => setIsCategoryDialogOpen(false)}
+        newCategory={newCategory}
+        setNewCategory={setNewCategory}
+        onCreateCategory={() => {
+          // TODO: Handle category creation
+          console.log("Creating category:", newCategory);
+          setIsCategoryDialogOpen(false);
+        }}
+      />
     </Dialog>
   );
 }
