@@ -44,6 +44,10 @@ const userSchema = new mongoose.Schema(
       voucherId: { type: mongoose.Schema.Types.ObjectId, ref: "Voucher" },
       quantity: { type: Number, default: 1 }
     }],
+    wishlist: [{ 
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: "Product" 
+    }],
     isVerified: {
       type: Boolean,
       default: false,
