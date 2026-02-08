@@ -1,518 +1,407 @@
-// src/pages/Orders/OrderTracking.jsx
+// src/pages/Orders/OrderHistory.jsx
 import { useState } from "react";
-import {
-  Search,
-  Package,
-  Truck,
-  CheckCircle,
-  XCircle,
-  Clock,
-  MapPin,
-  Phone,
-  Mail,
-  Calendar,
-} from "lucide-react";
+import { ChevronUp, ChevronDown, Clock, CircleDot } from "lucide-react";
 
 // Dữ liệu mẫu đơn hàng
-const mockOrders = [
+const mockOrderHistory = [
   {
-    id: "ORD001",
-    orderNumber: "MB2024001",
-    status: "delivered",
-    customerName: "Nguyễn Thị Lan",
-    phone: "0901234567",
-    email: "lannt@email.com",
-    orderDate: "2024-01-15",
-    deliveryDate: "2024-01-18",
-    totalAmount: 1250000,
+    id: "1",
+    orderNumber: "#5SC8E2A9",
+    datePlaced: "23 Tháng 11, 2025",
+    totalAmount: "1.250.000đ",
+    paymentMethod: "COD",
+    status: "pending",
+    statusLabel: "Chờ xác nhận",
+    processingStatus: "processing",
+    processingLabel: "Đang xử lý",
+    shippingAddress: "27/2a đường số 2, Quận 7, TP.HCM",
+    contact: "012345563",
     items: [
-      { name: "Similac Mom IQ Plus", quantity: 2, price: 580000 },
-      { name: "Abbott Grow Gold", quantity: 1, price: 450000 },
+      {
+        id: "1",
+        name: "Similac Mom IQ Plus Hương Vani",
+        image:
+          "https://images.unsplash.com/photo-1563636619-e9143da7973b?w=400",
+        danhMuc: "Sữa cho mẹ bầu",
+        dungTich: "900g",
+        quantity: 2,
+        price: "625.000đ",
+        totalPrice: "1.250.000đ tổng",
+      },
     ],
-    shippingAddress: "123 Nguyễn Văn Linh, Quận 7, TP.HCM",
-    timeline: [
-      {
-        status: "Đơn hàng đã được đặt",
-        date: "15/01/2024 10:30",
-        completed: true,
-      },
-      {
-        status: "Đã xác nhận đơn hàng",
-        date: "15/01/2024 11:00",
-        completed: true,
-      },
-      {
-        status: "Đang chuẩn bị hàng",
-        date: "16/01/2024 09:00",
-        completed: true,
-      },
-      { status: "Đang vận chuyển", date: "17/01/2024 08:00", completed: true },
-      { status: "Đã giao hàng", date: "18/01/2024 14:30", completed: true },
-    ],
+    isExpanded: false,
   },
   {
-    id: "ORD002",
-    orderNumber: "MB2024002",
+    id: "2",
+    orderNumber: "#7DA9F3B2",
+    datePlaced: "20 Tháng 11, 2025",
+    totalAmount: "2.340.000đ",
+    paymentMethod: "Thẻ tín dụng",
     status: "shipping",
-    customerName: "Trần Văn Minh",
-    phone: "0912345678",
-    email: "minhtv@email.com",
-    orderDate: "2024-01-20",
-    deliveryDate: null,
-    totalAmount: 720000,
-    items: [{ name: "Frisomum Gold", quantity: 1, price: 720000 }],
-    shippingAddress: "456 Lê Văn Việt, Quận 9, TP.HCM",
-    timeline: [
+    statusLabel: "Đang giao hàng",
+    processingStatus: "packed",
+    processingLabel: "Đã đóng gói",
+    shippingAddress: "123 Lê Văn Việt, Quận 9, TP.HCM",
+    contact: "0987654321",
+    items: [
       {
-        status: "Đơn hàng đã được đặt",
-        date: "20/01/2024 14:20",
-        completed: true,
+        id: "1",
+        name: "Enfamama A+ Chocolate 800g",
+        image:
+          "https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=400",
+        danhMuc: "Sữa cho mẹ bầu",
+        dungTich: "800g",
+        quantity: 3,
+        price: "780.000đ",
+        totalPrice: "2.340.000đ tổng",
       },
-      {
-        status: "Đã xác nhận đơn hàng",
-        date: "20/01/2024 15:00",
-        completed: true,
-      },
-      {
-        status: "Đang chuẩn bị hàng",
-        date: "21/01/2024 10:00",
-        completed: true,
-      },
-      { status: "Đang vận chuyển", date: "22/01/2024 08:30", completed: true },
-      { status: "Đã giao hàng", date: null, completed: false },
     ],
-    shippingInfo: {
-      carrier: "Giao Hàng Nhanh",
-      trackingNumber: "GHN123456789",
-      estimatedDelivery: "23/01/2024",
-    },
+    isExpanded: false,
   },
   {
-    id: "ORD003",
-    orderNumber: "MB2024003",
-    status: "processing",
-    customerName: "Lê Thị Hương",
-    phone: "0923456789",
-    email: "huonglt@email.com",
-    orderDate: "2024-01-22",
-    deliveryDate: null,
-    totalAmount: 1180000,
+    id: "3",
+    orderNumber: "#2BC5D1E8",
+    datePlaced: "15 Tháng 11, 2025",
+    totalAmount: "1.890.000đ",
+    paymentMethod: "Chuyển khoản",
+    status: "delivered",
+    statusLabel: "Đã giao hàng",
+    processingStatus: "completed",
+    processingLabel: "Hoàn thành",
+    shippingAddress: "456 Nguyễn Văn Linh, Quận 7, TP.HCM",
+    contact: "0912345678",
     items: [
-      { name: "Meiji Infant Formula", quantity: 1, price: 680000 },
-      { name: "Nestlé NAN Optipro", quantity: 1, price: 495000 },
+      {
+        id: "1",
+        name: "Aptamil Essensis Số 1 (0-6 tháng)",
+        image:
+          "https://images.unsplash.com/photo-1632667916957-a0e37dbcf01d?w=400",
+        danhMuc: "Sữa cho bé",
+        dungTich: "800g",
+        quantity: 2,
+        price: "945.000đ",
+        totalPrice: "1.890.000đ tổng",
+      },
     ],
-    shippingAddress: "789 Võ Văn Ngân, Thủ Đức, TP.HCM",
-    timeline: [
+    isExpanded: false,
+  },
+  {
+    id: "4",
+    orderNumber: "#8FE2C9A1",
+    datePlaced: "10 Tháng 11, 2025",
+    totalAmount: "3.200.000đ",
+    paymentMethod: "COD",
+    status: "delivered",
+    statusLabel: "Đã giao hàng",
+    processingStatus: "completed",
+    processingLabel: "Hoàn thành",
+    shippingAddress: "89 Võ Văn Ngân, Thủ Đức, TP.HCM",
+    contact: "0901234567",
+    items: [
       {
-        status: "Đơn hàng đã được đặt",
-        date: "22/01/2024 16:45",
-        completed: true,
+        id: "1",
+        name: "NAN Optipro Số 3 (1-2 tuổi)",
+        image:
+          "https://images.unsplash.com/photo-1608181830859-84eb97b9e293?w=400",
+        danhMuc: "Sữa cho bé",
+        dungTich: "900g",
+        quantity: 4,
+        price: "800.000đ",
+        totalPrice: "3.200.000đ tổng",
       },
-      {
-        status: "Đã xác nhận đơn hàng",
-        date: "22/01/2024 17:00",
-        completed: true,
-      },
-      {
-        status: "Đang chuẩn bị hàng",
-        date: "23/01/2024 09:00",
-        completed: true,
-      },
-      { status: "Đang vận chuyển", date: null, completed: false },
-      { status: "Đã giao hàng", date: null, completed: false },
     ],
+    isExpanded: false,
+  },
+  {
+    id: "5",
+    orderNumber: "#3AC7D2F5",
+    datePlaced: "05 Tháng 11, 2025",
+    totalAmount: "2.180.000đ",
+    paymentMethod: "Chuyển khoản",
+    status: "delivered",
+    statusLabel: "Đã giao hàng",
+    processingStatus: "completed",
+    processingLabel: "Hoàn thành",
+    shippingAddress: "234 Phan Văn Trị, Bình Thạnh, TP.HCM",
+    contact: "0923456789",
+    items: [
+      {
+        id: "1",
+        name: "Frisolac Gold Số 2 (6-12 tháng)",
+        image:
+          "https://images.unsplash.com/photo-1584308972272-9e4e7685e80f?w=400",
+        danhMuc: "Sữa cho bé",
+        dungTich: "850g",
+        quantity: 2,
+        price: "1.090.000đ",
+        totalPrice: "2.180.000đ tổng",
+      },
+    ],
+    isExpanded: false,
   },
 ];
 
-const getStatusInfo = (status) => {
-  const statusMap = {
-    pending: {
-      label: "Chờ xác nhận",
-      color: "bg-yellow-100 text-yellow-700 border-yellow-300",
-      icon: Clock,
-      iconColor: "text-yellow-600",
-    },
-    processing: {
-      label: "Đang xử lý",
-      color: "bg-blue-100 text-blue-700 border-blue-300",
-      icon: Package,
-      iconColor: "text-blue-600",
-    },
-    shipping: {
-      label: "Đang giao hàng",
-      color: "bg-purple-100 text-purple-700 border-purple-300",
-      icon: Truck,
-      iconColor: "text-purple-600",
-    },
-    delivered: {
-      label: "Đã giao hàng",
-      color: "bg-green-100 text-green-700 border-green-300",
-      icon: CheckCircle,
-      iconColor: "text-green-600",
-    },
-    cancelled: {
-      label: "Đã hủy",
-      color: "bg-red-100 text-red-700 border-red-300",
-      icon: XCircle,
-      iconColor: "text-red-600",
-    },
+const getStatusStyle = (status) => {
+  const statusStyles = {
+    pending: "bg-orange-50 text-orange-600 border-orange-200",
+    shipping: "bg-blue-50 text-blue-600 border-blue-200",
+    delivered: "bg-green-50 text-green-600 border-green-200",
+    cancelled: "bg-red-50 text-red-600 border-red-200",
   };
-  return statusMap[status] || statusMap.pending;
+  return statusStyles[status] || statusStyles.pending;
 };
 
-const formatVND = (price) => {
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-  }).format(price);
+const getProcessingStyle = (status) => {
+  const styles = {
+    processing: "bg-orange-50 text-orange-600",
+    packed: "bg-blue-50 text-blue-600",
+    completed: "bg-green-50 text-green-600",
+    cancelled: "bg-red-50 text-red-600",
+  };
+  return styles[status] || styles.processing;
 };
 
-export default function OrderTracking() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedOrder, setSelectedOrder] = useState(null);
+export default function OrderHistory() {
+  const [orders, setOrders] = useState(mockOrderHistory);
 
-  const handleSearch = () => {
-    const order = mockOrders.find(
-      (o) => o.orderNumber.toLowerCase() === searchQuery.toLowerCase(),
+  const toggleOrderExpand = (orderId) => {
+    setOrders(
+      orders.map((order) =>
+        order.id === orderId
+          ? { ...order, isExpanded: !order.isExpanded }
+          : order,
+      ),
     );
-    setSelectedOrder(order || null);
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter") {
-      handleSearch();
-    }
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen">
-      <div className="container mx-auto px-4 py-6">
-        {/* Breadcrumb */}
-        <div className="mb-6">
-          <p className="text-sm text-gray-500">
-            <span className="hover:text-gray-700 cursor-pointer">
-              Trang chủ
-            </span>
-            <span className="mx-2">/</span>
-            <span className="text-gray-700 font-medium">Theo dõi đơn hàng</span>
-          </p>
-        </div>
-
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            Theo dõi đơn hàng
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Lịch sử đơn hàng
           </h1>
           <p className="text-gray-600">
-            Nhập mã đơn hàng để kiểm tra trạng thái giao hàng
+            Kiểm tra trạng thái đơn hàng gần đây, quản lý đổi trả và khám phá
+            sản phẩm tương tự.
           </p>
         </div>
 
-        {/* Search Box */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <div className="flex gap-3">
-            <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Nhập mã đơn hàng (VD: MB2024001)..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={handleKeyPress}
-                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent"
-              />
-            </div>
-            <button
-              onClick={handleSearch}
-              className="px-8 py-3 bg-pink-400 text-white font-medium rounded-full hover:bg-pink-500 transition-colors shadow-md"
+        {/* Orders List */}
+        <div className="space-y-4">
+          {orders.map((order) => (
+            <div
+              key={order.id}
+              className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
             >
-              Tra cứu
-            </button>
-          </div>
-
-          {/* Quick Access Orders */}
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <p className="text-sm text-gray-600 mb-3">Đơn hàng mẫu để test:</p>
-            <div className="flex flex-wrap gap-2">
-              {mockOrders.map((order) => (
-                <button
-                  key={order.id}
-                  onClick={() => {
-                    setSearchQuery(order.orderNumber);
-                    setSelectedOrder(order);
-                  }}
-                  className="px-4 py-2 bg-gray-100 hover:bg-pink-50 text-sm text-gray-700 hover:text-pink-600 rounded-full border border-gray-200 hover:border-pink-300 transition-all"
-                >
-                  {order.orderNumber}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* No Search Result */}
-        {searchQuery && !selectedOrder && (
-          <div className="bg-white rounded-lg shadow-md p-12 text-center">
-            <div className="flex flex-col items-center gap-4">
-              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center">
-                <Search className="h-10 w-10 text-gray-400" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-800">
-                Không tìm thấy đơn hàng
-              </h3>
-              <p className="text-gray-600 max-w-md">
-                Vui lòng kiểm tra lại mã đơn hàng hoặc liên hệ hotline{" "}
-                <span className="text-pink-600 font-semibold">1900 xxxx</span>{" "}
-                để được hỗ trợ
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Order Details */}
-        {selectedOrder && (
-          <div className="space-y-6">
-            {/* Order Header */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-800 mb-1">
-                    Đơn hàng #{selectedOrder.orderNumber}
-                  </h2>
-                  <p className="text-gray-600 flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    Ngày đặt: {selectedOrder.orderDate}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  {(() => {
-                    const statusInfo = getStatusInfo(selectedOrder.status);
-                    const StatusIcon = statusInfo.icon;
-                    return (
-                      <>
-                        <StatusIcon
-                          className={`h-6 w-6 ${statusInfo.iconColor}`}
-                        />
-                        <span
-                          className={`px-4 py-2 rounded-full text-sm font-semibold border ${statusInfo.color}`}
-                        >
-                          {statusInfo.label}
-                        </span>
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
-
-              {/* Customer Info */}
-              <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-200">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
-                    <Phone className="h-5 w-5 text-pink-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Số điện thoại</p>
-                    <p className="text-sm font-medium text-gray-800">
-                      {selectedOrder.phone}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
-                    <Mail className="h-5 w-5 text-pink-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Email</p>
-                    <p className="text-sm font-medium text-gray-800">
-                      {selectedOrder.email}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
-                    <MapPin className="h-5 w-5 text-pink-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Địa chỉ giao hàng</p>
-                    <p className="text-sm font-medium text-gray-800 line-clamp-1">
-                      {selectedOrder.shippingAddress}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-6">
-              {/* Timeline */}
-              <div className="col-span-2 bg-white rounded-lg shadow-md p-6">
-                <h3 className="text-lg font-bold text-gray-800 mb-6">
-                  Trạng thái đơn hàng
-                </h3>
-                <div className="space-y-6">
-                  {selectedOrder.timeline.map((step, index) => (
-                    <div key={index} className="flex gap-4">
-                      <div className="flex flex-col items-center">
-                        <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                            step.completed
-                              ? "bg-pink-500 text-white"
-                              : "bg-gray-200 text-gray-400"
-                          }`}
-                        >
-                          {step.completed ? (
-                            <CheckCircle className="h-5 w-5" />
-                          ) : (
-                            <Clock className="h-5 w-5" />
-                          )}
-                        </div>
-                        {index < selectedOrder.timeline.length - 1 && (
-                          <div
-                            className={`w-0.5 h-16 ${
-                              step.completed ? "bg-pink-300" : "bg-gray-200"
-                            }`}
-                          />
-                        )}
-                      </div>
-                      <div className="flex-1 pb-8">
-                        <h4
-                          className={`font-semibold mb-1 ${
-                            step.completed ? "text-gray-800" : "text-gray-400"
-                          }`}
-                        >
-                          {step.status}
-                        </h4>
-                        {step.date && (
-                          <p className="text-sm text-gray-500">{step.date}</p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Shipping Info */}
-                {selectedOrder.shippingInfo && (
-                  <div className="mt-6 pt-6 border-t border-gray-200">
-                    <h4 className="font-semibold text-gray-800 mb-3">
-                      Thông tin vận chuyển
-                    </h4>
-                    <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">
-                          Đơn vị vận chuyển:
-                        </span>
-                        <span className="font-medium text-gray-800">
-                          {selectedOrder.shippingInfo.carrier}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Mã vận đơn:</span>
-                        <span className="font-mono font-medium text-pink-600">
-                          {selectedOrder.shippingInfo.trackingNumber}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Dự kiến giao:</span>
-                        <span className="font-medium text-gray-800">
-                          {selectedOrder.shippingInfo.estimatedDelivery}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Order Summary */}
-              <div className="col-span-1 bg-white rounded-lg shadow-md p-6">
-                <h3 className="text-lg font-bold text-gray-800 mb-4">
-                  Thông tin đơn hàng
-                </h3>
-                <div className="space-y-4">
-                  {selectedOrder.items.map((item, index) => (
-                    <div key={index} className="flex justify-between text-sm">
-                      <div className="flex-1">
-                        <p className="text-gray-800 font-medium">{item.name}</p>
-                        <p className="text-gray-500">SL: {item.quantity}</p>
-                      </div>
-                      <p className="text-gray-800 font-semibold">
-                        {formatVND(item.price * item.quantity)}
+              {/* Order Header */}
+              <div className="px-6 py-5 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-8 flex-1">
+                    {/* Order Number */}
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
+                        Mã đơn hàng
+                      </p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {order.orderNumber}
                       </p>
                     </div>
-                  ))}
 
-                  <div className="pt-4 border-t border-gray-200 space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Tạm tính:</span>
-                      <span className="text-gray-800">
-                        {formatVND(selectedOrder.totalAmount)}
+                    {/* Date Placed */}
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
+                        Ngày đặt
+                      </p>
+                      <p className="text-sm font-medium text-gray-700">
+                        {order.datePlaced}
+                      </p>
+                    </div>
+
+                    {/* Total Amount */}
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
+                        Tổng tiền
+                      </p>
+                      <p className="text-sm font-medium text-gray-700">
+                        {order.totalAmount}
+                      </p>
+                    </div>
+
+                    {/* Payment Method */}
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
+                        Thanh toán
+                      </p>
+                      <p className="text-sm font-medium text-gray-700">
+                        {order.paymentMethod}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Status Badges */}
+                  <div className="flex items-center gap-3">
+                    {/* Status Badge */}
+                    <div
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full border ${getStatusStyle(order.status)}`}
+                    >
+                      <Clock className="w-4 h-4" />
+                      <span className="text-sm font-medium">
+                        {order.statusLabel}
                       </span>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Phí vận chuyển:</span>
-                      <span className="text-green-600 font-medium">
-                        Miễn phí
+
+                    {/* Processing Status Badge */}
+                    <div
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full ${getProcessingStyle(order.processingStatus)}`}
+                    >
+                      <CircleDot className="w-4 h-4" />
+                      <span className="text-sm font-medium">
+                        {order.processingLabel}
                       </span>
                     </div>
-                    <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-200">
-                      <span className="text-gray-800">Tổng cộng:</span>
-                      <span className="text-pink-600">
-                        {formatVND(selectedOrder.totalAmount)}
-                      </span>
+
+                    {/* Expand Button */}
+                    <button
+                      onClick={() => toggleOrderExpand(order.id)}
+                      className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                      aria-label="Toggle order details"
+                    >
+                      {order.isExpanded ? (
+                        <ChevronUp className="w-5 h-5 text-gray-600" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5 text-gray-600" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Order Items (Expandable) */}
+              {order.isExpanded && (
+                <div className="bg-white">
+                  {/* Order Items Section */}
+                  <div className="px-6 py-5 border-b border-gray-100">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-4">
+                      Sản phẩm ({order.items.length})
+                    </h3>
+
+                    <div className="space-y-4">
+                      {order.items.map((item) => (
+                        <div key={item.id} className="flex items-start gap-4">
+                          {/* Product Image */}
+                          <div className="w-20 h-20 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
+                            {item.image ? (
+                              <img
+                                src={item.image}
+                                alt={item.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <div className="w-16 h-16 bg-gray-200 rounded"></div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Product Info */}
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-sm font-medium text-gray-900 mb-2">
+                              {item.name}
+                            </h4>
+                            <div className="flex items-center gap-4 text-sm text-gray-600">
+                              <span>
+                                Danh mục:{" "}
+                                <span className="font-medium text-gray-900">
+                                  {item.danhMuc}
+                                </span>
+                              </span>
+                              <span>
+                                Dung tích:{" "}
+                                <span className="font-medium text-gray-900">
+                                  {item.dungTich}
+                                </span>
+                              </span>
+                              <span>
+                                SL:{" "}
+                                <span className="font-medium text-gray-900">
+                                  {item.quantity}
+                                </span>
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Price Info */}
+                          <div className="text-right flex-shrink-0">
+                            <p className="text-sm font-semibold text-gray-900 mb-1">
+                              {item.price}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {item.totalPrice}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Shipping Address Section */}
+                  <div className="px-6 py-5 bg-blue-50">
+                    <div className="flex items-start gap-2">
+                      <svg
+                        className="w-4 h-4 text-gray-700 mt-0.5 flex-shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                      </svg>
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-900 mb-1">
+                          Địa chỉ giao hàng
+                        </h4>
+                        <p className="text-sm text-gray-700">
+                          {order.shippingAddress || "27/2a đường số 2"}
+                        </p>
+                        <p className="text-sm text-gray-600 mt-1">
+                          Liên hệ: {order.contact || "012345563"}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
-
-                {/* Action Buttons */}
-                <div className="mt-6 space-y-3">
-                  <button className="w-full py-2.5 bg-pink-400 text-white font-medium rounded-lg hover:bg-pink-500 transition-colors">
-                    Liên hệ hỗ trợ
-                  </button>
-                  {selectedOrder.status === "delivered" && (
-                    <button className="w-full py-2.5 border-2 border-pink-400 text-pink-600 font-medium rounded-lg hover:bg-pink-50 transition-colors">
-                      Đánh giá đơn hàng
-                    </button>
-                  )}
-                </div>
-              </div>
+              )}
             </div>
-          </div>
-        )}
+          ))}
+        </div>
 
-        {/* Help Section */}
-        {!selectedOrder && (
-          <div className="bg-white rounded-lg shadow-md p-8 mt-8">
-            <h3 className="text-xl font-bold text-gray-800 mb-4">
-              Cần hỗ trợ?
+        {/* Empty State (if no orders) */}
+        {orders.length === 0 && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+            <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Clock className="w-8 h-8 text-pink-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Chưa có đơn hàng nào
             </h3>
-            <div className="grid grid-cols-3 gap-6">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Phone className="h-8 w-8 text-pink-600" />
-                </div>
-                <h4 className="font-semibold text-gray-800 mb-1">Hotline</h4>
-                <p className="text-pink-600 font-semibold">1900 xxxx</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  8:00 - 22:00 hàng ngày
-                </p>
-              </div>
-              <div className="text-center">
-                <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Mail className="h-8 w-8 text-pink-600" />
-                </div>
-                <h4 className="font-semibold text-gray-800 mb-1">Email</h4>
-                <p className="text-pink-600 font-semibold">
-                  support@mombaby.vn
-                </p>
-                <p className="text-xs text-gray-500 mt-1">Phản hồi trong 24h</p>
-              </div>
-              <div className="text-center">
-                <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Package className="h-8 w-8 text-pink-600" />
-                </div>
-                <h4 className="font-semibold text-gray-800 mb-1">FAQ</h4>
-                <p className="text-gray-600">Câu hỏi thường gặp</p>
-                <p className="text-xs text-gray-500 mt-1">Hướng dẫn chi tiết</p>
-              </div>
-            </div>
+            <p className="text-gray-600 mb-6">
+              Bắt đầu mua sắm để xem lịch sử đơn hàng của bạn tại đây
+            </p>
+            <button className="px-8 py-3 bg-pink-400 text-white font-medium rounded-lg hover:bg-pink-500 transition-colors">
+              Bắt đầu mua sắm
+            </button>
           </div>
         )}
       </div>
