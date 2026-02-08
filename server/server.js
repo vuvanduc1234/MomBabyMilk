@@ -13,7 +13,9 @@ const BrandRoute = require("./routes/BrandRoute");
 const CheckoutRoute = require("./routes/CheckoutRoute");
 const VoucherRoute = require("./routes/VoucherRoute");
 const UploadRoute = require("./routes/UploadRoute");
-const paymentRoutes = require('./routes/paymentRoutes');
+const paymentRoutes = require("./routes/PaymentRoutes");
+const BlogRoute = require("./routes/BlogRoute");
+const CommentRoute = require("./routes/CommentRoute");
 const app = express();
 database.connect();
 
@@ -27,11 +29,13 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use("/api/auth", AuthRoute);
 app.use("/api/users", UserRoute);
 app.use("/api/product", ProductRoute);
+app.use("/api/product", CommentRoute);
 app.use("/api/category", CategoryRoute);
 app.use("/api/brand", BrandRoute);
 app.use("/api/checkout", CheckoutRoute);
 app.use("/api/voucher", VoucherRoute);
-app.use('/api/payment', paymentRoutes);
+app.use("/api/payment", paymentRoutes);
+app.use("/api/blogs", BlogRoute);
 
 app.use("/api/upload", UploadRoute);
 

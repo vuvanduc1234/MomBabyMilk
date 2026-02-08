@@ -125,7 +125,6 @@ const deleteUser = async (req, res) => {
 const viewUser = async (req, res) => {
   try {
     const users = await UserModel.find({})
-      .select('-vouchers') // Không hiển thị field vouchers cũ
       .populate('userVouchers.voucherId', 'code discountPercentage expiryDate');
     if (!users) {
       return res.status(404).json({ message: "Không tìm thấy người dùng" });
@@ -136,8 +135,6 @@ const viewUser = async (req, res) => {
   }
 };
 
-// Lấy danh sách vouchers của user (userVouchers với quantity)
-// Endpoint này gộp cả my-vouchers cũ và user vouchers
 const getUserVouchers = async (req, res) => {
   try {
     // Tự động lấy từ req.user.id (người đang đăng nhập)

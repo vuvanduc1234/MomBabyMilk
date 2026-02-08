@@ -39,10 +39,6 @@ const userSchema = new mongoose.Schema(
       enum: ["Admin", "StaffManager", "User"],
       default: "User",
     },
-    vouchers: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Voucher", 
-    }],
     userVouchers: [{
       _id: false,
       voucherId: { type: mongoose.Schema.Types.ObjectId, ref: "Voucher" },
@@ -60,18 +56,6 @@ const userSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    toJSON: {
-      transform: function(doc, ret) {
-        delete ret.vouchers;
-        if (ret.userVouchers) {
-          ret.userVouchers = ret.userVouchers.map(v => ({
-            voucherId: v.voucherId,
-            quantity: v.quantity
-          }));
-        }
-        return ret;
-      }
-    }
   }
 );
 
