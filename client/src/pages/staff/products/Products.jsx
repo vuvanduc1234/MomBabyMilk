@@ -4,8 +4,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Edit,
-  Eye,
-  Package,
   Plus,
   MoreHorizontal,
 } from "lucide-react";
@@ -42,7 +40,7 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import NewProductDialog from "./NewProductDialog";
+import NewProductDialog from "./components/NewProductDialog";
 
 // Mock data
 const mockCategories = [
