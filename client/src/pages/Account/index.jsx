@@ -5,7 +5,7 @@ import ProfileSection from "./components/ProfileSection";
 import AddressSection from "./components/AddressSection";
 import PasswordSection from "./components/PasswordSection";
 import OrdersSection from "./components/OrdersSection";
-import { DEFAULT_STATUS } from "./constants";
+import { ACCOUNT_SECTIONS, DEFAULT_STATUS, MEMBER_SECTIONS } from "./constants";
 import { useAccountProfile } from "./hooks/useAccountProfile";
 import {
   createAddress,
@@ -14,12 +14,19 @@ import {
   setDefaultAddress,
   updateAddress,
 } from "./services/addressService";
+import VouchersSection from "./components/VouchersSection";
+import LoyaltySection from "./components/LoyaltySection";
+import RewardsSection from "./components/RewardsSection";
 
 const SECTION_COMPONENTS = {
   profile: ProfileSection,
   address: AddressSection,
   password: PasswordSection,
   orders: OrdersSection,
+  loyalty: LoyaltySection,
+  rewards: RewardsSection,
+  vouchers: VouchersSection,
+  // reviews: () => <div>Phản hồi</div>,
 };
 
 const getDateInputValue = (value) => {
@@ -381,12 +388,36 @@ export default function AccountPage() {
     <div className="bg-white min-h-screen font-['Inter','Segoe_UI',system-ui,sans-serif]">
       <div className="max-w-[1200px] mx-auto px-4 md:px-8 py-10">
         <div className="flex flex-col md:flex-row gap-8">
-          <AccountSidebar
-            activeSection={activeSection}
-            onSelect={setActiveSection}
-            user={profile}
-            avatarUrl={avatarPreview || profile?.avatarUrl}
-          />
+          <div className="space-y-6">
+            <AccountSidebar
+              activeSection={activeSection}
+              onSelect={setActiveSection}
+              user={profile}
+              avatarUrl={avatarPreview || profile?.avatarUrl}
+            />
+
+            <div>
+              <h2 className="text-[16px] font-semibold text-[#2b2730] mb-3">
+                NURA Members
+              </h2>
+              <nav className="flex flex-col gap-1">
+                {MEMBER_SECTIONS.map((section) => (
+                  <button
+                    key={section.id}
+                    type="button"
+                    onClick={() => setActiveSection(section.id)}
+                    className={`text-left px-3 py-2 rounded-[10px] text-[14px] transition ${
+                      activeSection === section.id
+                        ? "bg-[#fde7f0] text-[#b2547a] font-semibold"
+                        : "text-[#2b2730] hover:bg-[#f7edf2]"
+                    }`}
+                  >
+                    {section.label}
+                  </button>
+                ))}
+              </nav>
+            </div>
+          </div>
 
           <div className="flex-1">
             <div className="bg-white border border-[#f1d4e0] rounded-[18px] p-6 md:p-8 shadow-[0_12px_30px_rgba(41,10,24,0.06)]">
