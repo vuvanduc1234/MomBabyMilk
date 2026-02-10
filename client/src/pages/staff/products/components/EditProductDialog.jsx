@@ -1,32 +1,32 @@
+import { useState, useEffect } from "react";
+import { useFormik } from "formik";
+import * as Yup from "yup";
+import axios from "axios";
+import { toast } from "sonner";
+import { Plus, Upload } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { FieldError } from "@/components/ui/field";
-import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectGroup,
 } from "@/components/ui/select";
-import { Package } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
-import { useFormik } from "formik";
-import * as Yup from "yup";
 import NewBrandDialog from "./NewBrandDialog";
 import NewCategoryDialog from "./NewCategoryDialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 // Validation Schema
 const productValidationSchema = Yup.object().shape({
@@ -61,8 +61,6 @@ const productValidationSchema = Yup.object().shape({
     .min(2, "Nhà sản xuất phải có ít nhất 2 ký tự")
     .max(200, "Nhà sản xuất không được vượt quá 200 ký tự"),
 
-  imageUrl: Yup.string().required("Hình ảnh sản phẩm là bắt buộc"),
-
   description: Yup.string().max(2000, "Mô tả không được vượt quá 2000 ký tự"),
 
   appropriateAge: Yup.string().max(
@@ -73,7 +71,7 @@ const productValidationSchema = Yup.object().shape({
   manufacture: Yup.string()
     .matches(
       /^\d{4}-\d{2}-\d{2}$/,
-      "Ngày sản xuất phải có định dạng YYY-MM-DD\n(ví dụ: 2027-10-31)",
+      "Ngày sản xuất phải có định dạng YYYY-MM-DD (ví dụ: 2027-10-31)",
     )
     .max(50, "Ngày sản xuất không được vượt quá 50 ký tự"),
 
@@ -97,14 +95,16 @@ const productValidationSchema = Yup.object().shape({
   warning: Yup.string().max(1000, "Cảnh báo không được vượt quá 1000 ký tự"),
 });
 
-export default function NewProductDialog({
+export default function EditProductDialog({
   isOpen,
   onClose,
+  product,
   categories,
   brands,
-  onCreateProduct,
+  onUpdateProduct,
   onCreateBrand,
   onCreateCategory,
+  token,
 }) {
   const [isBrandDialogOpen, setIsBrandDialogOpen] = useState(false);
   const [newBrand, setNewBrand] = useState({ name: "", description: "" });
@@ -115,57 +115,69 @@ export default function NewProductDialog({
   // Initialize Formik
   const formik = useFormik({
     initialValues: {
-      name: "",
-      price: 0,
-      description: "",
-      category: "",
-      brand: "",
-      quantity: 0,
+      name: product?.name || "",
+      price: product?.price || 0,
+      description: product?.description || "",
+      category: product?.category_id || "",
+      brand: product?.brand_id || "",
+      quantity: product?.quantity || 0,
       imageUrl: "",
-      manufacture: "",
-      expiry: "",
-      storageInstructions: "",
-      instructionsForUse: "",
-      warning: "",
-      manufacturer: "",
-      appropriateAge: "",
-      weight: 0,
+      manufacture: product?.manufacture || "",
+      expiry: product?.expiry || "",
+      storageInstructions: product?.storageInstructions || "",
+      instructionsForUse: product?.instructionsForUse || "",
+      warning: product?.warning || "",
+      manufacturer: product?.manufacturer || "",
+      appropriateAge: product?.appropriateAge || "",
+      weight: product?.weight || 0,
     },
+    enableReinitialize: true,
     validationSchema: productValidationSchema,
     onSubmit: async (values) => {
-      await onCreateProduct(values);
-      // Reset form after successful submission
-      formik.resetForm();
-      setImagePreview(null);
+      console.log("[EditProductDialog] Submitting form with values:", values);
+      await handleUpdateProduct(values);
     },
   });
 
+  // Set image preview from existing product
+  useEffect(() => {
+    if (product?.imageUrl && Array.isArray(product.imageUrl) && product.imageUrl[0]) {
+      setImagePreview(product.imageUrl[0]);
+    }
+  }, [product]);
+
   const handleClose = () => {
-    onClose();
+    if (
+      formik.dirty &&
+      !confirm("Bạn có thay đổi chưa lưu. Bạn có chắc muốn đóng?")
+    ) {
+      return;
+    }
     formik.resetForm();
     setImagePreview(null);
+    onClose();
   };
 
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file size
-      if (file.size > 1024 * 1024) {
-        toast.error("Dung lượng file không được vượt quá 1MB");
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Kích thước ảnh không được vượt quá 5MB");
         return;
       }
 
-      // Validate file type
-      if (!["image/jpeg", "image/png", "image/jpg"].includes(file.type)) {
-        toast.error("Chỉ chấp nhận file .JPEG hoặc .PNG");
+      // Check file type
+      if (!file.type.startsWith("image/")) {
+        toast.error("Vui lòng chọn file ảnh hợp lệ");
         return;
       }
 
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64String = reader.result;
-        setImagePreview(base64String);
         formik.setFieldValue("imageUrl", base64String);
+        setImagePreview(base64String);
       };
       reader.readAsDataURL(file);
     }
@@ -173,62 +185,198 @@ export default function NewProductDialog({
 
   // Helper function to display error
   const getErrorMessage = (fieldName) => {
-    return formik.touched[fieldName] && formik.errors[fieldName] ? (
-      <FieldError>{formik.errors[fieldName]}</FieldError>
-    ) : null;
+    return formik.touched[fieldName] && formik.errors[fieldName]
+      ? formik.errors[fieldName]
+      : null;
+  };
+
+  const handleUpdateProduct = async (values) => {
+    console.log("[EditProductDialog] Updating product:", product.id, values);
+    try {
+      // Prepare update payload
+      const updateData = {
+        name: values.name,
+        price: values.price,
+        category: values.category,
+        brand: values.brand,
+        quantity: values.quantity,
+      };
+
+      // Only include imageUrl if a new image was uploaded
+      if (values.imageUrl && values.imageUrl !== product.imageUrl?.[0]) {
+        updateData.imageUrl = [values.imageUrl];
+      }
+
+      // Add optional fields only if they have values
+      if (values.description && values.description.trim()) {
+        updateData.description = values.description;
+      }
+      if (values.weight && values.weight > 0) {
+        updateData.weight = values.weight;
+      }
+      if (values.manufacturer && values.manufacturer.trim()) {
+        updateData.manufacturer = values.manufacturer;
+      }
+      if (values.appropriateAge && values.appropriateAge.trim()) {
+        updateData.appropriateAge = values.appropriateAge;
+      }
+      if (values.manufacture && values.manufacture.trim()) {
+        updateData.manufacture = values.manufacture;
+      }
+      if (values.expiry && values.expiry.trim()) {
+        updateData.expiry = values.expiry;
+      }
+      if (values.storageInstructions && values.storageInstructions.trim()) {
+        updateData.storageInstructions = values.storageInstructions;
+      }
+      if (values.instructionsForUse && values.instructionsForUse.trim()) {
+        updateData.instructionsForUse = values.instructionsForUse;
+      }
+      if (values.warning && values.warning.trim()) {
+        updateData.warning = values.warning;
+      }
+
+      const response = await axios.patch(
+        `${API_URL}/api/product/${product.id}`,
+        updateData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+        }
+      );
+
+      console.log("[EditProductDialog] Product updated:", response.data);
+
+      // Fetch the complete updated product details
+      const productResponse = await axios.get(
+        `${API_URL}/api/product/${product.id}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+        }
+      );
+
+      const updatedProduct = productResponse.data.data || productResponse.data;
+
+      // Map to component format
+      const mappedProduct = {
+        id: updatedProduct._id,
+        name: updatedProduct.name,
+        description: updatedProduct.description || "",
+        price: updatedProduct.price,
+        quantity: updatedProduct.quantity || 0,
+        imageUrl: updatedProduct.imageUrl || [],
+        category_id:
+          updatedProduct.category?._id || updatedProduct.category || null,
+        brand_id: updatedProduct.brand?._id || updatedProduct.brand || null,
+        category: updatedProduct.category || null,
+        brand: updatedProduct.brand || null,
+        appropriateAge: updatedProduct.appropriateAge,
+        expiry: updatedProduct.expiry,
+        instructionsForUse: updatedProduct.instructionsForUse,
+        manufacture: updatedProduct.manufacture,
+        manufacturer: updatedProduct.manufacturer,
+        storageInstructions: updatedProduct.storageInstructions,
+        warning: updatedProduct.warning,
+        weight: updatedProduct.weight,
+      };
+
+      onUpdateProduct(mappedProduct);
+      toast.success(`Sản phẩm "${values.name}" đã được cập nhật thành công!`);
+      formik.resetForm();
+      setImagePreview(null);
+      onClose();
+    } catch (error) {
+      console.error("[EditProductDialog] Error updating product:", error);
+      console.error(
+        "[EditProductDialog] Error details:",
+        error.response?.data || error.message
+      );
+      const errorMsg =
+        error.response?.data?.message ||
+        error.message ||
+        "Không thể cập nhật sản phẩm";
+      toast.error(`Lỗi: ${errorMsg}`);
+    }
+  };
+
+  const handleCreateNewBrand = async () => {
+    if (!newBrand.name.trim()) {
+      toast.error("Tên thương hiệu không được để trống");
+      return;
+    }
+
+    const result = await onCreateBrand(newBrand);
+    if (result.success) {
+      formik.setFieldValue("brand", result.brand._id || result.brand.id);
+      setNewBrand({ name: "", description: "" });
+      setIsBrandDialogOpen(false);
+    }
+  };
+
+  const handleCreateNewCategory = async () => {
+    if (!newCategory.name.trim()) {
+      toast.error("Tên danh mục không được để trống");
+      return;
+    }
+
+    const result = await onCreateCategory(newCategory);
+    if (result.success) {
+      formik.setFieldValue("category", result.category._id || result.category.id);
+      setNewCategory({ name: "", description: "" });
+      setIsCategoryDialogOpen(false);
+    }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent
-        className="min-w-6xl max-h-[90vh] overflow-y-auto"
-        aria-describedby="new-product-form"
-      >
-        <DialogHeader>
-          <DialogTitle>Tạo sản phẩm mới</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          {/* Top Section: Image Upload + Product Info */}
-          <div className="grid grid-cols-[280px_1fr] gap-4">
-            {/* Image Upload */}
-            <div className="space-y-2">
-              <Label>
-                Hình ảnh sản phẩm<span className="text-red-700">*</span>
-              </Label>
-              <div
-                className={`border-2 border-dashed rounded-lg p-4 flex flex-col items-center gap-3 bg-background ${
-                  formik.touched.imageUrl && formik.errors.imageUrl
-                    ? "border-red-500"
-                    : "border-muted"
-                }`}
-              >
-                <div className="w-full aspect-square rounded-lg border-2 border-muted bg-muted/10 overflow-hidden flex items-center justify-center">
-                  {imagePreview ? (
-                    <img
-                      src={imagePreview}
-                      alt="Product preview"
-                      className="w-full h-full object-cover"
+    <>
+      <Dialog open={isOpen} onOpenChange={handleClose}>
+        <DialogContent
+          className="min-w-6xl max-h-[90vh] overflow-y-auto"
+          aria-describedby="edit-product-form"
+        >
+          <DialogHeader>
+            <DialogTitle>Chỉnh sửa sản phẩm</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Top Section: Image Upload + Product Info */}
+            <div className="grid grid-cols-[280px_1fr] gap-4">
+              {/* Image Upload */}
+              <div className="space-y-2">
+                <Label>
+                  Hình ảnh sản phẩm
+                </Label>
+                <div className="border-2 border-dashed rounded-lg p-4 flex flex-col items-center gap-3 bg-background border-muted">
+                  <div className="w-full aspect-square rounded-lg border-2 border-muted bg-muted/10 overflow-hidden flex items-center justify-center">
+                    {imagePreview ? (
+                      <img
+                        src={imagePreview}
+                        alt="Product preview"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="text-center text-muted-foreground">
+                        <Upload className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">Ảnh sản phẩm</p>
+                      </div>
+                    )}
+                  </div>
+                  <label className="w-full">
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg"
+                      className="hidden"
+                      onChange={handleImageChange}
                     />
-                  ) : (
-                    <div className="text-center text-muted-foreground">
-                      <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">Ảnh sản phẩm</p>
-                    </div>
-                  )}
-                </div>
-                <label className="w-full">
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg"
-                    className="hidden"
-                    onChange={handleImageChange}
-                    onBlur={() => formik.setFieldTouched("imageUrl", true)}
-                  />
-                  <span className="block w-full text-center px-3 py-2 rounded-md border border-input text-sm font-medium cursor-pointer hover:bg-accent transition">
-                    Chọn ảnh
-                  </span>
-                </label>
-                {imagePreview && (
+                    <span className="block w-full text-center px-3 py-2 rounded-md border border-input text-sm font-medium cursor-pointer hover:bg-accent transition">
+                      Chọn ảnh mới
+                    </span>
+                  </label>
+                  {imagePreview && (
                   <Button
                     variant="link"
                     size="small"
@@ -242,25 +390,23 @@ export default function NewProductDialog({
                     Xóa ảnh
                   </Button>
                 )}
-                <p className="text-xs text-muted-foreground text-center">
-                  Dung lượng file tối đa 1MB
-                  <br />
-                  Định dạng .JPEG, .PNG
-                </p>
-                {getErrorMessage("imageUrl")}
+                  <p className="text-xs text-muted-foreground text-center">
+                    Dung lượng file tối đa 5MB
+                    <br />
+                    Định dạng .JPEG, .PNG
+                  </p>
+                </div>
               </div>
-            </div>
 
-            {/* Product Info */}
-            <ScrollArea className="max-h-[70vh] pr-2">
+              {/* Product Info */}
               <div className="space-y-4">
                 {/* Product Name */}
                 <div className="space-y-2">
-                  <Label htmlFor="new-name">
-                    Tên sản phẩm<span className="text-red-700">*</span>
+                  <Label htmlFor="name">
+                    Tên sản phẩm<span className="text-red-500">*</span>
                   </Label>
                   <Input
-                    id="new-name"
+                    id="name"
                     name="name"
                     placeholder="Product name"
                     value={formik.values.name}
@@ -272,7 +418,11 @@ export default function NewProductDialog({
                         : ""
                     }
                   />
-                  {getErrorMessage("name")}
+                  {getErrorMessage("name") && (
+                    <p className="text-sm text-red-500">
+                      {getErrorMessage("name")}
+                    </p>
+                  )}
                 </div>
 
                 {/* Brand + Category + Appropriate Age */}
@@ -280,8 +430,8 @@ export default function NewProductDialog({
                   {/* Brand */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="new-brand">
-                        Thương hiệu<span className="text-red-700">*</span>
+                      <Label htmlFor="brand">
+                        Thương hiệu<span className="text-red-500">*</span>
                       </Label>
                       <Button
                         variant="link"
@@ -294,29 +444,23 @@ export default function NewProductDialog({
                       </Button>
                     </div>
                     <Select
-                      value={formik.values.brand || ""}
-                      onValueChange={(value) => formik.setFieldValue("brand", value)}
+                      value={formik.values.brand}
+                      onValueChange={(value) =>
+                        formik.setFieldValue("brand", value)
+                      }
                     >
                       <SelectTrigger
-                        id="new-brand"
+                        id="brand"
                         className={`w-full ${formik.touched.brand && formik.errors.brand ? "border-red-500" : ""}`}
                       >
-                        <SelectValue placeholder="Chọn thương hiệu">
-                          {formik.values.brand
-                            ? brands?.find(
-                                (b) =>
-                                  b.id === formik.values.brand ||
-                                  b._id === formik.values.brand,
-                              )?.name
-                            : "Chọn thương hiệu"}
-                        </SelectValue>
+                        <SelectValue placeholder="Chọn thương hiệu" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectGroup>
                           {(brands ?? []).map((brand) => (
                             <SelectItem
-                              key={brand.id || brand._id}
-                              value={brand.id || brand._id}
+                              key={brand._id || brand.id}
+                              value={brand._id || brand.id}
                             >
                               {brand.name}
                             </SelectItem>
@@ -324,14 +468,18 @@ export default function NewProductDialog({
                         </SelectGroup>
                       </SelectContent>
                     </Select>
-                    {getErrorMessage("brand")}
+                    {getErrorMessage("brand") && (
+                      <p className="text-sm text-red-500">
+                        {getErrorMessage("brand")}
+                      </p>
+                    )}
                   </div>
 
                   {/* Category */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="new-category">
-                        Danh mục<span className="text-red-700">*</span>
+                      <Label htmlFor="category">
+                        Danh mục<span className="text-red-500">*</span>
                       </Label>
                       <Button
                         variant="link"
@@ -344,29 +492,23 @@ export default function NewProductDialog({
                       </Button>
                     </div>
                     <Select
-                      value={formik.values.category || ""}
-                      onValueChange={(value) => formik.setFieldValue("category", value)}
+                      value={formik.values.category}
+                      onValueChange={(value) =>
+                        formik.setFieldValue("category", value)
+                      }
                     >
                       <SelectTrigger
-                        id="new-category"
+                        id="category"
                         className={`w-full ${formik.touched.category && formik.errors.category ? "border-red-500" : ""}`}
                       >
-                        <SelectValue placeholder="Chọn danh mục">
-                          {formik.values.category
-                            ? categories?.find(
-                                (c) =>
-                                  c.id === formik.values.category ||
-                                  c._id === formik.values.category,
-                              )?.name
-                            : "Chọn danh mục"}
-                        </SelectValue>
+                        <SelectValue placeholder="Chọn danh mục" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectGroup>
                           {(categories ?? []).map((cat) => (
                             <SelectItem
-                              key={cat.id || cat._id}
-                              value={cat.id || cat._id}
+                              key={cat._id || cat.id}
+                              value={cat._id || cat.id}
                             >
                               {cat.name}
                             </SelectItem>
@@ -374,16 +516,18 @@ export default function NewProductDialog({
                         </SelectGroup>
                       </SelectContent>
                     </Select>
-                    {getErrorMessage("category")}
+                    {getErrorMessage("category") && (
+                      <p className="text-sm text-red-500">
+                        {getErrorMessage("category")}
+                      </p>
+                    )}
                   </div>
 
                   {/* Appropriate Age */}
                   <div className="mt-1 space-y-2.5">
-                    <Label htmlFor="new-appropriate-age">
-                      Độ tuổi thích hợp
-                    </Label>
+                    <Label htmlFor="appropriateAge">Độ tuổi thích hợp</Label>
                     <Input
-                      id="new-appropriate-age"
+                      id="appropriateAge"
                       name="appropriateAge"
                       type="text"
                       placeholder="Ví dụ: 0-6 tháng"
@@ -397,26 +541,27 @@ export default function NewProductDialog({
                           : ""
                       }
                     />
-                    {getErrorMessage("appropriateAge")}
+                    {getErrorMessage("appropriateAge") && (
+                      <p className="text-sm text-red-500">
+                        {getErrorMessage("appropriateAge")}
+                      </p>
+                    )}
                   </div>
                 </div>
 
                 {/* Price */}
                 <div className="flex gap-4">
                   <div className="space-y-2 flex-1 max-w-64">
-                    <Label htmlFor="new-price">
-                      Giá (VND)<span className="text-red-700">*</span>
+                    <Label htmlFor="price">
+                      Giá (VND)<span className="text-red-500">*</span>
                     </Label>
                     <Input
-                      id="new-price"
+                      id="price"
                       name="price"
                       type="number"
                       placeholder="Price"
                       value={formik.values.price}
-                      onChange={(e) => {
-                        const value = parseFloat(e.target.value) || 0;
-                        formik.setFieldValue("price", value);
-                      }}
+                      onChange={formik.handleChange}
                       onBlur={formik.handleBlur}
                       step="1000"
                       className={
@@ -425,7 +570,11 @@ export default function NewProductDialog({
                           : ""
                       }
                     />
-                    {getErrorMessage("price")}
+                    {getErrorMessage("price") && (
+                      <p className="text-sm text-red-500">
+                        {getErrorMessage("price")}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -433,19 +582,16 @@ export default function NewProductDialog({
                 <div className="grid grid-cols-3 gap-4">
                   {/* Quantity */}
                   <div className="space-y-2 flex-1">
-                    <Label htmlFor="new-quantity">
-                      Số lượng<span className="text-red-700">*</span>
+                    <Label htmlFor="quantity">
+                      Số lượng<span className="text-red-500">*</span>
                     </Label>
                     <Input
-                      id="new-quantity"
+                      id="quantity"
                       name="quantity"
                       type="number"
                       placeholder="Số lượng"
                       value={formik.values.quantity}
-                      onChange={(e) => {
-                        const value = parseInt(e.target.value) || 0;
-                        formik.setFieldValue("quantity", value);
-                      }}
+                      onChange={formik.handleChange}
                       onBlur={formik.handleBlur}
                       className={
                         formik.touched.quantity && formik.errors.quantity
@@ -453,24 +599,25 @@ export default function NewProductDialog({
                           : ""
                       }
                     />
-                    {getErrorMessage("quantity")}
+                    {getErrorMessage("quantity") && (
+                      <p className="text-sm text-red-500">
+                        {getErrorMessage("quantity")}
+                      </p>
+                    )}
                   </div>
 
                   {/* Weight */}
                   <div className="space-y-2 flex-1">
-                    <Label htmlFor="new-weight">
-                      Trọng lượng (gam)<span className="text-red-700">*</span>
+                    <Label htmlFor="weight">
+                      Trọng lượng (gam)<span className="text-red-500">*</span>
                     </Label>
                     <Input
-                      id="new-weight"
+                      id="weight"
                       name="weight"
                       type="number"
                       placeholder="Trọng lượng"
                       value={formik.values.weight || ""}
-                      onChange={(e) => {
-                        const value = parseFloat(e.target.value) || 0;
-                        formik.setFieldValue("weight", value);
-                      }}
+                      onChange={formik.handleChange}
                       onBlur={formik.handleBlur}
                       step="1"
                       className={
@@ -479,16 +626,20 @@ export default function NewProductDialog({
                           : ""
                       }
                     />
-                    {getErrorMessage("weight")}
+                    {getErrorMessage("weight") && (
+                      <p className="text-sm text-red-500">
+                        {getErrorMessage("weight")}
+                      </p>
+                    )}
                   </div>
 
                   {/* Manufacturer */}
                   <div className="space-y-2 flex-1">
-                    <Label htmlFor="new-manufacturer">
-                      Nhà sản xuất<span className="text-red-700">*</span>
+                    <Label htmlFor="manufacturer">
+                      Nhà sản xuất<span className="text-red-500">*</span>
                     </Label>
                     <Input
-                      id="new-manufacturer"
+                      id="manufacturer"
                       name="manufacturer"
                       type="text"
                       placeholder="Nhà sản xuất"
@@ -496,13 +647,16 @@ export default function NewProductDialog({
                       onChange={formik.handleChange}
                       onBlur={formik.handleBlur}
                       className={
-                        formik.touched.manufacturer &&
-                        formik.errors.manufacturer
+                        formik.touched.manufacturer && formik.errors.manufacturer
                           ? "border-red-500"
                           : ""
                       }
                     />
-                    {getErrorMessage("manufacturer")}
+                    {getErrorMessage("manufacturer") && (
+                      <p className="text-sm text-red-500">
+                        {getErrorMessage("manufacturer")}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -525,7 +679,11 @@ export default function NewProductDialog({
                           : ""
                       }
                     />
-                    {getErrorMessage("manufacture")}
+                    {getErrorMessage("manufacture") && (
+                      <p className="text-sm text-red-500">
+                        {getErrorMessage("manufacture")}
+                      </p>
+                    )}
                   </div>
 
                   {/* Expiry */}
@@ -545,7 +703,11 @@ export default function NewProductDialog({
                           : ""
                       }
                     />
-                    {getErrorMessage("expiry")}
+                    {getErrorMessage("expiry") && (
+                      <p className="text-sm text-red-500">
+                        {getErrorMessage("expiry")}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -564,7 +726,11 @@ export default function NewProductDialog({
                       className={`min-h-20 max-w-full resize-y max-h-[30vh] ${formik.touched.description && formik.errors.description ? "border-red-500" : ""}`}
                       rows={3}
                     />
-                    {getErrorMessage("description")}
+                    {getErrorMessage("description") && (
+                      <p className="text-sm text-red-500">
+                        {getErrorMessage("description")}
+                      </p>
+                    )}
                   </div>
 
                   {/* Storage Instructions */}
@@ -580,7 +746,11 @@ export default function NewProductDialog({
                       className={`min-h-20 max-w-full resize-y max-h-[30vh] ${formik.touched.storageInstructions && formik.errors.storageInstructions ? "border-red-500" : ""}`}
                       rows={3}
                     />
-                    {getErrorMessage("storageInstructions")}
+                    {getErrorMessage("storageInstructions") && (
+                      <p className="text-sm text-red-500">
+                        {getErrorMessage("storageInstructions")}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -599,7 +769,11 @@ export default function NewProductDialog({
                       className={`min-h-20 max-w-full resize-y max-h-[30vh] ${formik.touched.instructionsForUse && formik.errors.instructionsForUse ? "border-red-500" : ""}`}
                       rows={3}
                     />
-                    {getErrorMessage("instructionsForUse")}
+                    {getErrorMessage("instructionsForUse") && (
+                      <p className="text-sm text-red-500">
+                        {getErrorMessage("instructionsForUse")}
+                      </p>
+                    )}
                   </div>
 
                   {/* Warning */}
@@ -615,30 +789,34 @@ export default function NewProductDialog({
                       className={`min-h-20 max-w-full resize-y max-h-[30vh] ${formik.touched.warning && formik.errors.warning ? "border-red-500" : ""}`}
                       rows={3}
                     />
-                    {getErrorMessage("warning")}
+                    {getErrorMessage("warning") && (
+                      <p className="text-sm text-red-500">
+                        {getErrorMessage("warning")}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
-            </ScrollArea>
+            </div>
           </div>
-        </div>
-        <DialogFooter className="items-center sm:justify-between">
-          <div>
-            <span className="text-red-700">*</span> Trường bắt buộc
-          </div>
-          <div className="space-x-2">
-            <Button variant="outline" onClick={handleClose} type="button">
-              Hủy
-            </Button>
-            <Button
-              onClick={formik.handleSubmit}
-              disabled={!formik.isValid || formik.isSubmitting}
-            >
-              Tạo sản phẩm
-            </Button>
-          </div>
-        </DialogFooter>
-      </DialogContent>
+          <DialogFooter className="items-center sm:justify-between">
+            <div>
+              <span className="text-red-500">*</span> Trường bắt buộc
+            </div>
+            <div className="space-x-2">
+              <Button variant="outline" onClick={handleClose} type="button">
+                Hủy
+              </Button>
+              <Button
+                onClick={formik.handleSubmit}
+                disabled={!formik.isValid || formik.isSubmitting}
+              >
+                {formik.isSubmitting ? "Đang cập nhật..." : "Cập nhật sản phẩm"}
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <NewBrandDialog
         isOpen={isBrandDialogOpen}
@@ -656,7 +834,6 @@ export default function NewProductDialog({
               formik.setFieldValue("brand", brandId);
             }
           } else {
-            // Error already shown by parent handler via toast
             console.error("Failed to create brand:", result.error);
           }
         }}
@@ -678,11 +855,10 @@ export default function NewProductDialog({
               formik.setFieldValue("category", categoryId);
             }
           } else {
-            // Error already shown by parent handler via toast
             console.error("Failed to create category:", result.error);
           }
         }}
       />
-    </Dialog>
+    </>
   );
 }

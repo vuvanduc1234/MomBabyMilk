@@ -13,6 +13,7 @@ import {
   MessageCircleWarning,
   User,
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -40,29 +41,14 @@ const menuItems = [
 
 export function StaffLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, logout } = useAuth();
 
-  // TODO: Add auth check when auth is implemented
-  // const { profile } = useAuth();
-  // if (!profile || !["admin", "staff"].includes(profile.role)) {
-  //   return (
-  //     <div className="min-h-screen flex items-center justify-center bg-muted/30">
-  //       <div className="text-center">
-  //         <h1 className="text-2xl font-bold text-foreground mb-4">
-  //           Không có quyền truy cập
-  //         </h1>
-  //         <p className="text-muted-foreground mb-6">
-  //           Bạn cần quyền Staff để truy cập trang này.
-  //         </p>
-  //         <Button asChild>
-  //           <Link to="/">Về trang chủ</Link>
-  //         </Button>
-  //       </div>
-  //     </div>
-  //   );
-  // }
-
-  const handleLogout = async () => {};
+  const handleLogout = async () => {
+    logout();
+    navigate("/auth/login");
+  };
 
   const MobileSidebar = () => (
     <div className="flex flex-col h-full">
@@ -111,10 +97,12 @@ export function StaffLayout() {
             to="/staff/profile"
             className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
           >
-            <div className="w-10 h-10 bg-muted rounded-full"></div>
+            <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+              <User className="h-5 w-5" />
+            </div>
             <div>
-              <p className="text-foreground">userName</p>
-              <p className="text-xs">Cửa hảng trưởng</p>
+              <p className="text-foreground">{user?.username || "User"}</p>
+              <p className="text-xs">{user?.role || "Staff"}</p>
             </div>
           </Link>
         </div>
@@ -175,15 +163,15 @@ export function StaffLayout() {
                     <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
                       <User className="h-4 w-4" />
                     </div>
-                    <span className="text-sm">userName</span>
+                    <span className="text-sm">{user?.name || "User"}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel>
                     <div>
-                      <p className="font-medium">userName</p>
+                      <p className="font-medium">{user?.name || "User"}</p>
                       <p className="text-xs text-muted-foreground">
-                        Cửa hàng trưởng
+                        {user?.role || "Staff"}
                       </p>
                     </div>
                   </DropdownMenuLabel>

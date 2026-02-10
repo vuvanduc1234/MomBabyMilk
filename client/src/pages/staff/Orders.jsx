@@ -12,6 +12,7 @@ import {
   Truck,
   Package,
   XCircle,
+  InfoIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +45,10 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Alert,
+  AlertTitle,
+} from "@/components/ui/alert";
 
 // Mock data
 const mockOrders = [
@@ -995,6 +1000,12 @@ export default function StaffOrders() {
 
         {/* Main Content */}
         <div className="pt-2 flex-1 space-y-5">
+          {/* {CHƯA CÓ API} */}
+          <Alert variant="destructive">
+            <InfoIcon />
+            <AlertTitle>Chưa có API cho Orders</AlertTitle>
+          </Alert>
+
           {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1 max-w-md">

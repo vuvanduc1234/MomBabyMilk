@@ -10,11 +10,13 @@ import {
   ArrowRight,
   MessageSquare,
   Flag,
+  InfoIcon,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertTitle } from "@/components/ui/alert";
 
 // Mock data
 const mockStats = {
@@ -130,7 +132,8 @@ const formatDateTime = (dateString) => {
 const cardClasses = {
   card: "",
   cardHeader: "flex flex-row items-center justify-between pb-2",
-  cardTitle: "font-medium text-muted-foreground tracking-tight flex items-center",
+  cardTitle:
+    "font-medium text-muted-foreground tracking-tight flex items-center",
   cardContent: "text-4xl font-medium tracking-tight mb-1",
 };
 
@@ -140,12 +143,18 @@ export default function StaffDashboard() {
 
   return (
     <div className="space-y-6">
-       <div className="pt-2">
+      <div className="pt-2">
         <h1 className="text-2xl font-semibold text-foreground tracking-tight">
           Staff Dashboard
         </h1>
         <p className="text-muted-foreground">Tổng quan công việc hàng ngày</p>
       </div>
+
+      {/* {CHƯA CÓ API} */}
+      <Alert variant="destructive">
+        <InfoIcon />
+        <AlertTitle>Chưa có API cho Products</AlertTitle>
+      </Alert>
 
       {/* Order Stats */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">

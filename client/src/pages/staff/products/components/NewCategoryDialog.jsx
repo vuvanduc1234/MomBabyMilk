@@ -57,10 +57,7 @@ export default function NewCategoryDialog({
             Hủy
           </Button>
           <Button
-            onClick={() => {
-              onCreateCategory();
-              setNewCategory({ name: "", description: "" });
-            }}
+            onClick={onCreateCategory}
             disabled={!newCategory.name}
           >
             Tạo danh mục
