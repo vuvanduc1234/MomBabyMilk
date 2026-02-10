@@ -7,6 +7,7 @@ import {
 } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
+import { Toaster } from "@/components/ui/sonner";
 // ❌ ĐÃ XÓA: import { PreOrderProvider } from "./context/PreOrderContext";
 
 import ProductListing from "./pages/Products/ProductListing";
@@ -66,7 +67,14 @@ function App() {
         <Router>
           <Routes>
             {/* Staff routes - separate layout */}
-            <Route path="/staff" element={<StaffLayout />}>
+            <Route
+              path="/staff"
+              element={
+                <ProtectedRoute allowedRoles={"Staff"}>
+                  <StaffLayout />
+                </ProtectedRoute>
+              }
+            >
               <Route index element={<StaffDashboard />} />
               <Route path="orders" element={<StaffOrders />} />
               <Route path="products" element={<StaffProducts />} />
@@ -112,6 +120,7 @@ function App() {
               <Route path="/track-order" element={<OrderTracking />} />
             </Route>
           </Routes>
+          <Toaster position="bottom-right" richColors />
         </Router>
         {/* ❌ ĐÃ XÓA: </PreOrderProvider> */}
       </CartProvider>
