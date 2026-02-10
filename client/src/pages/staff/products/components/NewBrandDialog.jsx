@@ -57,10 +57,7 @@ export default function NewBrandDialog({
             Hủy
           </Button>
           <Button
-            onClick={() => {
-              onCreateBrand();
-              setNewBrand({ name: "", description: "" });
-            }}
+            onClick={onCreateBrand}
             disabled={!newBrand.name}
           >
             Tạo thương hiệu

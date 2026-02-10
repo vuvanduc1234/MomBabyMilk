@@ -183,6 +183,8 @@ function Login() {
 
       if (user?.role === "Admin") {
         navigate("/admin");
+      } else if (user?.role === "Staff") {
+        navigate("/staff");
       } else {
         navigate("/");
       }

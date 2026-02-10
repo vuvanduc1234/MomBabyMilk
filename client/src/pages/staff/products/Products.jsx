@@ -6,7 +6,11 @@ import {
   Edit,
   Plus,
   MoreHorizontal,
+  Trash2,
 } from "lucide-react";
+import axios from "axios";
+import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,229 +45,165 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import NewProductDialog from "./components/NewProductDialog";
+import EditProductDialog from "./components/EditProductDialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-// Mock data
-const mockCategories = [
-  { id: "1", name: "Sữa bột" },
-  { id: "2", name: "Sữa nước" },
-  { id: "3", name: "Dinh dưỡng" },
-  { id: "4", name: "Phụ kiện" },
-];
-
-const mockBrands = [
-  { id: "1", name: "Similac" },
-  { id: "2", name: "Enfamil" },
-  { id: "3", name: "Abbott" },
-  { id: "4", name: "Aptamil" },
-  { id: "5", name: "Meiji" },
-];
-
+//Mock data
 const mockProducts = [
   {
     id: "1",
-    product_code: "SML-001",
     name: "Similac Gain Plus 900g",
-    short_description: "Sữa bột dành cho trẻ từ 1-3 tuổi",
+    description: "Sữa bột dành cho trẻ từ 1-3 tuổi",
     price: 680000,
-    sale_percentage: 8,
-    discount_end_datetime: "2026-02-28T23:59:59.000Z",
-    stock: 45,
-    low_stock_threshold: 10,
-    is_active: true,
-    image_url: "/placeholder.jpg",
-    category_id: "1",
-    brand_id: "1",
+    quantity: 45,
+    imageUrl: ["/placeholder.jpg"],
+    appropriateAge: "1-3 tuổi",
+    weight: 900,
+    manufacturer: "Abbott",
+    expiry: "2027-12-31",
+    manufacture: "2026-01-01",
+    instructionsForUse: "Pha 1 muỗng với 60ml nước ấm",
+    storageInstructions: "Nơi khô ráo thoáng mát",
+    warning: "Không dùng cho trẻ dị ứng đạm sữa bò",
     category: { id: "1", name: "Sữa bột" },
     brand: { id: "1", name: "Similac" },
   },
   {
     id: "2",
-    product_code: "ENF-002",
     name: "Enfamil A+ 400g",
-    short_description: "Sữa công thức cho trẻ sơ sinh",
+    description: "Sữa công thức cho trẻ sơ sinh",
     price: 450000,
-    sale_percentage: null,
-    discount_end_datetime: null,
-    stock: 5,
-    low_stock_threshold: 5,
-    is_active: true,
-    image_url: "/placeholder.jpg",
-    category_id: "1",
-    brand_id: "2",
+    quantity: 5,
+    imageUrl: ["/placeholder.jpg"],
+    appropriateAge: "0-6 tháng",
+    weight: 400,
+    manufacturer: "Mead Johnson",
+    expiry: "2027-10-15",
+    manufacture: "2026-02-01",
+    instructionsForUse: "Pha 1 muỗng với 60ml nước ấm",
+    storageInstructions: "Nơi khô ráo thoáng mát",
+    warning: "Không dùng cho trẻ dị ứng đạm sữa bò",
     category: { id: "1", name: "Sữa bột" },
     brand: { id: "2", name: "Enfamil" },
   },
   {
     id: "3",
-    product_code: "ABT-003",
     name: "Abbott Grow Gold 1.7kg",
-    short_description: "Sữa bột dinh dưỡng cho trẻ 3-6 tuổi",
+    description: "Sữa bột dinh dưỡng cho trẻ 3-6 tuổi",
     price: 850000,
-    sale_percentage: 6,
-    discount_end_datetime: "2026-03-15T23:59:59.000Z",
-    stock: 28,
-    low_stock_threshold: 15,
-    is_active: true,
-    image_url: "/placeholder.jpg",
-    category_id: "1",
-    brand_id: "3",
+    quantity: 28,
+    imageUrl: ["/placeholder.jpg"],
+    appropriateAge: "3-6 tuổi",
+    weight: 1700,
+    manufacturer: "Abbott Laboratories",
+    expiry: "2027-11-20",
+    manufacture: "2026-01-15",
+    instructionsForUse: "Pha 2 muỗng với 120ml nước ấm",
+    storageInstructions: "Nơi khô ráo thoáng mát",
+    warning: "Không dùng cho trẻ dị ứng đạm sữa bò",
     category: { id: "1", name: "Sữa bột" },
     brand: { id: "3", name: "Abbott" },
   },
   {
     id: "4",
-    product_code: "APT-004",
     name: "Aptamil Essensis 800g",
-    short_description: "Sữa công thức cao cấp từ Đức",
+    description: "Sữa công thức cao cấp từ Đức",
     price: 520000,
     sale_percentage: 10,
     discount_end_datetime: "2026-02-14T23:59:59.000Z",
-    stock: 4,
-    low_stock_threshold: 8,
-    is_active: true,
-    image_url: "/placeholder.jpg",
-    category_id: "1",
-    brand_id: "4",
+    quantity: 4,
+    imageUrl: ["/placeholder.jpg"],
+    appropriateAge: "0-6 tháng",
+    weight: 800,
+    manufacturer: "Danone Nutricia",
+    expiry: "2027-09-30",
+    manufacture: "2026-01-20",
+    instructionsForUse: "Pha 1 muỗng với 60ml nước ấm",
+    storageInstructions: "Nơi khô ráo thoáng mát",
+    warning: "Không dùng cho trẻ dị ứng đạm sữa bò",
     category: { id: "1", name: "Sữa bột" },
     brand: { id: "4", name: "Aptamil" },
   },
   {
     id: "5",
-    product_code: "MEI-005",
     name: "Meiji Infant Formula 800g",
-    short_description: "Sữa công thức Nhật Bản cho trẻ 0-12 tháng",
+    description: "Sữa công thức Nhật Bản cho trẻ 0-12 tháng",
     price: 680000,
-    sale_percentage: 5,
-    discount_end_datetime: "2026-02-20T23:59:59.000Z",
-    stock: 18,
-    low_stock_threshold: 12,
-    is_active: true,
-    image_url: "/placeholder.jpg",
-    category_id: "1",
-    brand_id: "5",
+    quantity: 18,
+    imageUrl: ["/placeholder.jpg"],
+    appropriateAge: "0-12 tháng",
+    weight: 800,
+    manufacturer: "Meiji Co., Ltd",
+    expiry: "2027-08-15",
+    manufacture: "2026-01-10",
+    instructionsForUse: "Pha 1 muỗng với 60ml nước ấm",
+    storageInstructions: "Nơi khô ráo thoáng mát",
+    warning: "Không dùng cho trẻ dị ứng đạm sữa bò",
     category: { id: "1", name: "Sữa bột" },
     brand: { id: "5", name: "Meiji" },
-  },
-  {
-    id: "6",
-    product_code: "SML-006",
-    name: "Similac Ready-to-Feed 180ml",
-    short_description: "Sữa nước tiện lợi, không cầnpha",
-    price: 35000,
-    sale_percentage: null,
-    discount_end_datetime: null,
-    stock: 120,
-    low_stock_threshold: 30,
-    is_active: true,
-    image_url: "/placeholder.jpg",
-    category_id: "2",
-    brand_id: "1",
-    category: { id: "2", name: "Sữa nước" },
-    brand: { id: "1", name: "Similac" },
-  },
-  {
-    id: "7",
-    product_code: "ENF-007",
-    name: "Enfamil A+ Liquid 946ml",
-    short_description: "Sữa nước công thức dạng lỏng",
-    price: 185000,
-    sale_percentage: 5,
-    discount_end_datetime: "2026-02-10T23:59:59.000Z",
-    stock: 35,
-    low_stock_threshold: 20,
-    is_active: true,
-    image_url: "/placeholder.jpg",
-    category_id: "2",
-    brand_id: "2",
-    category: { id: "2", name: "Sữa nước" },
-    brand: { id: "2", name: "Enfamil" },
-  },
-  {
-    id: "8",
-    product_code: "ABT-008",
-    name: "Abbott PediaSure Vanilla 900g",
-    short_description: "Dinh dưỡng y học cho trẻ biếng ăn",
-    price: 590000,
-    sale_percentage: 7,
-    discount_end_datetime: "2026-03-01T23:59:59.000Z",
-    stock: 12,
-    low_stock_threshold: 10,
-    is_active: true,
-    image_url: "/placeholder.jpg",
-    category_id: "3",
-    brand_id: "3",
-    category: { id: "3", name: "Dinh dưỡng" },
-    brand: { id: "3", name: "Abbott" },
-  },
-  {
-    id: "9",
-    product_code: "MEI-009",
-    name: "Meiji Growing Up 1-3 Years 800g",
-    short_description: "Sữa bột cho trẻ đang lớn",
-    price: 580000,
-    sale_percentage: null,
-    discount_end_datetime: null,
-    stock: 22,
-    low_stock_threshold: 15,
-    is_active: true,
-    image_url: "/placeholder.jpg",
-    category_id: "1",
-    brand_id: "5",
-    category: { id: "1", name: "Sữa bột" },
-    brand: { id: "5", name: "Meiji" },
-  },
-  {
-    id: "10",
-    product_code: "APT-010",
-    name: "Aptamil Gold+ Stage 1",
-    short_description: "Sữa công thức cho trẻ 0-6 tháng",
-    price: 490000,
-    sale_percentage: 6,
-    discount_end_datetime: "2026-02-25T23:59:59.000Z",
-    stock: 8,
-    low_stock_threshold: 10,
-    is_active: false,
-    image_url: "/placeholder.jpg",
-    category_id: "1",
-    brand_id: "4",
-    category: { id: "1", name: "Sữa bột" },
-    brand: { id: "4", name: "Aptamil" },
-  },
-  {
-    id: "11",
-    product_code: "APT-010",
-    name: "Aptamil Gold+ Stage 1",
-    short_description: "Sữa công thức cho trẻ 0-6 tháng",
-    price: 490000,
-    sale_percentage: 6,
-    discount_end_datetime: "2026-02-25T23:59:59.000Z",
-    stock: 8,
-    low_stock_threshold: 10,
-    is_active: false,
-    image_url: "/placeholder.jpg",
-    category_id: "1",
-    brand_id: "4",
-    category: { id: "1", name: "Sữa bột" },
-    brand: { id: "4", name: "Aptamil" },
-  },
-  {
-    id: "12",
-    product_code: "APT-010",
-    name: "Aptamil Gold+ Stage 1",
-    short_description: "Sữa công thức cho trẻ 0-6 tháng",
-    price: 490000,
-    sale_percentage: 6,
-    discount_end_datetime: "2026-02-25T23:59:59.000Z",
-    stock: 8,
-    low_stock_threshold: 10,
-    is_active: false,
-    image_url: "/placeholder.jpg",
-    category_id: "1",
-    brand_id: "4",
-    category: { id: "1", name: "Sữa bột" },
-    brand: { id: "4", name: "Aptamil" },
   },
 ];
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+const fetchProducts = async (token) => {
+  console.log("[fetchProducts] Fetching products from API...");
+  try {
+    const response = await axios.get(`${API_URL}/api/product`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+    });
+
+    console.log("[fetchProducts] Raw API response:", response.data);
+    // Map API response to component's expected format
+    const productsArray = response.data.data || response.data;
+    const mappedProducts = productsArray.map((product) => ({
+      id: product._id,
+      name: product.name,
+      description: product.description || "",
+      price: product.price,
+      quantity: product.quantity || 0,
+      imageUrl: product.imageUrl || [],
+      category_id: product.category?._id || product.category || null,
+      brand_id: product.brand?._id || product.brand || null,
+      category: product.category || null,
+      brand: product.brand || null,
+      // Additional fields from API
+      appropriateAge: product.appropriateAge,
+      expiry: product.expiry,
+      instructionsForUse: product.instructionsForUse,
+      manufacture: product.manufacture,
+      manufacturer: product.manufacturer,
+      storageInstructions: product.storageInstructions,
+      warning: product.warning,
+      weight: product.weight,
+    }));
+
+    console.log(
+      "[fetchProducts] Mapped products:",
+      mappedProducts.length,
+      "items",
+    );
+    return mappedProducts;
+  } catch (error) {
+    console.error("[fetchProducts] Error fetching products:", error);
+    console.error(
+      "[fetchProducts] Error details:",
+      error.response?.data || error.message,
+    );
+    throw error;
+  }
+};
 
 // Format price helper
 const formatPrice = (price) => {
@@ -274,7 +214,10 @@ const formatPrice = (price) => {
 };
 
 export default function StaffProducts() {
-  const [products, setProducts] = useState(mockProducts);
+  const { token } = useAuth();
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [brands, setBrands] = useState([]);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [brandFilter, setBrandFilter] = useState("all");
@@ -287,31 +230,75 @@ export default function StaffProducts() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Simulate loading
+  // Fetch products, brands, and categories from API
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, []);
-  const [newProduct, setNewProduct] = useState({
-    product_code: "",
-    name: "",
-    short_description: "",
-    price: 0,
-    sale_percentage: null,
-    discount_end_datetime: null,
-    stock: 0,
-    low_stock_threshold: 0,
-    is_active: true,
-    category_id: "",
-    brand_id: "",
-  });
-  const pageSize = 10;
+    const loadData = async () => {
+      console.log("[Products] Starting data fetch...");
+      setIsLoading(true);
+      setError(null);
+      try {
+        const [productsData, brandsData, categoriesData] = await Promise.all([
+          fetchProducts(token),
+          axios
+            .get(`${API_URL}/api/brand`, {
+              headers: {
+                "Content-Type": "application/json",
+                ...(token && { Authorization: `Bearer ${token}` }),
+              },
+            })
+            .then((res) => {
+              console.log("[Products] Brands API Response:", res.data);
+              return res.data.data;
+            }),
+          axios
+            .get(`${API_URL}/api/category`, {
+              headers: {
+                "Content-Type": "application/json",
+                ...(token && { Authorization: `Bearer ${token}` }),
+              },
+            })
+            .then((res) => {
+              console.log("[Products] Categories API Response:", res.data);
+              return res.data.data;
+            }),
+        ]);
+        console.log(
+          "[Products] Products fetched:",
+          productsData.length,
+          "items",
+        );
+        console.log(
+          "[Products] Brands fetched:",
+          brandsData?.length || 0,
+          "items",
+        );
+        console.log(
+          "[Products] Categories fetched:",
+          categoriesData?.length || 0,
+          "items",
+        );
+        setProducts(productsData);
+        setBrands(brandsData);
+        setCategories(categoriesData);
+      } catch (err) {
+        setError(err.message);
+        console.error("[Products] Failed to load data:", err);
+        console.error(
+          "[Products] Error details:",
+          err.response?.data || err.message,
+        );
+      } finally {
+        console.log("[Products] Data loading complete");
+        setIsLoading(false);
+      }
+    };
 
-  const categories = mockCategories;
-  const brands = mockBrands;
+    loadData();
+  }, []);
+
+  const pageSize = 10;
 
   // Filter and paginate products
   const filteredProducts = useMemo(() => {
@@ -331,11 +318,11 @@ export default function StaffProducts() {
 
     // Stock filter
     if (stockFilter === "low") {
-      filtered = filtered.filter((product) => product.stock <= 5);
+      filtered = filtered.filter((product) => product.quantity <= 5);
     } else if (stockFilter === "out") {
-      filtered = filtered.filter((product) => product.stock === 0);
+      filtered = filtered.filter((product) => product.quantity === 0);
     } else if (stockFilter === "in") {
-      filtered = filtered.filter((product) => product.stock > 5);
+      filtered = filtered.filter((product) => product.quantity > 5);
     }
 
     // Price range filter
@@ -350,12 +337,12 @@ export default function StaffProducts() {
       );
     }
 
-    // Active status filter
-    if (activeFilter === "active") {
-      filtered = filtered.filter((product) => product.is_active);
-    } else if (activeFilter === "inactive") {
-      filtered = filtered.filter((product) => !product.is_active);
-    }
+    // Active status filter (skip for now as API doesn't have is_active field)
+    // if (activeFilter === "active") {
+    //   filtered = filtered.filter((product) => product.is_active);
+    // } else if (activeFilter === "inactive") {
+    //   filtered = filtered.filter((product) => !product.is_active);
+    // }
 
     // Search filter
     if (search) {
@@ -363,7 +350,8 @@ export default function StaffProducts() {
       filtered = filtered.filter(
         (product) =>
           product.name.toLowerCase().includes(searchLower) ||
-          product.product_code.toLowerCase().includes(searchLower),
+          (product.description &&
+            product.description.toLowerCase().includes(searchLower)),
       );
     }
 
@@ -385,36 +373,27 @@ export default function StaffProducts() {
     return filteredProducts.slice(start, end);
   }, [filteredProducts, page]);
 
-  const updateProduct = (updates) => {
+  const updateProduct = (updatedProduct) => {
     setProducts((prevProducts) =>
       prevProducts.map((product) =>
-        product.id === updates.id ? { ...product, ...updates } : product,
+        product.id === updatedProduct.id ? updatedProduct : product,
       ),
     );
     setEditProduct(null);
-    console.log("Đã cập nhật sản phẩm");
   };
 
   const toggleActive = (id, is_active) => {
+    // TODO: Implement API call to toggle product active status
     setProducts((prevProducts) =>
       prevProducts.map((product) =>
         product.id === id ? { ...product, is_active } : product,
       ),
     );
     console.log("Đã cập nhật trạng thái");
+    toast.success(`Đã ${is_active ? "đăng hiển thị" : "ẩn"} sản phẩm`);
   };
 
   const totalPages = Math.ceil(filteredProducts.length / pageSize);
-
-  const handleSaveProduct = () => {
-    if (!editProduct) return;
-    updateProduct({
-      id: editProduct.id,
-      name: editProduct.name,
-      short_description: editProduct.short_description,
-      stock: editProduct.stock,
-    });
-  };
 
   const handleSelectAll = (checked) => {
     if (checked) {
@@ -432,39 +411,269 @@ export default function StaffProducts() {
     }
   };
 
-  const handleCreateProduct = () => {
-    const productToCreate = {
-      ...newProduct,
-      id: String(products.length + 1),
-      category: categories.find((c) => c.id === newProduct.category_id),
-      brand: brands.find((b) => b.id === newProduct.brand_id),
-      image_url: "/placeholder.jpg",
-      price: parseFloat(newProduct.price) || 0,
-      sale_percentage: newProduct.sale_percentage
-        ? parseFloat(newProduct.sale_percentage)
-        : null,
-      discount_end_datetime: newProduct.discount_end_datetime,
-      stock: parseInt(newProduct.stock) || 0,
-      low_stock_threshold: parseInt(newProduct.low_stock_threshold) || 0,
-    };
+  const handleCreateBrand = async (brandData) => {
+    console.log("[handleCreateBrand] Creating brand:", brandData);
+    try {
+      const response = await axios.post(`${API_URL}/api/brand`, brandData, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      });
+      console.log("[handleCreateBrand] Brand created:", response.data);
 
-    // setProducts([...products, productToCreate]);
-    setIsCreateDialogOpen(false);
-    setNewProduct({
-      product_code: "",
-      name: "",
-      short_description: "",
-      price: 0,
-      sale_percentage: null,
-      discount_end_datetime: null,
-      stock: 0,
-      low_stock_threshold: 0,
-      is_active: true,
-      category_id: "",
-      brand_id: "",
-    });
-    console.log("Đã tạo sản phẩm mới: ", productToCreate);
+      // Add the new brand to the brands list
+      const newBrand = response.data.data || response.data;
+      setBrands([...brands, newBrand]);
+      toast.success(`Thương hiệu "${newBrand.name}" đã được tạo thành công!`);
+
+      return { success: true, brand: newBrand };
+    } catch (error) {
+      console.error("[handleCreateBrand] Error creating brand:", error);
+      console.error(
+        "[handleCreateBrand] Error details:",
+        error.response?.data || error.message,
+      );
+      const errorMsg =
+        error.response?.data?.message ||
+        error.message ||
+        "Không thể tạo thương hiệu";
+      toast.error(`Lỗi: ${errorMsg}`);
+      return { success: false, error: errorMsg };
+    }
   };
+
+  const handleCreateCategory = async (categoryData) => {
+    console.log("[handleCreateCategory] Creating category:", categoryData);
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/category`,
+        categoryData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+        },
+      );
+      console.log("[handleCreateCategory] Category created:", response.data);
+
+      // Add the new category to the categories list
+      const newCategory = response.data.data || response.data;
+      setCategories([...categories, newCategory]);
+      toast.success(`Danh mục "${newCategory.name}" đã được tạo thành công!`);
+
+      return { success: true, category: newCategory };
+    } catch (error) {
+      console.error("[handleCreateCategory] Error creating category:", error);
+      console.error(
+        "[handleCreateCategory] Error details:",
+        error.response?.data || error.message,
+      );
+      const errorMsg =
+        error.response?.data?.message ||
+        error.message ||
+        "Không thể tạo danh mục";
+      toast.error(`Lỗi: ${errorMsg}`);
+      return { success: false, error: errorMsg };
+    }
+  };
+
+  const handleCreateProduct = async (productValues) => {
+    console.log(
+      "[handleCreateProduct] Creating product with data:",
+      productValues,
+    );
+
+    try {
+      // Prepare JSON payload (backend expects JSON, not FormData)
+      const productData = {
+        name: productValues.name,
+        price: productValues.price,
+        category: productValues.category,
+        brand: productValues.brand,
+        quantity: productValues.quantity,
+        imageUrl: [productValues.imageUrl], // Array of base64 strings (ProductModel expects array)
+      };
+
+      // Add optional fields only if they have values
+      if (productValues.description && productValues.description.trim()) {
+        productData.description = productValues.description;
+      }
+      if (productValues.weight && productValues.weight > 0) {
+        productData.weight = productValues.weight;
+      }
+      if (productValues.manufacturer && productValues.manufacturer.trim()) {
+        productData.manufacturer = productValues.manufacturer;
+      }
+      if (productValues.appropriateAge && productValues.appropriateAge.trim()) {
+        productData.appropriateAge = productValues.appropriateAge;
+      }
+      if (productValues.manufacture && productValues.manufacture.trim()) {
+        productData.manufacture = productValues.manufacture;
+      }
+      if (productValues.expiry && productValues.expiry.trim()) {
+        productData.expiry = productValues.expiry;
+      }
+      if (
+        productValues.storageInstructions &&
+        productValues.storageInstructions.trim()
+      ) {
+        productData.storageInstructions = productValues.storageInstructions;
+      }
+      if (
+        productValues.instructionsForUse &&
+        productValues.instructionsForUse.trim()
+      ) {
+        productData.instructionsForUse = productValues.instructionsForUse;
+      }
+      if (productValues.warning && productValues.warning.trim()) {
+        productData.warning = productValues.warning;
+      }
+
+      const response = await axios.post(`${API_URL}/api/product`, productData, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      });
+
+      console.log("[handleCreateProduct] Product created:", response.data);
+
+      // Add the new product to the products list
+      const newProductData = response.data.data || response.data;
+
+      // Fetch the complete product details (to get populated category and brand)
+      const productResponse = await axios.get(
+        `${API_URL}/api/product/${newProductData._id}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+        },
+      );
+
+      const completeProduct = productResponse.data.data || productResponse.data;
+
+      // Map to component format
+      const mappedProduct = {
+        id: completeProduct._id,
+        name: completeProduct.name,
+        description: completeProduct.description || "",
+        price: completeProduct.price,
+        quantity: completeProduct.quantity || 0,
+        imageUrl: completeProduct.imageUrl || [],
+        category_id:
+          completeProduct.category?._id || completeProduct.category || null,
+        brand_id: completeProduct.brand?._id || completeProduct.brand || null,
+        category: completeProduct.category || null,
+        brand: completeProduct.brand || null,
+        appropriateAge: completeProduct.appropriateAge,
+        expiry: completeProduct.expiry,
+        instructionsForUse: completeProduct.instructionsForUse,
+        manufacture: completeProduct.manufacture,
+        manufacturer: completeProduct.manufacturer,
+        storageInstructions: completeProduct.storageInstructions,
+        warning: completeProduct.warning,
+        weight: completeProduct.weight,
+      };
+
+      setProducts([...products, mappedProduct]);
+      setIsCreateDialogOpen(false);
+
+      toast.success(`Sản phẩm "${productValues.name}" đã được tạo thành công!`);
+    } catch (error) {
+      console.error("[handleCreateProduct] Error creating product:", error);
+      console.error(
+        "[handleCreateProduct] Error details:",
+        error.response?.data || error.message,
+      );
+      const errorMsg =
+        error.response?.data?.message ||
+        error.message ||
+        "Không thể tạo sản phẩm";
+      toast.error(`Lỗi: ${errorMsg}`);
+    }
+  };
+
+  const handleDeleteProduct = async (productId) => {
+    console.log("[handleDeleteProduct] Deleting product:", productId);
+    if (confirm("Bạn có chắc muốn xóa sản phẩm này?")) {
+      try {
+        await axios.delete(`${API_URL}/api/product/${productId}`, {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+        });
+        console.log("[handleDeleteProduct] Product deleted successfully");
+
+        // Remove the product from the products list
+        setProducts((prev) => prev.filter((p) => p.id !== productId));
+        toast.success("Đã xóa sản phẩm thành công!");
+      } catch (error) {
+        console.error("[handleDeleteProduct] Error deleting product:", error);
+        console.error(
+          "[handleDeleteProduct] Error details:",
+          error.response?.data || error.message,
+        );
+        const errorMsg =
+          error.response?.data?.message ||
+          error.message ||
+          "Không thể xóa sản phẩm";
+        toast.error(`Lỗi: ${errorMsg}`);
+      }
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    console.log("[handleBulkDelete] Deleting products:", selectedProducts);
+    
+    if (selectedProducts.length === 0) {
+      toast.error("Vui lòng chọn ít nhất một sản phẩm để xóa");
+      return;
+    }
+
+    if (!confirm(`Bạn có chắc muốn xóa ${selectedProducts.length} sản phẩm đã chọn?`)) {
+      return;
+    }
+
+    try {
+      // Delete each product individually using the DELETE endpoint
+      const deletePromises = selectedProducts.map(_id =>
+        axios.delete(`${API_URL}/api/product/${_id}`, {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+        })
+      );
+
+      await Promise.all(deletePromises);
+      
+      console.log("[handleBulkDelete] Successfully deleted products");
+      
+      // Remove deleted products from state
+      setProducts((prev) => prev.filter((p) => !selectedProducts.includes(p.id)));
+      
+      const deletedCount = selectedProducts.length;
+      setSelectedProducts([]);
+      
+      toast.success(`Đã xóa ${deletedCount} sản phẩm thành công!`);
+    } catch (error) {
+      console.error("[handleBulkDelete] Error deleting products:", error);
+      console.error(
+        "[handleBulkDelete] Error details:",
+        error.response?.data || error.message
+      );
+      const errorMsg =
+        error.response?.data?.message ||
+        error.message ||
+        "Không thể xóa sản phẩm";
+      toast.error(`Lỗi: ${errorMsg}`);
+    }
+  }
 
   const isAllSelected =
     paginatedProducts.length > 0 &&
@@ -498,7 +707,7 @@ export default function StaffProducts() {
                 <SelectContent>
                   <SelectGroup>
                     <SelectItem value="all">Tất cả</SelectItem>
-                    {categories?.map((cat) => (
+                    {(categories ?? []).map((cat) => (
                       <SelectItem key={cat.id} value={cat.id}>
                         {cat.name}
                       </SelectItem>
@@ -518,7 +727,7 @@ export default function StaffProducts() {
                 <SelectContent>
                   <SelectGroup>
                     <SelectItem value="all">Tất cả</SelectItem>
-                    {brands?.map((brand) => (
+                    {(brands ?? []).map((brand) => (
                       <SelectItem key={brand.id} value={brand.id}>
                         {brand.name}
                       </SelectItem>
@@ -624,6 +833,14 @@ export default function StaffProducts() {
             </Button>
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg">
+              <p className="text-sm font-medium">Lỗi tải dữ liệu</p>
+              <p className="text-sm">{error}</p>
+            </div>
+          )}
+
           {/* Products Table */}
           <Card className="py-2 max-h-[calc(100vh-10rem)]">
             <CardContent className="px-3">
@@ -642,16 +859,36 @@ export default function StaffProducts() {
                     <Table>
                       <TableHeader>
                         <TableRow className="hover:bg-transparent">
-                          <TableHead className="w-8"><Skeleton className="h-4 w-4" /></TableHead>
-                          <TableHead><Skeleton className="h-4 w-20" /></TableHead>
-                          <TableHead><Skeleton className="h-4 w-32" /></TableHead>
-                          <TableHead><Skeleton className="h-4 w-24" /></TableHead>
-                          <TableHead><Skeleton className="h-4 w-20" /></TableHead>
-                          <TableHead><Skeleton className="h-4 w-24" /></TableHead>
-                          <TableHead><Skeleton className="h-4 w-20" /></TableHead>
-                          <TableHead><Skeleton className="h-4 w-16" /></TableHead>
-                          <TableHead className="w-10"><Skeleton className="h-4 w-16" /></TableHead>
-                          <TableHead className="text-right"><Skeleton className="h-4 w-20 ml-auto" /></TableHead>
+                          <TableHead className="w-8">
+                            <Skeleton className="h-4 w-4" />
+                          </TableHead>
+                          <TableHead>
+                            <Skeleton className="h-4 w-20" />
+                          </TableHead>
+                          <TableHead>
+                            <Skeleton className="h-4 w-32" />
+                          </TableHead>
+                          <TableHead>
+                            <Skeleton className="h-4 w-24" />
+                          </TableHead>
+                          <TableHead>
+                            <Skeleton className="h-4 w-20" />
+                          </TableHead>
+                          <TableHead>
+                            <Skeleton className="h-4 w-24" />
+                          </TableHead>
+                          <TableHead>
+                            <Skeleton className="h-4 w-20" />
+                          </TableHead>
+                          <TableHead>
+                            <Skeleton className="h-4 w-16" />
+                          </TableHead>
+                          <TableHead className="w-10">
+                            <Skeleton className="h-4 w-16" />
+                          </TableHead>
+                          <TableHead className="text-right">
+                            <Skeleton className="h-4 w-20 ml-auto" />
+                          </TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -659,8 +896,12 @@ export default function StaffProducts() {
                           .fill(0)
                           .map((_, i) => (
                             <TableRow key={i} className="hover:bg-transparent">
-                              <TableCell><Skeleton className="h-4 w-4" /></TableCell>
-                              <TableCell><Skeleton className="h-6 w-16" /></TableCell>
+                              <TableCell>
+                                <Skeleton className="h-4 w-4" />
+                              </TableCell>
+                              <TableCell>
+                                <Skeleton className="h-6 w-16" />
+                              </TableCell>
                               <TableCell>
                                 <div className="flex items-center gap-3">
                                   <Skeleton className="h-12 w-12 rounded" />
@@ -670,12 +911,24 @@ export default function StaffProducts() {
                                   </div>
                                 </div>
                               </TableCell>
-                              <TableCell><Skeleton className="h-6 w-24" /></TableCell>
-                              <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                              <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                              <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                              <TableCell><Skeleton className="h-6 w-8" /></TableCell>
-                              <TableCell><Skeleton className="h-6 w-10" /></TableCell>
+                              <TableCell>
+                                <Skeleton className="h-6 w-24" />
+                              </TableCell>
+                              <TableCell>
+                                <Skeleton className="h-4 w-20" />
+                              </TableCell>
+                              <TableCell>
+                                <Skeleton className="h-4 w-20" />
+                              </TableCell>
+                              <TableCell>
+                                <Skeleton className="h-4 w-16" />
+                              </TableCell>
+                              <TableCell>
+                                <Skeleton className="h-6 w-8" />
+                              </TableCell>
+                              <TableCell>
+                                <Skeleton className="h-6 w-10" />
+                              </TableCell>
                               <TableCell>
                                 <div className="flex justify-end gap-2">
                                   <Skeleton className="h-8 w-8" />
@@ -691,30 +944,47 @@ export default function StaffProducts() {
               ) : (
                 <>
                   {/* Pagination */}
-                  <div className="flex items-center justify-end gap-4 px-2 pt-1 pb-3 border-b">
-                    <p className="text-sm text-muted-foreground">
-                      Trang {page} / {totalPages} ({filteredProducts.length} sản
-                      phẩm)
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        disabled={page === 1}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                          setPage((p) => Math.min(totalPages, p + 1))
-                        }
-                        disabled={page >= totalPages}
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
+                  <div className="flex items-center justify-between px-2 pt-1 pb-3 border-b">
+                    <div className="flex items-center gap-3">
+                      {selectedProducts.length > 0 && (
+                        <>
+                          <p className="">Đã chọn {selectedProducts.length}</p>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={handleBulkDelete}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Xóa đã chọn
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <p className="text-sm text-muted-foreground">
+                        Trang {page} / {totalPages} ({filteredProducts.length}{" "}
+                        sản phẩm)
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setPage((p) => Math.max(1, p - 1))}
+                          disabled={page === 1}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            setPage((p) => Math.min(totalPages, p + 1))
+                          }
+                          disabled={page >= totalPages}
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
 
@@ -735,20 +1005,18 @@ export default function StaffProducts() {
                           <TableHead className="bg-white">Sản phẩm</TableHead>
                           <TableHead className="bg-white">Danh mục</TableHead>
                           <TableHead className="bg-white">Giá bán</TableHead>
-                          <TableHead className="bg-white">Khuyến mại</TableHead>
-                          <TableHead className="bg-white">Giá vốn</TableHead>
+                          <TableHead className="bg-white">Độ tuổi</TableHead>
+                          <TableHead className="bg-white">Khối lượng</TableHead>
                           <TableHead className="bg-white">Tồn kho</TableHead>
                           <TableHead className="w-10 bg-white">
                             Hiển thị
                           </TableHead>
-                          <TableHead className="text-right bg-white">
-                            Thao tác
-                          </TableHead>
+                          <TableHead className="text-right bg-white"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {paginatedProducts.map((product) => (
-                          <TableRow key={product.id}>
+                          <TableRow key={product.id} className="group">
                             <TableCell>
                               <Checkbox
                                 checked={selectedProducts.includes(product.id)}
@@ -760,13 +1028,17 @@ export default function StaffProducts() {
                             </TableCell>
                             <TableCell>
                               <code className="text-xs font-mono bg-muted px-2 py-1 rounded">
-                                {product.product_code}
+                                {product.id.slice(-6).toUpperCase()}
                               </code>
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-3">
                                 <img
-                                  src={product.image_url || "/placeholder.svg"}
+                                  src={
+                                    (Array.isArray(product.imageUrl) &&
+                                      product.imageUrl[0]) ||
+                                    "/placeholder.svg"
+                                  }
                                   alt={product.name}
                                   className="w-12 h-12 rounded object-cover"
                                 />
@@ -782,57 +1054,63 @@ export default function StaffProducts() {
                             </TableCell>
                             <TableCell>
                               <code className="text-xs font-mono bg-muted px-2 py-1 rounded">
-                                {product.category?.name +
-                                  "/" +
-                                  product.brand.name || "N/A"}
+                                {product.category?.name || "N/A"}
                               </code>
                             </TableCell>
                             <TableCell>
                               <p>{formatPrice(product.price)}</p>
                             </TableCell>
                             <TableCell>
-                              <p className="">
-                                {product.sale_percentage
-                                  ? formatPrice(
-                                      product.price * (100 - product.sale_percentage) / 100,
-                                    )
-                                  : "-"}
+                              <p className="truncate max-w-37.5">
+                                {product.appropriateAge || "-"}
                               </p>
                             </TableCell>
-                            <TableCell></TableCell>
+                            <TableCell>
+                              <p className="text-sm">
+                                {product.weight ? `${product.weight}g` : "-"}
+                              </p>
+                            </TableCell>
                             <TableCell>
                               <Badge
                                 variant={
-                                  product.stock <= 5 ? "destructive" : "outline"
+                                  product.quantity <= 5
+                                    ? "destructive"
+                                    : "outline"
                                 }
                               >
-                                {product.stock}
+                                {product.quantity}
                               </Badge>
                             </TableCell>
                             <TableCell>
                               <Switch
-                                checked={product.is_active}
+                                checked={product.is_active !== false}
                                 onCheckedChange={(checked) =>
                                   toggleActive(product.id, checked)
                                 }
                               />
                             </TableCell>
                             <TableCell className="text-right">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setEditProduct({ ...product })}
-                                title="Chỉnh sửa"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                title="Xem chi tiết"
-                              >
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
+                              <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setEditProduct({ ...product })}
+                                  title="Chỉnh sửa"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  title="Xóa sản phẩm"
+                                  onClick={() =>
+                                    handleDeleteProduct(product.id)
+                                  }
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -848,96 +1126,28 @@ export default function StaffProducts() {
 
       {/* Edit Product Dialog */}
       {editProduct && (
-        <Dialog open={true} onOpenChange={() => setEditProduct(null)}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Chỉnh sửa sản phẩm</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <img
-                  src={editProduct.image_url || "/placeholder.svg"}
-                  alt={editProduct.name}
-                  className="w-20 h-20 rounded object-cover"
-                />
-                <div className="flex-1">
-                  <p className="font-medium">
-                    {editProduct.brand?.name || "N/A"}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {editProduct.category?.name || "N/A"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="name">Tên sản phẩm</Label>
-                <Input
-                  id="name"
-                  value={editProduct.name}
-                  onChange={(e) =>
-                    setEditProduct({ ...editProduct, name: e.target.value })
-                  }
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Mô tả ngắn</Label>
-                <Textarea
-                  id="description"
-                  value={editProduct.short_description || ""}
-                  onChange={(e) =>
-                    setEditProduct({
-                      ...editProduct,
-                      short_description: e.target.value,
-                    })
-                  }
-                  rows={3}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="stock">Số lượng tồn kho</Label>
-                <Input
-                  id="stock"
-                  type="number"
-                  value={editProduct.stock}
-                  onChange={(e) =>
-                    setEditProduct({
-                      ...editProduct,
-                      stock: parseInt(e.target.value) || 0,
-                    })
-                  }
-                />
-              </div>
-
-              <div className="p-3 bg-muted rounded-lg">
-                <p className="text-sm text-muted-foreground">
-                  <strong>Lưu ý:</strong> Staff không thể thay đổi giá sản phẩm
-                  hoặc xóa sản phẩm vĩnh viễn. Liên hệ Admin nếu cần thay đổi
-                  giá.
-                </p>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEditProduct(null)}>
-                Hủy
-              </Button>
-              <Button onClick={handleSaveProduct}>Lưu thay đổi</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <EditProductDialog
+          isOpen={true}
+          onClose={() => setEditProduct(null)}
+          product={editProduct}
+          categories={categories}
+          brands={brands}
+          onUpdateProduct={updateProduct}
+          onCreateBrand={handleCreateBrand}
+          onCreateCategory={handleCreateCategory}
+          token={token}
+        />
       )}
 
       {/* Create Product Dialog */}
       <NewProductDialog
         isOpen={isCreateDialogOpen}
         onClose={() => setIsCreateDialogOpen(false)}
-        newProduct={newProduct}
-        setNewProduct={setNewProduct}
         categories={categories}
         brands={brands}
         onCreateProduct={handleCreateProduct}
+        onCreateBrand={handleCreateBrand}
+        onCreateCategory={handleCreateCategory}
       />
     </>
   );
