@@ -82,9 +82,15 @@ const getCategoryById = async (req, res) => {
 
 const updateCategory = async (req, res) => {
   const { id } = req.params;
-  const { brands } = req.body;
+  const { parentCategory, brands } = req.body;
 
   try {
+    if (parentCategory && parentCategory === id) {
+      return res.status(400).json({
+        message: "Danh mục không thể là cha của chính nó",
+      });
+    }
+    
     const oldCategory = await CategoryModel.findById(id);
     if (!oldCategory) {
       return res.status(404).json({

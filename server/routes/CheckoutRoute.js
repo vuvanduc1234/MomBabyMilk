@@ -1,7 +1,11 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { authenticateToken } = require('../middleware/auth');
-const { checkout, momoNotify, vnpayReturn } = require('../controllers/CheckoutController');
+const { authenticateToken } = require("../middleware/auth");
+const {
+  checkout,
+  momoNotify,
+  vnpayReturn,
+} = require("../controllers/CheckoutController");
 
 /**
  * @swagger
@@ -19,8 +23,6 @@ const { checkout, momoNotify, vnpayReturn } = require('../controllers/CheckoutCo
  *             type: object
  *             required:
  *               - cartItems
- *               - phone
- *               - shippingAddress
  *             properties:
  *               cartItems:
  *                 type: array
@@ -41,21 +43,26 @@ const { checkout, momoNotify, vnpayReturn } = require('../controllers/CheckoutCo
  *                       example: 2
  *               phone:
  *                 type: string
- *                 description: Customer phone number
+ *                 description: Customer phone number (optional - fallback to user profile)
  *                 example: "0912345678"
  *               shippingAddress:
  *                 type: string
- *                 description: Shipping address
+ *                 description: Shipping address (optional - fallback to user profile)
  *                 example: "123 Nguyễn Huệ, Quận 1, TP.HCM"
  *               paymentMethod:
  *                 type: string
  *                 enum: [cod, momo, vnpay]
  *                 description: Payment method
+ *                 default: cod
  *                 example: "vnpay"
  *               voucherCode:
  *                 type: string
- *                 description: Optional voucher code to apply discount
- *                 example: "SALETRIANKHACHHANG"
+ *                 description: Optional voucher code (string) to apply discount
+ *                 example: "SALE50"
+ *               voucherUsed:
+ *                 type: string
+ *                 description: Optional voucher ID (ObjectId) to apply discount
+ *                 example: "6979fd9eebd101f6355d5b97"
  *               note:
  *                 type: string
  *                 description: Optional order note
@@ -78,18 +85,18 @@ const { checkout, momoNotify, vnpayReturn } = require('../controllers/CheckoutCo
  *                   type: string
  *                   description: Payment URL (for MOMO/VNPAY)
  *       400:
- *         description: Bad request - Invalid cart data or insufficient stock
+ *         description: Bad request - Invalid cart data, insufficient stock, or voucher error
  *       401:
  *         description: Unauthorized
  *       500:
  *         description: Server error
  */
-router.post('/', authenticateToken, checkout);
+router.post("/", authenticateToken, checkout);
 
 // MOMO IPN Callback
-router.post('/momo-ipn', momoNotify);
+router.post("/momo-ipn", momoNotify);
 
 // VNPAY Return URL
-router.get('/vnpay-return', vnpayReturn);
+router.get("/vnpay-return", vnpayReturn);
 
 module.exports = router;

@@ -15,6 +15,7 @@ const productSchema = new mongoose.Schema(
       ref: "Brand",
       required: true,
     },
+    tags: {type: String},
     quantity: { type: Number, default: 0, required: true },
     imageUrl: [{ type: String, required: true }],
     manufacture: { type: String },
