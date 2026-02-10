@@ -4,7 +4,7 @@ const ProductModel = require("../models/ProductModel");
 // Lấy wishlist của user
 const getWishlist = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.id;
 
     const user = await UserModel.findById(userId).populate({
       path: "wishlist",
@@ -31,7 +31,7 @@ const getWishlist = async (req, res) => {
 // Thêm sản phẩm vào wishlist
 const addToWishlist = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.id;
     const { productId } = req.body;
 
     if (!productId) {
@@ -71,7 +71,7 @@ const addToWishlist = async (req, res) => {
 // Xóa sản phẩm khỏi wishlist
 const removeFromWishlist = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.id || req.user._id;
     const { productId } = req.params;
 
     if (!productId) {
@@ -108,7 +108,7 @@ const removeFromWishlist = async (req, res) => {
 // Xóa tất cả sản phẩm khỏi wishlist
 const clearWishlist = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.id || req.user._id;
 
     const user = await UserModel.findByIdAndUpdate(
       userId,
@@ -134,7 +134,7 @@ const clearWishlist = async (req, res) => {
 // Kiểm tra sản phẩm có trong wishlist không
 const checkInWishlist = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.id || req.user._id;
     const { productId } = req.params;
 
     const user = await UserModel.findById(userId);
