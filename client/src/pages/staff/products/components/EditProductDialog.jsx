@@ -93,6 +93,7 @@ const productValidationSchema = Yup.object().shape({
   ),
 
   warning: Yup.string().max(1000, "Cảnh báo không được vượt quá 1000 ký tự"),
+  tags: Yup.string(),
 });
 
 export default function EditProductDialog({
@@ -130,6 +131,7 @@ export default function EditProductDialog({
       manufacturer: product?.manufacturer || "",
       appropriateAge: product?.appropriateAge || "",
       weight: product?.weight || 0,
+      tags: product?.tags || "",
     },
     enableReinitialize: true,
     validationSchema: productValidationSchema,
@@ -141,7 +143,11 @@ export default function EditProductDialog({
 
   // Set image preview from existing product
   useEffect(() => {
-    if (product?.imageUrl && Array.isArray(product.imageUrl) && product.imageUrl[0]) {
+    if (
+      product?.imageUrl &&
+      Array.isArray(product.imageUrl) &&
+      product.imageUrl[0]
+    ) {
       setImagePreview(product.imageUrl[0]);
     }
   }, [product]);
@@ -235,6 +241,9 @@ export default function EditProductDialog({
       if (values.warning && values.warning.trim()) {
         updateData.warning = values.warning;
       }
+      if (values.tags && values.tags.trim()) {
+        updateData.tags = values.tags;
+      }
 
       const response = await axios.patch(
         `${API_URL}/api/product/${product.id}`,
@@ -244,7 +253,7 @@ export default function EditProductDialog({
             "Content-Type": "application/json",
             ...(token && { Authorization: `Bearer ${token}` }),
           },
-        }
+        },
       );
 
       console.log("[EditProductDialog] Product updated:", response.data);
@@ -257,7 +266,7 @@ export default function EditProductDialog({
             "Content-Type": "application/json",
             ...(token && { Authorization: `Bearer ${token}` }),
           },
-        }
+        },
       );
 
       const updatedProduct = productResponse.data.data || productResponse.data;
@@ -283,6 +292,7 @@ export default function EditProductDialog({
         storageInstructions: updatedProduct.storageInstructions,
         warning: updatedProduct.warning,
         weight: updatedProduct.weight,
+        tags: updatedProduct.tags,
       };
 
       onUpdateProduct(mappedProduct);
@@ -294,7 +304,7 @@ export default function EditProductDialog({
       console.error("[EditProductDialog] Error updating product:", error);
       console.error(
         "[EditProductDialog] Error details:",
-        error.response?.data || error.message
+        error.response?.data || error.message,
       );
       const errorMsg =
         error.response?.data?.message ||
@@ -326,7 +336,10 @@ export default function EditProductDialog({
 
     const result = await onCreateCategory(newCategory);
     if (result.success) {
-      formik.setFieldValue("category", result.category._id || result.category.id);
+      formik.setFieldValue(
+        "category",
+        result.category._id || result.category.id,
+      );
       setNewCategory({ name: "", description: "" });
       setIsCategoryDialogOpen(false);
     }
@@ -347,9 +360,7 @@ export default function EditProductDialog({
             <div className="grid grid-cols-[280px_1fr] gap-4">
               {/* Image Upload */}
               <div className="space-y-2">
-                <Label>
-                  Hình ảnh sản phẩm
-                </Label>
+                <Label>Hình ảnh sản phẩm</Label>
                 <div className="border-2 border-dashed rounded-lg p-4 flex flex-col items-center gap-3 bg-background border-muted">
                   <div className="w-full aspect-square rounded-lg border-2 border-muted bg-muted/10 overflow-hidden flex items-center justify-center">
                     {imagePreview ? (
@@ -377,19 +388,19 @@ export default function EditProductDialog({
                     </span>
                   </label>
                   {imagePreview && (
-                  <Button
-                    variant="link"
-                    size="small"
-                    onClick={() => {
-                      setImagePreview(null);
-                      formik.setFieldValue("imageUrl", "");
-                    }}
-                    type="button"
-                    className="cursor-pointer"
-                  >
-                    Xóa ảnh
-                  </Button>
-                )}
+                    <Button
+                      variant="link"
+                      size="small"
+                      onClick={() => {
+                        setImagePreview(null);
+                        formik.setFieldValue("imageUrl", "");
+                      }}
+                      type="button"
+                      className="cursor-pointer"
+                    >
+                      Xóa ảnh
+                    </Button>
+                  )}
                   <p className="text-xs text-muted-foreground text-center">
                     Dung lượng file tối đa 5MB
                     <br />
@@ -576,6 +587,24 @@ export default function EditProductDialog({
                       </p>
                     )}
                   </div>
+
+                  {/* Tags */}
+                  <div className="space-y-2">
+                    <Label htmlFor="tags">Tình trạng hàng</Label>
+                    <Input
+                      id="tags"
+                      name="tags"
+                      placeholder="Nhập tags (ví dụ: hot, sale, new), phân cách bằng dấu phẩy"
+                      value={formik.values.tags || ""}
+                      onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
+                    />
+                    {getErrorMessage("tags") && (
+                      <p className="text-sm text-red-500">
+                        {getErrorMessage("tags")}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Quantity, Weight, Manufacturer */}
@@ -647,7 +676,8 @@ export default function EditProductDialog({
                       onChange={formik.handleChange}
                       onBlur={formik.handleBlur}
                       className={
-                        formik.touched.manufacturer && formik.errors.manufacturer
+                        formik.touched.manufacturer &&
+                        formik.errors.manufacturer
                           ? "border-red-500"
                           : ""
                       }

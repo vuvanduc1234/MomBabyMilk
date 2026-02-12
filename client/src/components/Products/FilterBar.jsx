@@ -2,6 +2,33 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Package, Calendar, ShoppingBag } from "lucide-react";
 
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
+// Helper function to map API data to component format
+const mapProductData = (product) => {
+  return {
+    id: product._id || product.id,
+    name: product.name,
+    description: product.description || "",
+    price: product.price,
+    sale_price: product.sale_price || null,
+    stock: product.quantity || product.stock || 0,
+    quantity: product.quantity || product.stock || 0,
+    image_url: Array.isArray(product.imageUrl)
+      ? product.imageUrl[0]
+      : product.image_url || product.imageUrl || null,
+    imageUrl: product.imageUrl || product.image_url || [],
+    slug: product.slug || product._id || product.id,
+    brand: product.brand || null,
+    category: product.category || null,
+    releaseDate: product.releaseDate || product.release_date || null,
+    is_featured: product.is_featured || product.isFeatured || false,
+    is_active: product.is_active !== false,
+    reviews: product.reviews || 0,
+    appropriateAge: product.appropriateAge,
+    weight: product.weight,
+  };
+};
+
 export function FilterBar({ onFilterChange, onProductsUpdate }) {
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [selectedBrands, setSelectedBrands] = useState([]);
@@ -41,17 +68,23 @@ export function FilterBar({ onFilterChange, onProductsUpdate }) {
     const fetchCategories = async () => {
       try {
         setIsLoadingCategories(true);
-        const response = await fetch("/api/category");
+        const response = await fetch(`${API_BASE}/api/category`);
 
         if (!response.ok) {
           throw new Error("Failed to fetch categories");
         }
 
         const data = await response.json();
-        setCategories(data);
+        // Map category data if needed
+        const mappedCategories = Array.isArray(data) ? data : data.data || [];
+        const normalizedCategories = mappedCategories.map((cat) => ({
+          id: cat._id || cat.id,
+          name: cat.name,
+          description: cat.description || "",
+        }));
+        setCategories(normalizedCategories);
       } catch (error) {
         console.error("Error fetching categories:", error);
-        // Có thể thêm thông báo lỗi cho user ở đây
       } finally {
         setIsLoadingCategories(false);
       }
@@ -65,17 +98,24 @@ export function FilterBar({ onFilterChange, onProductsUpdate }) {
     const fetchBrands = async () => {
       try {
         setIsLoadingBrands(true);
-        const response = await fetch("/api/brand");
+        const response = await fetch(`${API_BASE}/api/brand`);
 
         if (!response.ok) {
           throw new Error("Failed to fetch brands");
         }
 
         const data = await response.json();
-        setBrands(data);
+        // Map brand data if needed
+        const mappedBrands = Array.isArray(data) ? data : data.data || [];
+        const normalizedBrands = mappedBrands.map((brand) => ({
+          id: brand._id || brand.id,
+          name: brand.name,
+          description: brand.description || "",
+          imagePath: brand.imagePath || brand.image_url || "",
+        }));
+        setBrands(normalizedBrands);
       } catch (error) {
         console.error("Error fetching brands:", error);
-        // Có thể thêm thông báo lỗi cho user ở đây
       } finally {
         setIsLoadingBrands(false);
       }
@@ -84,40 +124,84 @@ export function FilterBar({ onFilterChange, onProductsUpdate }) {
     fetchBrands();
   }, []);
 
-  // Fetch all products
+  // Fetch all products with data mapping
   const fetchAllProducts = async () => {
     try {
       setIsLoadingProducts(true);
-      const response = await fetch("/api/product");
+
+      const token = localStorage.getItem("accessToken");
+
+      const response = await fetch(`${API_BASE}/api/product`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       if (!response.ok) {
         throw new Error("Failed to fetch products");
       }
 
       const data = await response.json();
-      onProductsUpdate?.(data, null);
-      return data;
+      console.log("[FilterBar] Raw API response:", data);
+
+      // Handle different response formats
+      const productsArray = Array.isArray(data) ? data : data.data || [];
+      console.log("[FilterBar] Products array:", productsArray);
+
+      // Map products to expected format
+      const mappedProducts = productsArray
+        .filter((product) => product.is_active !== false) // Only show active products
+        .map(mapProductData);
+
+      console.log("[FilterBar] Mapped products:", mappedProducts);
+      onProductsUpdate?.(mappedProducts, null);
+      return mappedProducts;
     } catch (error) {
       console.error("Error fetching all products:", error);
-      onProductsUpdate?.([]);
+      onProductsUpdate?.([], "Không thể tải sản phẩm");
       return [];
     } finally {
       setIsLoadingProducts(false);
     }
   };
 
-  // Fetch products by category
+  // Fetch products by category with data mapping
   const fetchProductsByCategory = async (categoryId) => {
     try {
       setIsLoadingProducts(true);
-      const response = await fetch(`/api/product/category/${categoryId}`);
+
+      const token = localStorage.getItem("accessToken");
+
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const response = await fetch(
+        `${API_BASE}/api/product/category/${categoryId}`,
+        {
+          headers: headers,
+        },
+      );
 
       if (!response.ok) {
         throw new Error("Failed to fetch products by category");
       }
 
       const data = await response.json();
-      return data;
+      const productsArray = Array.isArray(data) ? data : data.data || [];
+
+      // Map and filter products
+      const mappedProducts = productsArray
+        .filter((product) => product.is_active !== false)
+        .map(mapProductData);
+
+      return mappedProducts;
     } catch (error) {
       console.error("Error fetching products by category:", error);
       return [];
@@ -126,18 +210,38 @@ export function FilterBar({ onFilterChange, onProductsUpdate }) {
     }
   };
 
-  // Fetch products by brand
+  // Fetch products by brand with data mapping
   const fetchProductsByBrand = async (brandId) => {
     try {
       setIsLoadingProducts(true);
-      const response = await fetch(`/api/product/brand/${brandId}`);
+
+      const token = localStorage.getItem("accessToken");
+
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${API_BASE}/api/product/brand/${brandId}`, {
+        headers: headers,
+      });
 
       if (!response.ok) {
         throw new Error("Failed to fetch products by brand");
       }
 
       const data = await response.json();
-      return data;
+      const productsArray = Array.isArray(data) ? data : data.data || [];
+
+      // Map and filter products
+      const mappedProducts = productsArray
+        .filter((product) => product.is_active !== false)
+        .map(mapProductData);
+
+      return mappedProducts;
     } catch (error) {
       console.error("Error fetching products by brand:", error);
       return [];
@@ -192,29 +296,27 @@ export function FilterBar({ onFilterChange, onProductsUpdate }) {
       // Lọc theo product types (in-stock, preorder, etc.) - client-side filtering
       if (productTypes.length > 0) {
         allProducts = allProducts.filter((product) => {
-          // Logic lọc theo productTypes tùy thuộc vào cấu trúc dữ liệu của bạn
-          // Ví dụ: giả sử product có field "status"
+          const isOutOfStock = product.stock === 0 && !product.releaseDate;
+          const isComingSoon =
+            product.releaseDate && new Date(product.releaseDate) > new Date();
+          const isInStock = product.stock > 0 && !isComingSoon;
+
           return productTypes.some((typeId) => {
             if (typeId === "in-stock") {
-              return product.inStock === true || product.status === "in-stock";
+              return isInStock;
             }
             if (typeId === "out-of-stock-preorder") {
-              return (
-                (product.inStock === false && product.preorder === true) ||
-                product.status === "out-of-stock-preorder"
-              );
+              return isOutOfStock;
             }
             if (typeId === "coming-soon-preorder") {
-              return (
-                product.comingSoon === true ||
-                product.status === "coming-soon-preorder"
-              );
+              return isComingSoon;
             }
             return false;
           });
         });
       }
 
+      console.log("[FilterBar] Final filtered products:", allProducts);
       onProductsUpdate?.(allProducts);
     } catch (error) {
       console.error("Error applying filters:", error);
@@ -444,6 +546,10 @@ export function FilterBar({ onFilterChange, onProductsUpdate }) {
           <div className="flex flex-wrap gap-2">
             {brands.map((brand) => {
               const isChecked = selectedBrands.includes(brand.id);
+              // ✅ FIX: Kiểm tra imagePath trước khi render
+              const hasValidImage =
+                brand.imagePath && brand.imagePath.trim() !== "";
+
               return (
                 <div
                   key={brand.id}
@@ -454,16 +560,22 @@ export function FilterBar({ onFilterChange, onProductsUpdate }) {
                       : "hover:ring-1 hover:ring-primary"
                   }`}
                 >
-                  <img
-                    src={brand.imagePath}
-                    alt={brand.name}
-                    className="max-w-full max-h-full object-contain"
-                    onError={(e) => {
-                      // Fallback nếu ảnh không load được
-                      e.target.style.display = "none";
-                      e.target.parentElement.innerHTML = `<span class="text-xs text-gray-600 px-2 text-center">${brand.name}</span>`;
-                    }}
-                  />
+                  {hasValidImage ? (
+                    <img
+                      src={brand.imagePath}
+                      alt={brand.name}
+                      className="max-w-full max-h-full object-contain"
+                      onError={(e) => {
+                        // Fallback nếu ảnh không load được
+                        e.target.style.display = "none";
+                        e.target.parentElement.innerHTML = `<span class="text-xs text-gray-600 px-2 text-center">${brand.name}</span>`;
+                      }}
+                    />
+                  ) : (
+                    <span className="text-xs text-gray-600 px-2 text-center">
+                      {brand.name}
+                    </span>
+                  )}
                 </div>
               );
             })}

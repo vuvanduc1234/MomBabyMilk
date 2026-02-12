@@ -183,7 +183,7 @@ function Login() {
 
       if (user?.role === "Admin") {
         navigate("/admin");
-      } else if (user?.role === "Staff") {
+      } else if (user?.role === "StaffManager") {
         navigate("/staff");
       } else {
         navigate("/");
