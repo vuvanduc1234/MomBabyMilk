@@ -18,8 +18,14 @@ const BlogRoute = require("./routes/BlogRoute");
 const CommentRoute = require("./routes/CommentRoute");
 const WishlistRoute = require("./routes/WishlistRoute");
 const app = express();
-database.connect();
 
+// Kết nối MongoDB khi start server (traditional hosting)
+database
+  .connect()
+  .catch((err) => console.error("Initial DB connection failed:", err));
+
+// Middleware đảm bảo connection ready cho mỗi request (Vercel serverless)
+app.use(database.ensureConnection);
 
 app.use(cors());
 app.use(express.json());
