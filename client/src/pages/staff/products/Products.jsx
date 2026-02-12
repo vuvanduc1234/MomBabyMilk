@@ -187,6 +187,7 @@ const fetchProducts = async (token) => {
       storageInstructions: product.storageInstructions,
       warning: product.warning,
       weight: product.weight,
+      tags: product.tags,
     }));
 
     console.log(
@@ -530,6 +531,9 @@ export default function StaffProducts() {
       if (productValues.warning && productValues.warning.trim()) {
         productData.warning = productValues.warning;
       }
+      if (productValues.tags && productValues.tags.trim()) {
+        productData.tags = productValues.tags;
+      }
 
       const response = await axios.post(`${API_URL}/api/product`, productData, {
         headers: {
@@ -577,6 +581,7 @@ export default function StaffProducts() {
         storageInstructions: completeProduct.storageInstructions,
         warning: completeProduct.warning,
         weight: completeProduct.weight,
+        tags: completeProduct.tags,
       };
 
       setProducts([...products, mappedProduct]);
