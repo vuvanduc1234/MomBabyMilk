@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   ShoppingCart,
@@ -8,132 +8,106 @@ import {
   Truck,
   Shield,
   RotateCcw,
+  Loader2,
 } from "lucide-react";
 import { useCart } from "../../context/CartContext";
 
-// Mock data - all products
-const allProducts = [
-  {
-    id: 1,
-    name: "Similac Mom IQ Plus",
-    brand: { name: "Abbott" },
-    price: 650000,
-    sale_price: 580000,
-    rating: 4.5,
-    reviews: 234,
-    stock: 15,
-    image_url:
-      "https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=800&q=80",
-    images: [
-      "https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=800&q=80",
-      "https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=800&q=80",
-      "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=800&q=80",
-    ],
-    description:
-      "Sữa bột cho mẹ mang thai và sau sinh, công thức Optipro giàu DHA, tăng cường miễn dịch cho mẹ và bé.",
-    benefits: [
-      "DHA & ARA: Hỗ trợ phát triển não bộ",
-      "Lactic Acid: Dễ tiêu hóa",
-      "Vitamin & Khoáng chất: Tăng cường miễn dịch",
-      "Choline: Phát triển trí não",
-    ],
-    usage:
-      "Pha 4 thìa sữa (khoảng 30g) với 200ml nước ấm 40-50°C. Hỗn hợp tốt trước khi sử dụng.",
-    storage: "Bảo quản ở nơi mát, khô ráo. Tránh để bị ẩm.",
-    slug: "similac-mom-iq-plus",
-  },
-  {
-    id: 2,
-    name: "Frisomum Gold",
-    brand: { name: "Friso" },
-    price: 720000,
-    sale_price: null,
-    rating: 4.8,
-    reviews: 156,
-    stock: 15,
-    image_url:
-      "https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=800&q=80",
-    images: [
-      "https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=800&q=80",
-      "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=800&q=80",
-      "https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=800&q=80",
-    ],
-    description:
-      "Sữa bột cho mẹ mang thai, công thức Frisomum Gold chứa canxi cao và DHA.",
-    benefits: [
-      "Canxi cao: Hỗ trợ xương khỏe",
-      "DHA & ARA: Phát triển não bộ",
-      "Nucleotide: Tăng cường miễn dịch",
-      "Probiotic: Cải thiện tiêu hóa",
-    ],
-    usage:
-      "Pha 4 thìa sữa (khoảng 28g) với 200ml nước ấm. Khuấy đều trước khi sử dụng.",
-    storage: "Bảo quản ở nơi mát, khô ráo, tránh ánh nắng trực tiếp.",
-    slug: "frisomum-gold",
-  },
-  {
-    id: 3,
-    name: "Vinamilk Dielac Mama Gold",
-    brand: { name: "Vinamilk" },
-    price: 420000,
-    sale_price: 380000,
-    rating: 4.3,
-    reviews: 98,
-    stock: 20,
-    image_url:
-      "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=800&q=80",
-    images: [
-      "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=800&q=80",
-      "https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=800&q=80",
-      "https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=800&q=80",
-    ],
-    description:
-      "Sữa bột cho mẹ mang thai, hỗ trợ phát triển thai nhi và sức khỏe mẹ.",
-    benefits: [
-      "DHA & ARA: Phát triển não bộ thai nhi",
-      "Acid Folic: Phòng chống dị tật",
-      "Sắt & Canxi: Hỗ trợ máu và xương",
-      "Probiotic: Tăng cường tiêu hóa",
-    ],
-    usage:
-      "Pha 4 thìa sữa (khoảng 30g) với 200ml nước ấm. Vẩy kỹ để hòa tan đều.",
-    storage: "Bảo quản trong tủ lạnh sau khi mở hộp, dùng trong vòng 3 tuần.",
-    slug: "vinamilk-dielac-mama-gold",
-  },
-];
-
-const mockReviews = [
-  {
-    id: 1,
-    author: "Nguyễn Thị A",
-    rating: 5,
-    date: "2024-01-15",
-    comment: "Sản phẩm chất lượng, giao hàng nhanh, cực kỳ hài lòng!",
-    verified: true,
-  },
-  {
-    id: 2,
-    author: "Trần Văn B",
-    rating: 4,
-    date: "2024-01-10",
-    comment: "Tốt nhưng giá hơi cao so với ngoài chợ.",
-    verified: true,
-  },
-];
+// API Configuration
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 export default function ProductDetail() {
-  const { slug } = useParams();
+  // ProductCard navigate tới /product/:slug và slug được map từ product._id
+  // Nên param này thực chất là MongoDB _id
+  const { id, slug } = useParams();
+  const productId = id || slug; // hỗ trợ cả route /product/:id và /product/:slug
   const navigate = useNavigate();
   const { addToCart } = useCart();
+
+  // States
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [activeTab, setActiveTab] = useState("description");
 
-  // Lấy sản phẩm từ slug
-  const product = allProducts.find((p) => p.slug === slug);
+  // Fetch product details from API
+  useEffect(() => {
+    const fetchProductDetail = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-  // Nếu không tìm thấy sản phẩm
+        const token = localStorage.getItem("accessToken");
+        const response = await fetch(`${API_BASE}/api/product/${productId}`, {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+        });
+        if (!response.ok) {
+          if (response.status === 404) {
+            throw new Error("Sản phẩm không tìm thấy");
+          }
+          throw new Error(
+            `Lỗi ${response.status}: Không thể tải thông tin sản phẩm`,
+          );
+        }
+
+        const json = await response.json();
+        // API trả về { message: "...", data: { ... } }
+        const productData = json.data || json;
+        setProduct(productData);
+
+        // Reset selectedImage về 0 khi load sản phẩm mới
+        setSelectedImage(0);
+      } catch (err) {
+        console.error("Error fetching product:", err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (productId) {
+      fetchProductDetail();
+    }
+  }, [productId]);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-16 flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-pink-500 mx-auto mb-4" />
+          <p className="text-gray-600">Đang tải thông tin sản phẩm...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-16 text-center">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-8 max-w-md mx-auto">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">
+            Có lỗi xảy ra
+          </h1>
+          <p className="text-gray-700 mb-6">{error}</p>
+          <Link
+            to="/products"
+            className="inline-block bg-pink-500 hover:bg-pink-600 text-white px-6 py-3 rounded-lg font-semibold transition"
+          >
+            ← Quay lại danh sách sản phẩm
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Product not found
   if (!product) {
     return (
       <div className="container mx-auto px-4 py-16 text-center">
@@ -150,6 +124,7 @@ export default function ProductDetail() {
     );
   }
 
+  // Helper functions
   const discount = product.sale_price
     ? Math.round((1 - product.sale_price / product.price) * 100)
     : 0;
@@ -161,10 +136,29 @@ export default function ProductDetail() {
     }).format(price);
   };
 
+  // Normalize fields: API dùng quantity & imageUrl
+  const stock = product.quantity ?? product.stock ?? 0;
+
   const handleAddToCart = () => {
-    addToCart({ ...product, quantity });
+    addToCart({ ...product, stock });
     alert(`Đã thêm ${quantity} x ${product.name} vào giỏ hàng!`);
   };
+
+  // Xử lý images array - API trả về imageUrl (array)
+  const rawImages = product.imageUrl || product.images || [];
+  const productImages = Array.isArray(rawImages)
+    ? rawImages.filter((img) => img && img.trim() !== "")
+    : rawImages
+      ? [rawImages]
+      : [];
+
+  const finalImages =
+    productImages.length > 0
+      ? productImages
+      : [
+          product.image_url ||
+            "https://via.placeholder.com/800x600?text=No+Image",
+        ];
 
   return (
     <div className="bg-gray-50 min-h-screen py-6">
@@ -182,53 +176,65 @@ export default function ProductDetail() {
           <span className="text-gray-800 font-medium">{product.name}</span>
         </div>
 
-        <div className="grid grid-cols-2 gap-8 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           {/* Hình ảnh */}
           <div>
-            <div className="bg-white rounded-lg overflow-hidden mb-4">
+            <div className="bg-white rounded-lg overflow-hidden mb-4 shadow-sm">
               <img
-                src={product.images[selectedImage]}
+                src={finalImages[selectedImage]}
                 alt={product.name}
                 className="w-full h-96 object-cover"
+                onError={(e) => {
+                  e.target.src =
+                    "https://via.placeholder.com/800x600?text=Image+Not+Found";
+                }}
               />
             </div>
-            <div className="grid grid-cols-4 gap-2">
-              {product.images.map((img, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setSelectedImage(idx)}
-                  className={`rounded-lg overflow-hidden border-2 transition ${
-                    selectedImage === idx
-                      ? "border-pink-500"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <img
-                    src={img}
-                    alt={`View ${idx + 1}`}
-                    className="w-full h-20 object-cover"
-                  />
-                </button>
-              ))}
-            </div>
+            {productImages.length > 1 && (
+              <div className="grid grid-cols-4 gap-2">
+                {finalImages.map((img, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setSelectedImage(idx)}
+                    className={`rounded-lg overflow-hidden border-2 transition ${
+                      selectedImage === idx
+                        ? "border-pink-500"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <img
+                      src={img}
+                      alt={`View ${idx + 1}`}
+                      className="w-full h-20 object-cover"
+                      onError={(e) => {
+                        e.target.src =
+                          "https://via.placeholder.com/200x200?text=No+Image";
+                      }}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Thông tin sản phẩm */}
           <div>
             {/* Brand & Title */}
-            <p className="text-sm text-gray-500 mb-2">{product.brand.name}</p>
+            {product.brand && (
+              <p className="text-sm text-gray-500 mb-2">{product.brand.name}</p>
+            )}
             <h1 className="text-3xl font-bold text-gray-800 mb-4">
               {product.name}
             </h1>
 
             {/* Rating */}
-            <div className="flex items-center gap-3 mb-6">
-              <div className="flex items-center gap-1">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="flex gap-1">
                 {[...Array(5)].map((_, i) => (
                   <Star
                     key={i}
-                    className={`h-4 w-4 ${
-                      i < Math.floor(product.rating)
+                    className={`h-5 w-5 ${
+                      i < Math.floor(product.rating || 0)
                         ? "fill-yellow-400 text-yellow-400"
                         : "text-gray-300"
                     }`}
@@ -236,7 +242,7 @@ export default function ProductDetail() {
                 ))}
               </div>
               <span className="text-sm text-gray-600">
-                ({product.reviews} đánh giá)
+                {product.rating || 0}/5 ({product.reviews || 0} đánh giá)
               </span>
             </div>
 
@@ -265,12 +271,10 @@ export default function ProductDetail() {
                 <span className="text-gray-600">Tình trạng: </span>
                 <span
                   className={`font-semibold ${
-                    product.stock > 0 ? "text-green-600" : "text-red-600"
+                    stock > 0 ? "text-green-600" : "text-red-600"
                   }`}
                 >
-                  {product.stock > 0
-                    ? `Còn ${product.stock} sản phẩm`
-                    : "Hết hàng"}
+                  {stock > 0 ? `Còn ${stock} sản phẩm` : "Hết hàng"}
                 </span>
               </p>
             </div>
@@ -282,7 +286,7 @@ export default function ProductDetail() {
                 <div className="flex items-center border border-gray-300 rounded-lg">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="p-2 hover:bg-gray-50"
+                    className="p-2 hover:bg-gray-50 px-4"
                   >
                     −
                   </button>
@@ -295,10 +299,8 @@ export default function ProductDetail() {
                     className="w-16 text-center border-x border-gray-300 py-2"
                   />
                   <button
-                    onClick={() =>
-                      setQuantity(Math.min(product.stock, quantity + 1))
-                    }
-                    className="p-2 hover:bg-gray-50"
+                    onClick={() => setQuantity(Math.min(stock, quantity + 1))}
+                    className="p-2 hover:bg-gray-50 px-4"
                   >
                     +
                   </button>
@@ -308,11 +310,11 @@ export default function ProductDetail() {
               <div className="flex gap-3">
                 <button
                   onClick={handleAddToCart}
-                  disabled={product.stock <= 0}
-                  className="flex-1 bg-pink-500 hover:bg-pink-600 disabled:bg-gray-300 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition"
+                  disabled={stock <= 0}
+                  className="flex-1 bg-pink-500 hover:bg-pink-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition"
                 >
                   <ShoppingCart className="h-5 w-5" />
-                  Thêm vào giỏ
+                  {stock > 0 ? "Thêm vào giỏ" : "Hết hàng"}
                 </button>
                 <button
                   onClick={() => setIsWishlisted(!isWishlisted)}
@@ -349,7 +351,7 @@ export default function ProductDetail() {
         </div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-lg mb-8">
+        <div className="bg-white rounded-lg mb-8 shadow-sm">
           <div className="flex border-b border-gray-200">
             {["description", "usage", "reviews"].map((tab) => (
               <button
@@ -374,79 +376,135 @@ export default function ProductDetail() {
             {activeTab === "description" && (
               <div className="space-y-4">
                 <p className="text-gray-700 leading-relaxed">
-                  {product.description}
+                  {product.description ||
+                    "Chưa có mô tả chi tiết cho sản phẩm này."}
                 </p>
-                <div>
-                  <h3 className="font-semibold text-gray-800 mb-3">
-                    Công dụng chính:
-                  </h3>
-                  <ul className="space-y-2">
-                    {product.benefits.map((benefit, idx) => (
-                      <li key={idx} className="flex items-start gap-3">
-                        <span className="text-pink-500 font-bold mt-1">✓</span>
-                        <span className="text-gray-700">{benefit}</span>
-                      </li>
-                    ))}
-                  </ul>
+
+                {/* Thông tin chi tiết từ API */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                  {product.appropriateAge && (
+                    <div className="bg-blue-50 p-3 rounded-lg">
+                      <p className="text-xs text-blue-500 font-medium mb-1">
+                        Độ tuổi phù hợp
+                      </p>
+                      <p className="text-sm text-gray-700">
+                        {product.appropriateAge}
+                      </p>
+                    </div>
+                  )}
+                  {product.weight && (
+                    <div className="bg-gray-50 p-3 rounded-lg">
+                      <p className="text-xs text-gray-500 font-medium mb-1">
+                        Khối lượng
+                      </p>
+                      <p className="text-sm text-gray-700">{product.weight}g</p>
+                    </div>
+                  )}
+                  {product.manufacturer && (
+                    <div className="bg-gray-50 p-3 rounded-lg">
+                      <p className="text-xs text-gray-500 font-medium mb-1">
+                        Nhà sản xuất
+                      </p>
+                      <p className="text-sm text-gray-700">
+                        {product.manufacturer}
+                      </p>
+                    </div>
+                  )}
+                  {product.manufacture && (
+                    <div className="bg-gray-50 p-3 rounded-lg">
+                      <p className="text-xs text-gray-500 font-medium mb-1">
+                        Ngày sản xuất
+                      </p>
+                      <p className="text-sm text-gray-700">
+                        {new Date(product.manufacture).toLocaleDateString(
+                          "vi-VN",
+                        )}
+                      </p>
+                    </div>
+                  )}
+                  {product.expiry && (
+                    <div className="bg-gray-50 p-3 rounded-lg">
+                      <p className="text-xs text-gray-500 font-medium mb-1">
+                        Hạn sử dụng
+                      </p>
+                      <p className="text-sm text-gray-700">
+                        {new Date(product.expiry).toLocaleDateString("vi-VN")}
+                      </p>
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <h3 className="font-semibold text-gray-800 mb-2">
-                    Bảo quản:
-                  </h3>
-                  <p className="text-gray-700">{product.storage}</p>
-                </div>
+
+                {/* Bảo quản - API field: storageInstructions */}
+                {(product.storageInstructions || product.storage) && (
+                  <div>
+                    <h3 className="font-semibold text-gray-800 mb-2">
+                      Bảo quản:
+                    </h3>
+                    <p className="text-gray-700">
+                      {product.storageInstructions || product.storage}
+                    </p>
+                  </div>
+                )}
+
+                {/* Cảnh báo */}
+                {product.warning && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <p className="text-sm text-yellow-800">
+                      ⚠️ <strong>Lưu ý:</strong> {product.warning}
+                    </p>
+                  </div>
+                )}
+
+                {product.benefits && product.benefits.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold text-gray-800 mb-3">
+                      Công dụng chính:
+                    </h3>
+                    <ul className="space-y-2">
+                      {product.benefits.map((benefit, idx) => (
+                        <li key={idx} className="flex items-start gap-3">
+                          <span className="text-pink-500 font-bold mt-1">
+                            ✓
+                          </span>
+                          <span className="text-gray-700">{benefit}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             )}
 
             {activeTab === "usage" && (
               <div className="space-y-4">
-                <p className="text-gray-700 leading-relaxed">
-                  <strong>Hướng dẫn pha:</strong> {product.usage}
-                </p>
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                  <p className="text-sm text-blue-800">
-                    💡 <strong>Mẹo:</strong> Dùng nước lọc hoặc nước tinh khiết
-                    để pha sữa sẽ tốt hơn.
+                {/* API field: instructionsForUse */}
+                {product.instructionsForUse || product.usage ? (
+                  <>
+                    <p className="text-gray-700 leading-relaxed">
+                      <strong>Hướng dẫn pha:</strong>{" "}
+                      {product.instructionsForUse || product.usage}
+                    </p>
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                      <p className="text-sm text-blue-800">
+                        💡 <strong>Mẹo:</strong> Dùng nước lọc hoặc nước tinh
+                        khiết để pha sữa sẽ tốt hơn.
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-gray-500">
+                    Chưa có hướng dẫn sử dụng cho sản phẩm này.
                   </p>
-                </div>
+                )}
               </div>
             )}
 
             {activeTab === "reviews" && (
               <div className="space-y-4">
-                {mockReviews.map((review) => (
-                  <div
-                    key={review.id}
-                    className="p-4 bg-gray-50 rounded-lg border border-gray-200"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <p className="font-semibold text-gray-800">
-                          {review.author}
-                          {review.verified && (
-                            <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                              ✓ Đã mua
-                            </span>
-                          )}
-                        </p>
-                        <p className="text-xs text-gray-500">{review.date}</p>
-                      </div>
-                      <div className="flex gap-1">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-4 w-4 ${
-                              i < review.rating
-                                ? "fill-yellow-400 text-yellow-400"
-                                : "text-gray-300"
-                            }`}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                    <p className="text-gray-700">{review.comment}</p>
-                  </div>
-                ))}
+                <p className="text-gray-500 text-center py-8">
+                  Chưa có đánh giá nào cho sản phẩm này.
+                </p>
+                {/* TODO: Tích hợp API reviews sau */}
               </div>
             )}
           </div>

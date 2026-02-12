@@ -95,6 +95,8 @@ const productValidationSchema = Yup.object().shape({
   ),
 
   warning: Yup.string().max(1000, "Cảnh báo không được vượt quá 1000 ký tự"),
+
+  tags: Yup.string().max(200, "Tình trạng không được vượt quá 200 ký tự"),
 });
 
 export default function NewProductDialog({
@@ -130,6 +132,7 @@ export default function NewProductDialog({
       manufacturer: "",
       appropriateAge: "",
       weight: 0,
+      tags: "",
     },
     validationSchema: productValidationSchema,
     onSubmit: async (values) => {
@@ -295,7 +298,9 @@ export default function NewProductDialog({
                     </div>
                     <Select
                       value={formik.values.brand || ""}
-                      onValueChange={(value) => formik.setFieldValue("brand", value)}
+                      onValueChange={(value) =>
+                        formik.setFieldValue("brand", value)
+                      }
                     >
                       <SelectTrigger
                         id="new-brand"
@@ -345,7 +350,9 @@ export default function NewProductDialog({
                     </div>
                     <Select
                       value={formik.values.category || ""}
-                      onValueChange={(value) => formik.setFieldValue("category", value)}
+                      onValueChange={(value) =>
+                        formik.setFieldValue("category", value)
+                      }
                     >
                       <SelectTrigger
                         id="new-category"
@@ -402,7 +409,7 @@ export default function NewProductDialog({
                 </div>
 
                 {/* Price */}
-                <div className="flex gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2 flex-1 max-w-64">
                     <Label htmlFor="new-price">
                       Giá (VND)<span className="text-red-700">*</span>
@@ -426,6 +433,20 @@ export default function NewProductDialog({
                       }
                     />
                     {getErrorMessage("price")}
+                  </div>
+
+                  {/* Tags */}
+                  <div className="space-y-2">
+                    <Label htmlFor="tags">Tình trạng hàng</Label>
+                    <Input
+                      id="tags"
+                      name="tags"
+                      placeholder="Nhập tags (ví dụ: hot, sale, new), phân cách bằng dấu phẩy"
+                      value={formik.values.tags || ""}
+                      onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
+                    />
+                    {getErrorMessage("tags")}
                   </div>
                 </div>
 
