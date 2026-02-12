@@ -8,7 +8,6 @@ import {
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 import { Toaster } from "@/components/ui/sonner";
-// ❌ ĐÃ XÓA: import { PreOrderProvider } from "./context/PreOrderContext";
 
 import ProductListing from "./pages/Products/ProductListing";
 import ProductDetail from "./pages/Products/ProductDetail";
@@ -24,7 +23,7 @@ import VerifyEmailOTP from "./pages/Auth/VerifyEmailOTP";
 import ForgotPassword from "./pages/Auth/ForgotPassword";
 import BlogList from "./pages/blog/BlogList";
 import BlogPost from "./pages/blog/BlogPost";
-// ❌ ĐÃ XÓA: import PreOrderList from "./pages/PreOrder/PreOrderList";
+
 import AccountPage from "./pages/Account";
 
 import { StaffLayout } from "./components/layouts/StaffLayout";
@@ -44,6 +43,7 @@ import RevenueStatistics from "./pages/admin/RevenueStatistics";
 import SystemReports from "./pages/admin/SystemReports";
 import { ProtectedRoute } from "./components/layouts/ProtectedRoute";
 import OrderTracking from "./pages/Orders/OrderTracking";
+import VoucherManagement from "./pages/admin/Vouchermanagement";
 
 // Public Layout Component
 function PublicLayout() {
@@ -100,6 +100,7 @@ function App() {
               <Route path="revenue" element={<RevenueStatistics />} />
               <Route path="reports" element={<SystemReports />} />
               <Route path="protect" element={<ProtectedRoute />} />
+              <Route path="vouchers" element={<VoucherManagement />} />
             </Route>
 
             {/* Public routes - with Header/Footer */}
