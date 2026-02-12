@@ -11,9 +11,13 @@ import {
   ShoppingCart,
   Package,
   UserCheck,
+  Tag,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+
+// API Base URL
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 // Mock data - thay thế bằng API thực
 const mockDashboardData = {
@@ -80,9 +84,170 @@ const formatCompactPrice = (price) => {
   return formatPrice(price);
 };
 
+const formatDate = (dateString) => {
+  if (!dateString) return "Không xác định";
+
+  const date = new Date(dateString);
+
+  // Check if date is invalid
+  if (isNaN(date.getTime())) {
+    console.warn("Invalid date:", dateString);
+    return "Ngày không hợp lệ";
+  }
+
+  const now = new Date();
+  const diffTime = now - date; // Changed to show "ago" format
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) {
+    const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
+    if (diffHours === 0) {
+      const diffMinutes = Math.floor(diffTime / (1000 * 60));
+      return diffMinutes <= 1 ? "Vừa xong" : `${diffMinutes} phút trước`;
+    }
+    return `${diffHours} giờ trước`;
+  } else if (diffDays === 1) {
+    return "Hôm qua";
+  } else if (diffDays < 7) {
+    return `${diffDays} ngày trước`;
+  } else {
+    return new Intl.DateTimeFormat("vi-VN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(date);
+  }
+};
+
+const formatExpiryDate = (dateString) => {
+  if (!dateString) return "Không xác định";
+
+  const date = new Date(dateString);
+
+  // Check if date is invalid
+  if (isNaN(date.getTime())) {
+    return "Ngày không hợp lệ";
+  }
+
+  const now = new Date();
+  const diffTime = date - now; // Future date
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) {
+    return "Đã hết hạn";
+  } else if (diffDays === 0) {
+    return "Hôm nay";
+  } else if (diffDays === 1) {
+    return "Ngày mai";
+  } else if (diffDays < 7) {
+    return `${diffDays} ngày nữa`;
+  } else if (diffDays < 30) {
+    const weeks = Math.floor(diffDays / 7);
+    return `${weeks} tuần nữa`;
+  } else if (diffDays < 365) {
+    const months = Math.floor(diffDays / 30);
+    return `${months} tháng nữa`;
+  } else {
+    return new Intl.DateTimeFormat("vi-VN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(date);
+  }
+};
+
 export default function AdminDashboard() {
   const [data, setData] = useState(mockDashboardData);
   const [loading, setLoading] = useState(false);
+  const [vouchers, setVouchers] = useState([]);
+  const [vouchersLoading, setVouchersLoading] = useState(true);
+  const [vouchersError, setVouchersError] = useState(null);
+
+  // Fetch vouchers from API
+  useEffect(() => {
+    const fetchVouchers = async () => {
+      try {
+        setVouchersLoading(true);
+        setVouchersError(null);
+
+        // Try multiple possible token storage keys
+        const token =
+          localStorage.getItem("token") ||
+          localStorage.getItem("authToken") ||
+          localStorage.getItem("accessToken") ||
+          localStorage.getItem("access_token") ||
+          sessionStorage.getItem("token") ||
+          sessionStorage.getItem("authToken");
+
+        console.log("🔍 Debug - Token found:", token ? "Yes" : "No");
+        console.log("🔍 Debug - LocalStorage keys:", Object.keys(localStorage));
+
+        // If no token, try without authentication first (some APIs allow public access)
+        const headers = {
+          "Content-Type": "application/json",
+        };
+
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+
+        const response = await fetch(`${API_BASE}/api/voucher`, { headers });
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            throw new Error(
+              "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
+            );
+          }
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log("🔍 Debug - API response:", result);
+        console.log("🔍 Debug - First voucher:", result.data?.[0] || result[0]);
+
+        // Handle different response structures
+        const voucherData = result.data || result.vouchers || result;
+
+        // Filter active vouchers and sort by expiry date (soonest first)
+        const allActiveVouchers = (
+          Array.isArray(voucherData) ? voucherData : []
+        )
+          .filter((v) => v.isActive === true)
+          .sort((a, b) => {
+            // If both have expiry dates, sort by soonest expiry
+            if (a.expiryDate && b.expiryDate) {
+              return new Date(a.expiryDate) - new Date(b.expiryDate);
+            }
+            // If only one has expiry date, prioritize it
+            if (a.expiryDate) return -1;
+            if (b.expiryDate) return 1;
+            // Otherwise sort by creation date (newest first)
+            return new Date(b.createdAt) - new Date(a.createdAt);
+          });
+
+        console.log(
+          "🔍 Debug - Total active vouchers from API:",
+          allActiveVouchers.length,
+        );
+        console.log(
+          "🔍 Debug - All voucher codes:",
+          allActiveVouchers.map((v) => v.code),
+        );
+
+        // Show top 5 on dashboard (user can click "Xem tất cả" for more)
+        const topVouchers = allActiveVouchers.slice(0, 5);
+        setVouchers(topVouchers);
+      } catch (error) {
+        console.error("Error fetching vouchers:", error);
+        setVouchersError(error.message);
+      } finally {
+        setVouchersLoading(false);
+      }
+    };
+
+    fetchVouchers();
+  }, []);
 
   useEffect(() => {
     // Fetch dashboard data from API
@@ -122,6 +287,43 @@ export default function AdminDashboard() {
       </CardContent>
     </Card>
   );
+
+  const VoucherCard = ({ voucher }) => {
+    const expiryDate = voucher.expiryDate || voucher.expiry_date;
+    const daysUntilExpiry = expiryDate
+      ? Math.ceil((new Date(expiryDate) - new Date()) / (1000 * 60 * 60 * 24))
+      : null;
+    const isExpiringSoon =
+      daysUntilExpiry !== null && daysUntilExpiry <= 7 && daysUntilExpiry > 0;
+
+    return (
+      <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="font-mono font-bold text-sm text-pink-600 bg-pink-50 px-2 py-0.5 rounded border border-pink-200">
+              {voucher.code}
+            </span>
+            <span className="text-xs font-semibold text-green-700 bg-green-50 px-1.5 py-0.5 rounded">
+              -{voucher.discountPercentage}%
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground line-clamp-1">
+            {voucher.description}
+          </p>
+          <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
+            <span>Đã dùng: {voucher.usageCount || 0}</span>
+            {expiryDate && (
+              <span
+                className={isExpiringSoon ? "text-orange-600 font-medium" : ""}
+              >
+                HSD: {formatExpiryDate(expiryDate)}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -232,8 +434,74 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
+      {/* Active Vouchers Section */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Tag className="h-5 w-5" />
+              Voucher đang hoạt động
+            </CardTitle>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/admin/vouchers">Xem tất cả</Link>
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {vouchersLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="flex flex-col items-center gap-2">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600" />
+                <p className="text-sm text-muted-foreground">
+                  Đang tải voucher...
+                </p>
+              </div>
+            </div>
+          ) : vouchersError ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="flex flex-col items-center gap-2 text-center">
+                <Tag className="h-12 w-12 text-muted-foreground/50" />
+                <p className="text-sm font-medium text-red-600">
+                  Không thể tải voucher
+                </p>
+                <p className="text-xs text-muted-foreground">{vouchersError}</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.location.reload()}
+                  className="mt-2"
+                >
+                  Thử lại
+                </Button>
+              </div>
+            </div>
+          ) : vouchers.length === 0 ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="flex flex-col items-center gap-2 text-center">
+                <Tag className="h-12 w-12 text-muted-foreground/50" />
+                <p className="text-sm font-medium text-muted-foreground">
+                  Không có voucher đang hoạt động
+                </p>
+                <Button variant="outline" size="sm" asChild className="mt-2">
+                  <Link to="/admin/vouchers">Tạo voucher mới</Link>
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2">
+              {vouchers.map((voucher) => (
+                <VoucherCard
+                  key={voucher.id || voucher._id || voucher.code}
+                  voucher={voucher}
+                />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Quick Actions */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card className="hover:shadow-lg transition-shadow cursor-pointer">
           <Link to="/admin/accounts" className="block p-6">
             <Users className="h-8 w-8 text-pink-600 mb-3" />
@@ -270,6 +538,16 @@ export default function AdminDashboard() {
             <h3 className="font-semibold mb-1">Báo cáo hệ thống</h3>
             <p className="text-sm text-muted-foreground">
               Logs và audit trails
+            </p>
+          </Link>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Link to="/admin/vouchers" className="block p-6">
+            <Tag className="h-8 w-8 text-pink-600 mb-3" />
+            <h3 className="font-semibold mb-1">Voucher</h3>
+            <p className="text-sm text-muted-foreground">
+              Tạo và quản lý mã giảm giá
             </p>
           </Link>
         </Card>
