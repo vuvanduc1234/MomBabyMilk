@@ -6,6 +6,12 @@ const axios = require("axios");
 const crypto = require("crypto");
 const qs = require("qs");
 const moment = require("moment");
+const {
+  redeemRewardPoints,
+  calculateRewardPoints,
+  addRewardPoints,
+  getRewardBalance,
+} = require("../services/rewardService");
 
 function sortObject(obj) {
   let sorted = {};
@@ -103,8 +109,8 @@ const checkout = async (req, res) => {
     const {
       cartItems,
       paymentMethod = "cod",
-      voucherCode,
       voucherUsed,
+      rewardPointsUsed = 0,
       shippingAddress: bodyShippingAddress,
       phone: bodyPhone,
       note,
@@ -112,17 +118,14 @@ const checkout = async (req, res) => {
 
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-    // Fetch user để lấy phone và address từ profile (snapshot approach)
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "User không tồn tại" });
     }
 
-    // Snapshot logic: Ưu tiên dùng từ req.body, nếu không có thì dùng từ User profile
     const phone = bodyPhone || (user.phone ? String(user.phone) : null);
     const shippingAddress = bodyShippingAddress || user.address;
 
-    // Validate sau khi đã fallback
     if (!phone || phone.trim() === "") {
       return res
         .status(400)
@@ -190,29 +193,19 @@ const checkout = async (req, res) => {
 
     let discount = 0;
     let voucher = null;
+    let rewardDiscount = 0;
 
-    // Hỗ trợ cả voucherUsed (ObjectId) hoặc voucherCode (string)
     if (voucherUsed) {
-      // Client gửi voucher ID trực tiếp
       try {
         voucher = await Voucher.findById(voucherUsed);
       } catch (err) {
-        return res.status(400).json({ message: "voucherUsed ID không hợp lệ" });
+        return res.status(400).json({ message: "Voucher ID không hợp lệ" });
       }
 
       if (!voucher || !voucher.isActive) {
         return res
           .status(400)
           .json({ message: "Voucher không hợp lệ hoặc không còn hoạt động" });
-      }
-    } else if (voucherCode) {
-      // Client gửi voucher code (string)
-      voucher = await Voucher.findOne({
-        code: voucherCode.toUpperCase(),
-        isActive: true,
-      });
-      if (!voucher) {
-        return res.status(400).json({ message: "Voucher không hợp lệ" });
       }
     }
 
@@ -232,10 +225,8 @@ const checkout = async (req, res) => {
         });
       }
 
-      // Tính discount từ discountPercentage
       discount = Math.round((subTotal * voucher.discountPercentage) / 100);
 
-      // KIỂM TRA VÀ GIẢM VOUCHER CỦA USER (Pull voucher từ user.userVouchers)
       if (user && user.userVouchers) {
         const userVoucherIdx = user.userVouchers.findIndex(
           (uv) => uv.voucherId.toString() === voucher._id.toString(),
@@ -265,7 +256,24 @@ const checkout = async (req, res) => {
       }
     }
 
-    const total = Math.max(0, subTotal + shippingFee - discount);
+    if (rewardPointsUsed > 0) {
+      const userBalance = await getRewardBalance(userId);
+      if (rewardPointsUsed > userBalance) {
+        return res.status(400).json({
+          message: `Bạn chỉ có ${userBalance} xu, không đủ để sử dụng ${rewardPointsUsed} xu`,
+        });
+      }
+      rewardDiscount = rewardPointsUsed;
+      await redeemRewardPoints(
+        userId,
+        rewardPointsUsed,
+        "Sử dụng xu thanh toán đơn hàng",
+        { orderTemp: "pending" }
+      );
+    }
+
+    const total = Math.max(0, subTotal + shippingFee - discount - rewardDiscount);
+    const rewardPointsEarned = calculateRewardPoints(total);
 
     // Tạo Order với schema đúng theo OrderModel
     const order = await Order.create({
@@ -276,12 +284,23 @@ const checkout = async (req, res) => {
       note: note || "",
       totalAmount: total,
       voucherUsed: voucher ? voucher._id : null,
+      rewardPointsUsed: rewardPointsUsed || 0,
+      rewardPointsEarned,
       paymentMethod,
       paymentStatus: "pending",
       orderStatus: "processing",
     });
 
     if (paymentMethod === "cod") {
+      if (order.rewardPointsEarned > 0) {
+        await addRewardPoints(
+          userId,
+          order.rewardPointsEarned,
+          "Mua hàng thành công (COD)",
+          { orderId: order._id }
+        );
+      }
+      
       return res
         .status(201)
         .json({
@@ -355,6 +374,16 @@ const momoNotify = async (req, res) => {
         order.paymentStatus = "paid";
         order.orderStatus = "processing";
         await order.save();
+        
+        if (order.rewardPointsEarned > 0) {
+          await addRewardPoints(
+            order.customer,
+            order.rewardPointsEarned,
+            "Mua hàng thành công",
+            { orderId: order._id }
+          );
+        }
+        
         console.log("Order paid successfully:", orderId);
       }
     } else {
@@ -363,11 +392,19 @@ const momoNotify = async (req, res) => {
       await order.save();
       console.log("Order payment failed:", orderId, message);
 
-      // Rollback inventory: hoàn trả số lượng sản phẩm
       for (const item of order.cartItems) {
         await Product.findByIdAndUpdate(item.product, {
           $inc: { quantity: item.quantity },
         });
+      }
+      
+      if (order.rewardPointsUsed > 0) {
+        await addRewardPoints(
+          order.customer,
+          order.rewardPointsUsed,
+          "Hoàn xu do thanh toán thất bại",
+          { orderId: order._id }
+        );
       }
     }
 
@@ -415,6 +452,16 @@ const vnpayReturn = async (req, res) => {
         order.paymentStatus = "paid";
         order.orderStatus = "processing";
         await order.save();
+        
+        if (order.rewardPointsEarned > 0) {
+          await addRewardPoints(
+            order.customer,
+            order.rewardPointsEarned,
+            "Mua hàng thành công",
+            { orderId: order._id }
+          );
+        }
+        
         console.log("VNPAY: Order paid successfully:", orderId);
       }
       return res.redirect(
@@ -427,11 +474,19 @@ const vnpayReturn = async (req, res) => {
     await order.save();
     console.log("VNPAY: Payment failed:", orderId, responseCode);
 
-    // Rollback inventory: hoàn trả số lượng sản phẩm
     for (const item of order.cartItems) {
       await Product.findByIdAndUpdate(item.product, {
         $inc: { quantity: item.quantity },
       });
+    }
+    
+    if (order.rewardPointsUsed > 0) {
+      await addRewardPoints(
+        order.customer,
+        order.rewardPointsUsed,
+        "Hoàn xu do thanh toán thất bại",
+        { orderId: order._id }
+      );
     }
 
     const errorMessages = {

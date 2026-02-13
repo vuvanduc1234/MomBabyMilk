@@ -42,6 +42,16 @@ const orderSchema = new mongoose.Schema(
       default: null,
     },
 
+    rewardPointsUsed: {
+      type: Number,
+      default: 0,
+    },
+
+    rewardPointsEarned: {
+      type: Number,
+      default: 0,
+    },
+
     paymentMethod: {
       type: String,
       enum: ["momo", "vnpay", "cod"],
