@@ -27,6 +27,8 @@ import * as Yup from "yup";
 import NewBrandDialog from "./NewBrandDialog";
 import NewCategoryDialog from "./NewCategoryDialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAuth } from "@/context/AuthContext";
+import { uploadProductImage } from "../services/productApi";
 
 // Validation Schema
 const productValidationSchema = Yup.object().shape({
@@ -108,11 +110,13 @@ export default function NewProductDialog({
   onCreateBrand,
   onCreateCategory,
 }) {
+  const { token } = useAuth();
   const [isBrandDialogOpen, setIsBrandDialogOpen] = useState(false);
   const [newBrand, setNewBrand] = useState({ name: "", description: "" });
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [newCategory, setNewCategory] = useState({ name: "", description: "" });
   const [imagePreview, setImagePreview] = useState(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   // Initialize Formik
   const formik = useFormik({
@@ -149,7 +153,7 @@ export default function NewProductDialog({
     setImagePreview(null);
   };
 
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => {
     const file = e.target.files?.[0];
     if (file) {
       // Validate file size
@@ -164,13 +168,31 @@ export default function NewProductDialog({
         return;
       }
 
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result;
-        setImagePreview(base64String);
-        formik.setFieldValue("imageUrl", base64String);
-      };
-      reader.readAsDataURL(file);
+      try {
+        setIsUploadingImage(true);
+        
+        // Create preview
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreview(reader.result);
+        };
+        reader.readAsDataURL(file);
+
+        // Upload to server
+        const response = await uploadProductImage(file, token);
+        
+        if (response?.data?.imageUrl) {
+          formik.setFieldValue("imageUrl", response.data.imageUrl);
+          toast.success("Tải ảnh lên thành công!");
+        }
+      } catch (error) {
+        console.error("Error uploading image:", error);
+        toast.error(error.message || "Không thể tải ảnh lên. Vui lòng thử lại.");
+        setImagePreview(null);
+        formik.setFieldValue("imageUrl", "");
+      } finally {
+        setIsUploadingImage(false);
+      }
     }
   };
 
@@ -226,9 +248,10 @@ export default function NewProductDialog({
                     className="hidden"
                     onChange={handleImageChange}
                     onBlur={() => formik.setFieldTouched("imageUrl", true)}
+                    disabled={isUploadingImage}
                   />
-                  <span className="block w-full text-center px-3 py-2 rounded-md border border-input text-sm font-medium cursor-pointer hover:bg-accent transition">
-                    Chọn ảnh
+                  <span className="block w-full text-center px-3 py-2 rounded-md border border-input text-sm font-medium cursor-pointer hover:bg-accent transition disabled:opacity-50 disabled:cursor-not-allowed">
+                    {isUploadingImage ? "Đang tải lên..." : "Chọn ảnh"}
                   </span>
                 </label>
                 {imagePreview && (

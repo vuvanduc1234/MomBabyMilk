@@ -73,7 +73,49 @@ const uploadAvatar = async (req, res) => {
   }
 };
 
+const uploadProductImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        message: "Vui lòng chọn file ảnh",
+      });
+    }
+
+    const result = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: "products",
+          upload_preset: process.env.CLOUDINARY_UPLOAD_PRESET,
+          public_id: `product_${Date.now()}`,
+          transformation: [
+            { width: 800, height: 800, crop: "limit" },
+            { quality: "auto" },
+          ],
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        },
+      );
+      uploadStream.end(req.file.buffer);
+    });
+
+    return res.status(200).json({
+      message: "Upload ảnh sản phẩm thành công",
+      data: {
+        imageUrl: result.secure_url,
+      },
+    });
+  } catch (err) {
+    console.error("Upload product image error:", err);
+    res.status(500).json({
+      message: "Lỗi khi upload ảnh sản phẩm: " + err.message,
+    });
+  }
+};
+
 module.exports = {
   upload,
   uploadAvatar,
+  uploadProductImage,
 };

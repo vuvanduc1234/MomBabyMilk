@@ -494,7 +494,7 @@ export default function StaffProducts() {
         category: productValues.category,
         brand: productValues.brand,
         quantity: productValues.quantity,
-        imageUrl: [productValues.imageUrl], // Array of base64 strings (ProductModel expects array)
+        imageUrl: [productValues.imageUrl], // Array of image URLs (ProductModel expects array)
       };
 
       // Add optional fields only if they have values
