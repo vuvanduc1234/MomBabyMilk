@@ -1,4 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import axios from "axios";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 const getAccessToken = () => localStorage.getItem("accessToken");
 const getStoredUser = () => {
@@ -39,6 +42,8 @@ const defaultAuth = {
     clearTokens();
   },
   isAuthenticated: () => !!getAccessToken(),
+  updateToken: (newToken) => {},
+  refreshToken: async () => {},
 };
 
 const AuthContext = createContext(defaultAuth);
@@ -82,6 +87,31 @@ export const AuthProvider = ({ children }) => {
     return !!token;
   };
 
+  const updateToken = (newToken) => {
+    localStorage.setItem("accessToken", newToken);
+    setToken(newToken);
+  };
+
+  const refreshToken = async () => {
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/auth/token`,
+        {},
+        { withCredentials: true },
+      );
+
+      if (response.data.accessToken) {
+        updateToken(response.data.accessToken);
+        return response.data.accessToken;
+      }
+      return null;
+    } catch (error) {
+      console.error("Failed to refresh token:", error);
+      logout();
+      throw error;
+    }
+  };
+
   const value = {
     user,
     token,
@@ -89,6 +119,8 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     isAuthenticated,
+    updateToken,
+    refreshToken,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

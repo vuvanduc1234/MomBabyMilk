@@ -11,9 +11,7 @@ const ProductRoute = require("./routes/ProductRoute");
 const CategoryRoute = require("./routes/CategoryRoute");
 const BrandRoute = require("./routes/BrandRoute");
 const CheckoutRoute = require("./routes/CheckoutRoute");
-const OrderRoute = require("./routes/OrderRoute");
 const VoucherRoute = require("./routes/VoucherRoute");
-const RewardRoute = require("./routes/RewardRoute");
 const UploadRoute = require("./routes/UploadRoute");
 const paymentRoutes = require("./routes/PaymentRoutes");
 const BlogRoute = require("./routes/BlogRoute");
@@ -21,15 +19,25 @@ const CommentRoute = require("./routes/CommentRoute");
 const WishlistRoute = require("./routes/WishlistRoute");
 const app = express();
 
-// Kết nối MongoDB khi start server (traditional hosting)
-database
-  .connect()
-  .catch((err) => console.error("Initial DB connection failed:", err));
+database.connect();
 
-// Middleware đảm bảo connection ready cho mỗi request (Vercel serverless)
 app.use(database.ensureConnection);
 
-app.use(cors());
+const allowedOrigins = [
+  process.env.CLIENT_URL, 
+  "http://localhost:5173", 
+  "https://mom-baby-milk-client.vercel.app"
+].filter(Boolean); 
+
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    exposedHeaders: ["set-cookie"],
+  }),
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -43,9 +51,7 @@ app.use("/api/product", CommentRoute);
 app.use("/api/category", CategoryRoute);
 app.use("/api/brand", BrandRoute);
 app.use("/api/checkout", CheckoutRoute);
-app.use("/api/orders", OrderRoute);
 app.use("/api/voucher", VoucherRoute);
-app.use("/api/rewards", RewardRoute);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/blogs", BlogRoute);
 app.use("/api/wishlist", WishlistRoute);
