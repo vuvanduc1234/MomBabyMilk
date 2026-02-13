@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import NewBrandDialog from "./NewBrandDialog";
 import NewCategoryDialog from "./NewCategoryDialog";
+import { uploadProductImage } from "../services/productApi";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
@@ -112,6 +113,7 @@ export default function EditProductDialog({
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [newCategory, setNewCategory] = useState({ name: "", description: "" });
   const [imagePreview, setImagePreview] = useState(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   // Initialize Formik
   const formik = useFormik({
@@ -164,7 +166,7 @@ export default function EditProductDialog({
     onClose();
   };
 
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => {
     const file = e.target.files?.[0];
     if (file) {
       // Check file size (max 5MB)
@@ -179,13 +181,42 @@ export default function EditProductDialog({
         return;
       }
 
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result;
-        formik.setFieldValue("imageUrl", base64String);
-        setImagePreview(base64String);
-      };
-      reader.readAsDataURL(file);
+      try {
+        setIsUploadingImage(true);
+
+        // Create preview
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreview(reader.result);
+        };
+        reader.readAsDataURL(file);
+
+        // Upload to server
+        const response = await uploadProductImage(file, token);
+
+        if (response?.data?.imageUrl) {
+          formik.setFieldValue("imageUrl", response.data.imageUrl);
+          toast.success("Tải ảnh lên thành công!");
+        }
+      } catch (error) {
+        console.error("Error uploading image:", error);
+        toast.error(
+          error.message || "Không thể tải ảnh lên. Vui lòng thử lại.",
+        );
+        // Keep existing preview if upload fails
+        if (
+          product?.imageUrl &&
+          Array.isArray(product.imageUrl) &&
+          product.imageUrl[0]
+        ) {
+          setImagePreview(product.imageUrl[0]);
+        } else {
+          setImagePreview(null);
+        }
+        formik.setFieldValue("imageUrl", "");
+      } finally {
+        setIsUploadingImage(false);
+      }
     }
   };
 
@@ -382,9 +413,12 @@ export default function EditProductDialog({
                       accept="image/png,image/jpeg"
                       className="hidden"
                       onChange={handleImageChange}
+                      disabled={isUploadingImage}
                     />
-                    <span className="block w-full text-center px-3 py-2 rounded-md border border-input text-sm font-medium cursor-pointer hover:bg-accent transition">
-                      Chọn ảnh mới
+                    <span
+                      className={`block w-full text-center px-3 py-2 rounded-md border border-input text-sm font-medium cursor-pointer hover:bg-accent transition disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      {isUploadingImage ? "Đang tải lên..." : "Chọn ảnh mới"}
                     </span>
                   </label>
                   {imagePreview && (
@@ -402,7 +436,7 @@ export default function EditProductDialog({
                     </Button>
                   )}
                   <p className="text-xs text-muted-foreground text-center">
-                    Dung lượng file tối đa 5MB
+                    Dung lượng file tối đa 1MB
                     <br />
                     Định dạng .JPEG, .PNG
                   </p>
