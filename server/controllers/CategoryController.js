@@ -133,6 +133,14 @@ const deleteCategory = async (req, res) => {
   const { id } = req.params;
 
   try {
+
+    const hasChildren = await CategoryModel.findOne({ parentCategory: id });
+    if (hasChildren) {
+      return res.status(400).json({
+        message: "Không thể xóa vì danh mục này đang là cha của các danh mục khác. Hãy xóa hoặc cập nhật các danh mục con trước.",
+      });
+    }
+    
     const category = await CategoryModel.findById(id);
 
     if (!category) {
