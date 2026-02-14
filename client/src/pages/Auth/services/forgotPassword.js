@@ -1,10 +1,8 @@
-import axios from "axios";
-
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
+import axiosInstance from "@/lib/axios";
 
 const request = async (path, payload) => {
   try {
-    const response = await axios.post(`${API_BASE}${path}`, payload);
+    const response = await axiosInstance.post(path, payload);
     return response.data;
   } catch (error) {
     const message =

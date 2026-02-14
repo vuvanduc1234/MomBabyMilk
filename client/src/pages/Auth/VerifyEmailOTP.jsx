@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import axios from "axios";
+import axiosInstance from "@/lib/axios";
 import Footer from "../../components/layouts/Footer";
-
-const API_BASE = "http://localhost:3000";
 
 function VerifyEmailOTP() {
   const navigate = useNavigate();
@@ -85,7 +83,7 @@ function VerifyEmailOTP() {
     setLoading(true);
 
     try {
-      await axios.post(`${API_BASE}/api/auth/verify-email`, {
+      await axiosInstance.post(`/api/auth/verify-email`, {
         email: email.trim(),
         otp: otp.trim(),
       });
@@ -117,7 +115,7 @@ function VerifyEmailOTP() {
     setResendLoading(true);
 
     try {
-      await axios.post(`${API_BASE}/api/auth/send-reset-otp`, {
+      await axiosInstance.post(`/api/auth/send-reset-otp`, {
         email: email.trim(),
       });
 

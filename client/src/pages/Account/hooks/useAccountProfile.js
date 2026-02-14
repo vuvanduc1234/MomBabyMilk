@@ -32,7 +32,7 @@ export const useAccountProfile = () => {
     }
     setState((prev) => ({ ...prev, loading: true, error: "" }));
     try {
-      const response = await fetchUserProfile(userId, token);
+      const response = await fetchUserProfile(userId);
       setState({ data: response?.data || null, loading: false, error: "" });
     } catch (error) {
       setState({
@@ -51,7 +51,7 @@ export const useAccountProfile = () => {
     if (!token || !userId) {
       throw new Error("Vui lòng đăng nhập để cập nhật hồ sơ.");
     }
-    const response = await updateUserProfile(userId, payload, token);
+    const response = await updateUserProfile(userId, payload);
     if (response?.data) {
       setState((prev) => ({ ...prev, data: response.data }));
     }
@@ -62,7 +62,7 @@ export const useAccountProfile = () => {
     if (!token) {
       throw new Error("Vui lòng đăng nhập để đổi mật khẩu.");
     }
-    return changePassword(payload, token);
+    return changePassword(payload);
   };
 
   return {
