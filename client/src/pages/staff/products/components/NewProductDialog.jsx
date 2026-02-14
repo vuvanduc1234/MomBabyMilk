@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Package } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useFormik } from "formik";
 import * as Yup from "yup";
@@ -115,6 +116,7 @@ export default function NewProductDialog({
   const [newCategory, setNewCategory] = useState({ name: "", description: "" });
   const [imagePreview, setImagePreview] = useState(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const navigate = useNavigate();
 
   // Initialize Formik
   const formik = useFormik({
@@ -319,7 +321,7 @@ export default function NewProductDialog({
                       <Button
                         variant="link"
                         size="small"
-                        onClick={() => setIsBrandDialogOpen(true)}
+                        onClick={() => navigate('/staff/brands?openDialog=1')}
                         type="button"
                         className="cursor-pointer"
                       >
@@ -371,7 +373,7 @@ export default function NewProductDialog({
                       <Button
                         variant="link"
                         size="small"
-                        onClick={() => setIsCategoryDialogOpen(true)}
+                        onClick={() => navigate('/staff/categories?openDialog=1')}
                         type="button"
                         className="cursor-pointer"
                       >

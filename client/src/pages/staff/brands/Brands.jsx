@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Search,
   ChevronLeft,
@@ -44,6 +45,7 @@ import { getAllCategories } from "./services/categoryApi";
 import { toast } from "sonner";
 
 export default function Brands() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [brands, setBrands] = useState([]);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -61,6 +63,17 @@ export default function Brands() {
   });
   const [fetchedCategories, setFetchedCategories] = useState([]);
   const pageSize = 15;
+
+  // Check for openDialog query parameter
+  useEffect(() => {
+    const openDialog = searchParams.get('openDialog');
+    if (openDialog === '1') {
+      setIsNewBrandDialogOpen(true);
+      // Remove the query parameter after opening the dialog
+      searchParams.delete('openDialog');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Fetch brands and categories on mount
   useEffect(() => {
