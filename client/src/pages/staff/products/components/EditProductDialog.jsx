@@ -23,7 +23,7 @@ import {
   SelectValue,
   SelectGroup,
 } from "@/components/ui/select";
-import NewBrandDialog from "./NewBrandDialog";
+import NewBrandDialog from "../../brands/components/NewBrandDialog";
 import NewCategoryDialog from "./NewCategoryDialog";
 import { uploadProductImage } from "../services/productApi";
 
@@ -192,7 +192,7 @@ export default function EditProductDialog({
         reader.readAsDataURL(file);
 
         // Upload to server
-        const response = await uploadProductImage(file, token);
+        const response = await uploadProductImage(file);
 
         if (response?.data?.imageUrl) {
           formik.setFieldValue("imageUrl", response.data.imageUrl);
@@ -407,19 +407,26 @@ export default function EditProductDialog({
                       </div>
                     )}
                   </div>
-                  <label className="w-full">
+                  <label htmlFor="file-upload-edit" className="w-full">
                     <input
+                      id="file-upload-edit"
                       type="file"
                       accept="image/png,image/jpeg"
                       className="hidden"
                       onChange={handleImageChange}
                       disabled={isUploadingImage}
                     />
-                    <span
-                      className={`block w-full text-center px-3 py-2 rounded-md border border-input text-sm font-medium cursor-pointer hover:bg-accent transition disabled:opacity-50 disabled:cursor-not-allowed`}
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      disabled={isUploadingImage}
+                      asChild
+                      type="button"
                     >
-                      {isUploadingImage ? "Đang tải lên..." : "Chọn ảnh mới"}
-                    </span>
+                      <span className="cursor-pointer">
+                        {isUploadingImage ? "Đang tải lên..." : "Chọn ảnh mới"}
+                      </span>
+                    </Button>
                   </label>
                   {imagePreview && (
                     <Button

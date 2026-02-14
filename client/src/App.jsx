@@ -30,7 +30,6 @@ import { StaffLayout } from "./components/layouts/StaffLayout";
 import StaffDashboard from "./pages/staff/Dashboard";
 import StaffOrders from "./pages/staff/Orders";
 import StaffProducts from "./pages/staff/products/Products";
-import StaffInventory from "./pages/staff/Inventory";
 import Articles from "./pages/staff/Articles";
 import Customers from "./pages/staff/Customers";
 import Vouchers from "./pages/staff/Vouchers";
@@ -44,6 +43,8 @@ import SystemReports from "./pages/admin/SystemReports";
 import { ProtectedRoute } from "./components/layouts/ProtectedRoute";
 import OrderTracking from "./pages/Orders/OrderTracking";
 import VoucherManagement from "./pages/admin/Vouchermanagement";
+import Brands from "./pages/staff/brands/Brands";
+import Categories from "./pages/staff/categories/Categories";
 
 // Public Layout Component
 function PublicLayout() {
@@ -78,8 +79,8 @@ function App() {
               <Route index element={<StaffDashboard />} />
               <Route path="orders" element={<StaffOrders />} />
               <Route path="products" element={<StaffProducts />} />
-              <Route path="inventory" element={<StaffInventory />} />
-              <Route path="articles" element={<Articles />} />
+              <Route path="brands" element={<Brands />} />
+              <Route path="categories" element={<Categories />} />
               <Route path="customers" element={<Customers />} />
               <Route path="vouchers" element={<Vouchers />} />
               <Route path="complaints" element={<Complaints />} />

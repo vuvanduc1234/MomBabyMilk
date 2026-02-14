@@ -4,14 +4,14 @@ import {
   LayoutDashboard,
   Package,
   ShoppingCart,
-  Warehouse,
   LogOut,
   Menu,
-  Newspaper,
   Users,
   TicketPercent,
   MessageCircleWarning,
   User,
+  Tag,
+  List,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -32,8 +32,8 @@ const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/staff" },
   { icon: ShoppingCart, label: "Đơn hàng", href: "/staff/orders" },
   { icon: Package, label: "Sản phẩm", href: "/staff/products" },
-  { icon: Warehouse, label: "Kho hàng", href: "/staff/inventory" },
-  { icon: Newspaper, label: "Bài viết", href: "/staff/articles" },
+  { icon: Tag, label: "Nhãn hiệu", href: "/staff/brands" },
+  { icon: List, label: "Danh mục", href: "/staff/categories" },
   { icon: Users, label: "Khách hàng", href: "/staff/customers" },
   { icon: TicketPercent, label: "Voucher", href: "/staff/vouchers" },
   { icon: MessageCircleWarning, label: "Khiếu nại", href: "/staff/complaints" },
@@ -80,7 +80,7 @@ export function StaffLayout() {
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
               >
-                <item.icon className="h-5 w-5" strokeWidth={1.75} />
+                <item.icon strokeWidth={1.75} />
                 {item.label}
               </Link>
             );
@@ -148,7 +148,10 @@ export function StaffLayout() {
                         : "text-muted-foreground hover:bg-muted hover:text-foreground",
                     )}
                   >
-                    <item.icon className="h-6 w-6 xl:hidden" strokeWidth={1.75} />
+                    <item.icon
+                      className="h-6 w-6 xl:hidden"
+                      strokeWidth={1.75}
+                    />
                     <div className="hidden xl:block">{item.label}</div>
                   </Link>
                 );

@@ -114,8 +114,50 @@ const uploadProductImage = async (req, res) => {
   }
 };
 
+const uploadBrandLogo = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        message: "Vui lòng chọn file ảnh",
+      });
+    }
+
+    const result = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: "brands",
+          upload_preset: process.env.CLOUDINARY_UPLOAD_PRESET,
+          public_id: `brand_${Date.now()}`,
+          transformation: [
+            { width: 800, height: 800, crop: "limit" },
+            { quality: "auto" },
+          ],
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        },
+      );
+      uploadStream.end(req.file.buffer);
+    });
+
+    return res.status(200).json({
+      message: "Upload logo thương hiệu thành công",
+      data: {
+        logoUrl: result.secure_url,
+      },
+    });
+  } catch (err) {
+    console.error("Upload brand logo error:", err);
+    res.status(500).json({
+      message: "Lỗi khi upload logo thương hiệu: " + err.message,
+    });
+  }
+};
+
 module.exports = {
   upload,
   uploadAvatar,
   uploadProductImage,
+  uploadBrandLogo,
 };

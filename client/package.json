@@ -13,11 +13,12 @@
     "node-domexception": "npm:domexception@^4.0.0"
   },
   "dependencies": {
-    "@base-ui/react": "^1.1.0",
+    "@base-ui/react": "^1.2.0",
     "@fontsource-variable/noto-sans": "^5.2.10",
     "axios": "^1.13.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
     "embla-carousel-autoplay": "^8.6.0",
     "embla-carousel-react": "^8.6.0",
     "formik": "^2.4.9",
