@@ -24,10 +24,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import NewBrandDialog from "./NewBrandDialog";
+import NewBrandDialog from "../../brands/components/NewBrandDialog";
 import NewCategoryDialog from "./NewCategoryDialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useAuth } from "@/context/AuthContext";
 import { uploadProductImage } from "../services/productApi";
 
 // Validation Schema
@@ -110,7 +109,6 @@ export default function NewProductDialog({
   onCreateBrand,
   onCreateCategory,
 }) {
-  const { token } = useAuth();
   const [isBrandDialogOpen, setIsBrandDialogOpen] = useState(false);
   const [newBrand, setNewBrand] = useState({ name: "", description: "" });
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
@@ -179,7 +177,7 @@ export default function NewProductDialog({
         reader.readAsDataURL(file);
 
         // Upload to server
-        const response = await uploadProductImage(file, token);
+        const response = await uploadProductImage(file);
         
         if (response?.data?.imageUrl) {
           formik.setFieldValue("imageUrl", response.data.imageUrl);
@@ -241,8 +239,9 @@ export default function NewProductDialog({
                     </div>
                   )}
                 </div>
-                <label className="w-full">
+                <label htmlFor="file-upload-new" className="w-full">
                   <input
+                    id="file-upload-new"
                     type="file"
                     accept="image/png,image/jpeg"
                     className="hidden"
@@ -250,9 +249,17 @@ export default function NewProductDialog({
                     onBlur={() => formik.setFieldTouched("imageUrl", true)}
                     disabled={isUploadingImage}
                   />
-                  <span className="block w-full text-center px-3 py-2 rounded-md border border-input text-sm font-medium cursor-pointer hover:bg-accent transition disabled:opacity-50 disabled:cursor-not-allowed">
-                    {isUploadingImage ? "Đang tải lên..." : "Chọn ảnh"}
-                  </span>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    disabled={isUploadingImage}
+                    asChild
+                    type="button"
+                  >
+                    <span className="cursor-pointer">
+                      {isUploadingImage ? "Đang tải lên..." : "Chọn ảnh"}
+                    </span>
+                  </Button>
                 </label>
                 {imagePreview && (
                   <Button

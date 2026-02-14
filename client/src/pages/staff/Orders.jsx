@@ -996,15 +996,16 @@ export default function StaffOrders() {
               </Button>
             </div>
           </div>
+          
+          {/* {CHƯA CÓ API} */}
+          <Alert variant="destructive" className="mt-6">
+            <InfoIcon />
+            <AlertTitle>Chưa có API cho Orders</AlertTitle>
+          </Alert>
         </aside>
 
         {/* Main Content */}
         <div className="pt-2 flex-1 space-y-5">
-          {/* {CHƯA CÓ API} */}
-          <Alert variant="destructive">
-            <InfoIcon />
-            <AlertTitle>Chưa có API cho Orders</AlertTitle>
-          </Alert>
 
           {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-4">

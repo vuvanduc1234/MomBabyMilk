@@ -8,7 +8,7 @@ import {
   MoreHorizontal,
   Trash2,
 } from "lucide-react";
-import axios from "axios";
+import axiosInstance from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -152,17 +152,10 @@ const mockProducts = [
   },
 ];
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
-
-const fetchProducts = async (token) => {
+const fetchProducts = async () => {
   console.log("[fetchProducts] Fetching products from API...");
   try {
-    const response = await axios.get(`${API_URL}/api/product`, {
-      headers: {
-        "Content-Type": "application/json",
-        ...(token && { Authorization: `Bearer ${token}` }),
-      },
-    });
+    const response = await axiosInstance.get("/api/product");
 
     console.log("[fetchProducts] Raw API response:", response.data);
     // Map API response to component's expected format
@@ -241,29 +234,15 @@ export default function StaffProducts() {
       setError(null);
       try {
         const [productsData, brandsData, categoriesData] = await Promise.all([
-          fetchProducts(token),
-          axios
-            .get(`${API_URL}/api/brand`, {
-              headers: {
-                "Content-Type": "application/json",
-                ...(token && { Authorization: `Bearer ${token}` }),
-              },
-            })
-            .then((res) => {
-              console.log("[Products] Brands API Response:", res.data);
-              return res.data.data;
-            }),
-          axios
-            .get(`${API_URL}/api/category`, {
-              headers: {
-                "Content-Type": "application/json",
-                ...(token && { Authorization: `Bearer ${token}` }),
-              },
-            })
-            .then((res) => {
-              console.log("[Products] Categories API Response:", res.data);
-              return res.data.data;
-            }),
+          fetchProducts(),
+          axiosInstance.get("/api/brand").then((res) => {
+            console.log("[Products] Brands API Response:", res.data);
+            return res.data.data;
+          }),
+          axiosInstance.get("/api/category").then((res) => {
+            console.log("[Products] Categories API Response:", res.data);
+            return res.data.data;
+          }),
         ]);
         console.log(
           "[Products] Products fetched:",
@@ -415,12 +394,7 @@ export default function StaffProducts() {
   const handleCreateBrand = async (brandData) => {
     console.log("[handleCreateBrand] Creating brand:", brandData);
     try {
-      const response = await axios.post(`${API_URL}/api/brand`, brandData, {
-        headers: {
-          "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-      });
+      const response = await axiosInstance.post("/api/brand", brandData);
       console.log("[handleCreateBrand] Brand created:", response.data);
 
       // Add the new brand to the brands list
@@ -447,16 +421,7 @@ export default function StaffProducts() {
   const handleCreateCategory = async (categoryData) => {
     console.log("[handleCreateCategory] Creating category:", categoryData);
     try {
-      const response = await axios.post(
-        `${API_URL}/api/category`,
-        categoryData,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            ...(token && { Authorization: `Bearer ${token}` }),
-          },
-        },
-      );
+      const response = await axiosInstance.post("/api/category", categoryData);
       console.log("[handleCreateCategory] Category created:", response.data);
 
       // Add the new category to the categories list
@@ -535,12 +500,7 @@ export default function StaffProducts() {
         productData.tags = productValues.tags;
       }
 
-      const response = await axios.post(`${API_URL}/api/product`, productData, {
-        headers: {
-          "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-      });
+      const response = await axiosInstance.post("/api/product", productData);
 
       console.log("[handleCreateProduct] Product created:", response.data);
 
@@ -548,14 +508,8 @@ export default function StaffProducts() {
       const newProductData = response.data.data || response.data;
 
       // Fetch the complete product details (to get populated category and brand)
-      const productResponse = await axios.get(
-        `${API_URL}/api/product/${newProductData._id}`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            ...(token && { Authorization: `Bearer ${token}` }),
-          },
-        },
+      const productResponse = await axiosInstance.get(
+        `/api/product/${newProductData._id}`,
       );
 
       const completeProduct = productResponse.data.data || productResponse.data;
@@ -606,12 +560,7 @@ export default function StaffProducts() {
     console.log("[handleDeleteProduct] Deleting product:", productId);
     if (confirm("Bạn có chắc muốn xóa sản phẩm này?")) {
       try {
-        await axios.delete(`${API_URL}/api/product/${productId}`, {
-          headers: {
-            "Content-Type": "application/json",
-            ...(token && { Authorization: `Bearer ${token}` }),
-          },
-        });
+        await axiosInstance.delete(`/api/product/${productId}`);
         console.log("[handleDeleteProduct] Product deleted successfully");
 
         // Remove the product from the products list
@@ -634,43 +583,44 @@ export default function StaffProducts() {
 
   const handleBulkDelete = async () => {
     console.log("[handleBulkDelete] Deleting products:", selectedProducts);
-    
+
     if (selectedProducts.length === 0) {
       toast.error("Vui lòng chọn ít nhất một sản phẩm để xóa");
       return;
     }
 
-    if (!confirm(`Bạn có chắc muốn xóa ${selectedProducts.length} sản phẩm đã chọn?`)) {
+    if (
+      !confirm(
+        `Bạn có chắc muốn xóa ${selectedProducts.length} sản phẩm đã chọn?`,
+      )
+    ) {
       return;
     }
 
     try {
       // Delete each product individually using the DELETE endpoint
-      const deletePromises = selectedProducts.map(_id =>
-        axios.delete(`${API_URL}/api/product/${_id}`, {
-          headers: {
-            "Content-Type": "application/json",
-            ...(token && { Authorization: `Bearer ${token}` }),
-          },
-        })
+      const deletePromises = selectedProducts.map((_id) =>
+        axiosInstance.delete(`/api/product/${_id}`),
       );
 
       await Promise.all(deletePromises);
-      
+
       console.log("[handleBulkDelete] Successfully deleted products");
-      
+
       // Remove deleted products from state
-      setProducts((prev) => prev.filter((p) => !selectedProducts.includes(p.id)));
-      
+      setProducts((prev) =>
+        prev.filter((p) => !selectedProducts.includes(p.id)),
+      );
+
       const deletedCount = selectedProducts.length;
       setSelectedProducts([]);
-      
+
       toast.success(`Đã xóa ${deletedCount} sản phẩm thành công!`);
     } catch (error) {
       console.error("[handleBulkDelete] Error deleting products:", error);
       console.error(
         "[handleBulkDelete] Error details:",
-        error.response?.data || error.message
+        error.response?.data || error.message,
       );
       const errorMsg =
         error.response?.data?.message ||
@@ -678,7 +628,7 @@ export default function StaffProducts() {
         "Không thể xóa sản phẩm";
       toast.error(`Lỗi: ${errorMsg}`);
     }
-  }
+  };
 
   const isAllSelected =
     paginatedProducts.length > 0 &&
@@ -712,8 +662,8 @@ export default function StaffProducts() {
                 <SelectContent>
                   <SelectGroup>
                     <SelectItem value="all">Tất cả</SelectItem>
-                    {(categories ?? []).map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
+                    {(categories ?? []).map((cat, i) => (
+                      <SelectItem key={i} value={cat.id}>
                         {cat.name}
                       </SelectItem>
                     ))}
@@ -732,8 +682,8 @@ export default function StaffProducts() {
                 <SelectContent>
                   <SelectGroup>
                     <SelectItem value="all">Tất cả</SelectItem>
-                    {(brands ?? []).map((brand) => (
-                      <SelectItem key={brand.id} value={brand.id}>
+                    {(brands ?? []).map((brand, i) => (
+                      <SelectItem key={i} value={brand.id}>
                         {brand.name}
                       </SelectItem>
                     ))}
@@ -860,91 +810,89 @@ export default function StaffProducts() {
                     </div>
                   </div>
                   {/* Table skeleton */}
-                  <div className="p-4">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="hover:bg-transparent">
-                          <TableHead className="w-8">
-                            <Skeleton className="h-4 w-4" />
-                          </TableHead>
-                          <TableHead>
-                            <Skeleton className="h-4 w-20" />
-                          </TableHead>
-                          <TableHead>
-                            <Skeleton className="h-4 w-32" />
-                          </TableHead>
-                          <TableHead>
-                            <Skeleton className="h-4 w-24" />
-                          </TableHead>
-                          <TableHead>
-                            <Skeleton className="h-4 w-20" />
-                          </TableHead>
-                          <TableHead>
-                            <Skeleton className="h-4 w-24" />
-                          </TableHead>
-                          <TableHead>
-                            <Skeleton className="h-4 w-20" />
-                          </TableHead>
-                          <TableHead>
-                            <Skeleton className="h-4 w-16" />
-                          </TableHead>
-                          <TableHead className="w-10">
-                            <Skeleton className="h-4 w-16" />
-                          </TableHead>
-                          <TableHead className="text-right">
-                            <Skeleton className="h-4 w-20 ml-auto" />
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {Array(8)
-                          .fill(0)
-                          .map((_, i) => (
-                            <TableRow key={i} className="hover:bg-transparent">
-                              <TableCell>
-                                <Skeleton className="h-4 w-4" />
-                              </TableCell>
-                              <TableCell>
-                                <Skeleton className="h-6 w-16" />
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-3">
-                                  <Skeleton className="h-12 w-12 rounded" />
-                                  <div className="space-y-2">
-                                    <Skeleton className="h-4 w-32" />
-                                    <Skeleton className="h-3 w-20" />
-                                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead className="w-8">
+                          <Skeleton className="h-4 w-4" />
+                        </TableHead>
+                        <TableHead>
+                          <Skeleton className="h-4 w-20" />
+                        </TableHead>
+                        <TableHead>
+                          <Skeleton className="h-4 w-32" />
+                        </TableHead>
+                        <TableHead>
+                          <Skeleton className="h-4 w-24" />
+                        </TableHead>
+                        <TableHead>
+                          <Skeleton className="h-4 w-20" />
+                        </TableHead>
+                        <TableHead>
+                          <Skeleton className="h-4 w-24" />
+                        </TableHead>
+                        <TableHead>
+                          <Skeleton className="h-4 w-20" />
+                        </TableHead>
+                        <TableHead>
+                          <Skeleton className="h-4 w-16" />
+                        </TableHead>
+                        <TableHead className="w-10">
+                          <Skeleton className="h-4 w-16" />
+                        </TableHead>
+                        <TableHead className="text-right">
+                          <Skeleton className="h-4 w-20 ml-auto" />
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {Array(8)
+                        .fill(0)
+                        .map((_, i) => (
+                          <TableRow key={i} className="hover:bg-transparent">
+                            <TableCell>
+                              <Skeleton className="h-4 w-4" />
+                            </TableCell>
+                            <TableCell>
+                              <Skeleton className="h-6 w-16" />
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <Skeleton className="h-12 w-12 rounded" />
+                                <div className="space-y-2">
+                                  <Skeleton className="h-4 w-32" />
+                                  <Skeleton className="h-3 w-20" />
                                 </div>
-                              </TableCell>
-                              <TableCell>
-                                <Skeleton className="h-6 w-24" />
-                              </TableCell>
-                              <TableCell>
-                                <Skeleton className="h-4 w-20" />
-                              </TableCell>
-                              <TableCell>
-                                <Skeleton className="h-4 w-20" />
-                              </TableCell>
-                              <TableCell>
-                                <Skeleton className="h-4 w-16" />
-                              </TableCell>
-                              <TableCell>
-                                <Skeleton className="h-6 w-8" />
-                              </TableCell>
-                              <TableCell>
-                                <Skeleton className="h-6 w-10" />
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex justify-end gap-2">
-                                  <Skeleton className="h-8 w-8" />
-                                  <Skeleton className="h-8 w-8" />
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Skeleton className="h-6 w-24" />
+                            </TableCell>
+                            <TableCell>
+                              <Skeleton className="h-4 w-20" />
+                            </TableCell>
+                            <TableCell>
+                              <Skeleton className="h-4 w-20" />
+                            </TableCell>
+                            <TableCell>
+                              <Skeleton className="h-4 w-16" />
+                            </TableCell>
+                            <TableCell>
+                              <Skeleton className="h-6 w-8" />
+                            </TableCell>
+                            <TableCell>
+                              <Skeleton className="h-6 w-10" />
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex justify-end gap-2">
+                                <Skeleton className="h-8 w-8" />
+                                <Skeleton className="h-8 w-8" />
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
                 </div>
               ) : (
                 <>

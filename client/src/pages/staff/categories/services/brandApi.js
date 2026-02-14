@@ -9,20 +9,9 @@ const handleError = (error) => {
   throw new Error(message);
 };
 
-export const uploadProductImage = async (file) => {
+export const getAllBrands = async () => {
   try {
-    const formData = new FormData();
-    formData.append("productImage", file);
-
-    const response = await axiosInstance.post(
-      "/api/upload/product-image",
-      formData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      },
-    );
+    const response = await axiosInstance.get("/api/brand");
     return response.data;
   } catch (error) {
     handleError(error);
