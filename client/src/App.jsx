@@ -71,7 +71,7 @@ function App() {
             <Route
               path="/staff"
               element={
-                <ProtectedRoute allowedRoles={"StaffManager"}>
+                <ProtectedRoute allowedRoles={"Staff"}>
                   <StaffLayout />
                 </ProtectedRoute>
               }
