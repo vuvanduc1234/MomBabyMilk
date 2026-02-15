@@ -1,14 +1,4 @@
-import axios from "axios";
-
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
-
-const buildHeaders = (token) => {
-  const headers = { "Content-Type": "application/json" };
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-  return headers;
-};
+import axiosInstance from "@/lib/axios";
 
 const handleError = (error) => {
   const message =
@@ -19,23 +9,29 @@ const handleError = (error) => {
   throw new Error(message);
 };
 
-export const fetchUserProfile = async (userId, token) => {
+export const fetchUserProfile = async (userId) => {
   try {
-    const response = await axios.get(`${API_BASE}/api/users/${userId}`, {
-      headers: buildHeaders(token),
-    });
+    const response = await axiosInstance.get(`/api/users/${userId}`);
     return response.data;
   } catch (error) {
     handleError(error);
   }
 };
 
-export const updateUserProfile = async (userId, payload, token) => {
+export const updateUserProfile = async (userId, payload) => {
   try {
-    const response = await axios.patch(
-      `${API_BASE}/api/users/${userId}`,
+    const response = await axiosInstance.patch(`/api/users/${userId}`, payload);
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+export const changePassword = async (payload) => {
+  try {
+    const response = await axiosInstance.post(
+      `/api/auth/change-password`,
       payload,
-      { headers: buildHeaders(token) },
     );
     return response.data;
   } catch (error) {
@@ -43,34 +39,16 @@ export const updateUserProfile = async (userId, payload, token) => {
   }
 };
 
-export const changePassword = async (payload, token) => {
-  try {
-    const response = await axios.post(
-      `${API_BASE}/api/auth/change-password`,
-      payload,
-      { headers: buildHeaders(token) },
-    );
-    return response.data;
-  } catch (error) {
-    handleError(error);
-  }
-};
-
-export const uploadAvatar = async (file, token) => {
+export const uploadAvatar = async (file) => {
   try {
     const formData = new FormData();
     formData.append("avatar", file);
 
-    const response = await axios.post(
-      `${API_BASE}/api/upload/avatar`,
-      formData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${token}`,
-        },
+    const response = await axiosInstance.post(`/api/upload/avatar`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
       },
-    );
+    });
     return response.data;
   } catch (error) {
     handleError(error);

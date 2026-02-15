@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import axiosInstance from "@/lib/axios";
 import Footer from "../../components/layouts/Footer";
 
 const isRegisterPath = () => window.location.pathname === "/register";
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 function Register() {
   const navigate = useNavigate();
@@ -110,7 +109,7 @@ function Register() {
     };
 
     try {
-      await axios.post(`${API_BASE}/api/auth/register`, payload);
+      await axiosInstance.post(`/api/auth/register`, payload);
       showStatus({
         type: "success",
         message: "Đăng ký thành công! Vui lòng xác thực email.",
