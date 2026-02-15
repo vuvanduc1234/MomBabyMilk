@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import axios from "axios";
+import axiosInstance from "@/lib/axios";
 import { useNavigate } from "react-router-dom";
 import Footer from "../../components/layouts/Footer";
 import { useAuth } from "../../context/AuthContext";
 
 const isLoginPath = () => window.location.pathname === "/login";
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 function Login() {
   const navigate = useNavigate();
@@ -172,7 +171,7 @@ function Login() {
         return;
       }
 
-      const response = await axios.post(`${API_BASE}/api/auth/login`, {
+      const response = await axiosInstance.post(`/api/auth/login`, {
         email: form.email.trim(),
         password: form.password,
       });

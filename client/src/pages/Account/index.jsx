@@ -172,9 +172,8 @@ export default function AccountPage() {
     setProfileStatus(DEFAULT_STATUS);
     setBusySection("avatar");
     try {
-      const token = localStorage.getItem("accessToken");
       const { uploadAvatar } = await import("./services/accountApi");
-      const response = await uploadAvatar(file, token);
+      const response = await uploadAvatar(file);
 
       setProfileStatus({
         type: "success",
