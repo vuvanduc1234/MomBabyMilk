@@ -61,7 +61,7 @@ export default function EditCategoryDialog({
       setEditedCategory({
         name: category.name || "",
         description: category.description || "",
-        parentCategory: category.parentCategory?._id || "",
+        parentCategory: category.parentCategory?._id || null,
       });
 
       // Set selected brands

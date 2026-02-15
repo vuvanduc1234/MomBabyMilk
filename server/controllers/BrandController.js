@@ -137,6 +137,10 @@ const deleteBrand = async (req, res) => {
         { $pull: { brands: id } },
       );
     }
+    await ProductModel.updateMany(
+      { brand: id },
+      { $set: { brand: null } }
+    );
 
     await BrandModel.findByIdAndDelete(id);
 

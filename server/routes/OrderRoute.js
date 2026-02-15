@@ -71,7 +71,7 @@ router.get("/my-orders", authenticateToken, getMyOrders);
  *       403:
  *         description: Forbidden - Admin/Staff only
  */
-router.get("/", authenticateToken, checkRole(["Admin", "Staff"]), getAllOrders);
+router.get("/", authenticateToken, checkRole(["Admin", "StaffManager"]), getAllOrders);
 
 /**
  * @swagger
@@ -141,7 +141,7 @@ router.get("/:id", authenticateToken, getOrderById);
 router.patch(
   "/:id/status",
   authenticateToken,
-  checkRole(["Admin", "Staff"]),
+  checkRole(["Admin", "StaffManager"]),
   updateOrderStatus
 );
 
