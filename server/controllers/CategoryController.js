@@ -1,5 +1,6 @@
 const CategoryModel = require("../models/CategoryModel");
 const BrandModel = require("../models/BrandModel");
+const ProductModel = require("../models/ProductModel");
 
 const createCategory = async (req, res) => {
   const { name, description, brands } = req.body;
@@ -155,6 +156,11 @@ const deleteCategory = async (req, res) => {
         { $pull: { categories: id } }
       );
     }
+
+    await ProductModel.updateMany(
+      { category: id },
+      { $set: { category: null } }
+    );
 
     await CategoryModel.findByIdAndDelete(id);
 
