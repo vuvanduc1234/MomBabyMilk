@@ -41,6 +41,8 @@ const login = async (req, res) => {
       id: userRecord._id,
       email: userRecord.email,
       name: userRecord.fullname,
+      phone: userRecord.phone,
+      address: userRecord.address,
       role: userRecord.role,
     };
     const accessToken = generateAccessToken(user);
@@ -62,6 +64,8 @@ const login = async (req, res) => {
         id: user.id,
         email: user.email,
         name: user.name,
+        phone: user.phone,
+        address: user.address,
         role: user.role,
       },
     });
@@ -109,19 +113,23 @@ const token = async (req, res) => {
             return res.status(404).json({ error: "Người dùng không tồn tại" });
           }
 
+          const userData = {
+            id: user.id,
+            email: user.email,
+            name: userRecord.fullname,
+            phone: userRecord.phone,
+            address: userRecord.address,
+            role: userRecord.role,
+          };
+
           const newRefreshToken = jwt.sign(
-            { id: user.id, email: user.email, name: user.name, role: userRecord.role },
+            userData,
             process.env.REFRESH_TOKEN_SECRET,
             { expiresIn: "7d" },
           );
           await replaceRefreshToken(user.id, refreshToken, newRefreshToken);
 
-          const accessToken = generateAccessToken({
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: userRecord.role,
-          });
+          const accessToken = generateAccessToken(userData);
           res.cookie("refreshToken", newRefreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
@@ -341,18 +349,18 @@ const verifyEmail = async (req, res) => {
     user.emailVerificationExpires = undefined;
     await user.save();
 
-    const accessToken = generateAccessToken({
+    const userData = {
       id: user._id,
       email: user.email,
       name: user.fullname,
       role: user.role,
-    });
+    };
 
-    const refreshToken = jwt.sign(
-      { id: user._id, email: user.email, name: user.fullname, role: user.role, },
-      process.env.REFRESH_TOKEN_SECRET,
-      { expiresIn: "7d" },
-    );
+    const accessToken = generateAccessToken(userData);
+
+    const refreshToken = jwt.sign(userData, process.env.REFRESH_TOKEN_SECRET, {
+      expiresIn: "7d",
+    });
 
     await saveRefreshToken(user._id, refreshToken);
 
@@ -366,6 +374,14 @@ const verifyEmail = async (req, res) => {
     res.status(200).json({
       message: "Xác thực email thành công!",
       accessToken,
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.fullname,
+        phone: user.phone,
+        address: user.address,
+        role: user.role,
+      },
     });
   } catch (error) {
     res.status(500).json({ message: err.message });

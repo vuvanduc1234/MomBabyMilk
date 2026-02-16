@@ -15,7 +15,7 @@ const productSchema = new mongoose.Schema(
       ref: "Brand",
       required: true,
     },
-    tags: {type: String},
+    tags: { type: String },
     quantity: { type: Number, default: 0, required: true },
     imageUrl: [{ type: String, required: true }],
 
@@ -60,8 +60,8 @@ const productSchema = new mongoose.Schema(
           ref: "User",
           required: true,
         },
-      }
-    ]
+      },
+    ],
   },
   { timestamps: true },
 );

@@ -15,10 +15,8 @@ const { authenticateToken } = require("../middleware/auth");
  * @swagger
  * /api/product:
  *   get:
- *     summary: Get all products
+ *     summary: Get all products (Public - No auth required)
  *     tags: [Products]
- *     security:
- *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: List of all products
@@ -29,16 +27,14 @@ const { authenticateToken } = require("../middleware/auth");
  *               items:
  *                 $ref: '#/components/schemas/Product'
  */
-router.get("/", authenticateToken, viewProduct);
+router.get("/", viewProduct);
 
 /**
  * @swagger
  * /api/product/{id}:
  *   get:
- *     summary: Get product by ID
+ *     summary: Get product by ID (Public - No auth required)
  *     tags: [Products]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -56,16 +52,14 @@ router.get("/", authenticateToken, viewProduct);
  *       404:
  *         description: Product not found
  */
-router.get("/:id", authenticateToken, getProductsById);
+router.get("/:id", getProductsById);
 
 /**
  * @swagger
  * /api/product/category/{id}:
  *   get:
- *     summary: Get products by category
+ *     summary: Get products by category (Public - No auth required)
  *     tags: [Products]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -83,16 +77,14 @@ router.get("/:id", authenticateToken, getProductsById);
  *               items:
  *                 $ref: '#/components/schemas/Product'
  */
-router.get("/category/:id", authenticateToken, getProductsByCategory);
+router.get("/category/:id", getProductsByCategory);
 
 /**
  * @swagger
  * /api/product/brand/{id}:
  *   get:
- *     summary: Get products by brand
+ *     summary: Get products by brand (Public - No auth required)
  *     tags: [Products]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -110,7 +102,7 @@ router.get("/category/:id", authenticateToken, getProductsByCategory);
  *               items:
  *                 $ref: '#/components/schemas/Product'
  */
-router.get("/brand/:id", authenticateToken, getProductsByBrand);
+router.get("/brand/:id", getProductsByBrand);
 
 /**
  * @swagger
