@@ -34,7 +34,14 @@ const getMyOrders = async (req, res) => {
 
 const getAllOrders = async (req, res) => {
   try {
-    const { status, paymentStatus, paymentMethod, search, hasPreOrder, itemStatus } = req.query;
+    const {
+      status,
+      paymentStatus,
+      paymentMethod,
+      search,
+      hasPreOrder,
+      itemStatus,
+    } = req.query;
     const query = {};
 
     if (status) {
@@ -123,35 +130,56 @@ const getOrderById = async (req, res) => {
 };
 
 const updateOrderStatus = async (req, res) => {
+  const session = await require("mongoose").startSession();
+  session.startTransaction();
+
   try {
     const { id } = req.params;
     const { orderStatus, paymentStatus } = req.body;
 
-    const order = await Order.findById(id);
+    const order = await Order.findById(id).session(session);
     if (!order) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
     }
 
     if (order.orderStatus === "cancelled") {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({
         message: "Không thể cập nhật đơn hàng đã hủy",
       });
     }
 
     if (orderStatus) {
-      const validStatuses = ["processing", "partially_shipped", "shipped", "delivered", "cancelled"];
+      const validStatuses = [
+        "processing",
+        "partially_shipped",
+        "shipped",
+        "delivered",
+        "cancelled",
+      ];
       if (!validStatuses.includes(orderStatus)) {
+        await session.abortTransaction();
+        session.endSession();
         return res.status(400).json({ message: "Trạng thái không hợp lệ" });
       }
       order.orderStatus = orderStatus;
 
+      // ✅ FIX 3: Hoàn stock trong transaction khi cancel
       if (orderStatus === "cancelled" && order.paymentStatus !== "paid") {
         for (const item of order.cartItems) {
-          // Only refund stock for non-preorder items
-          if (!item.isPreOrder) {
-            await Product.findByIdAndUpdate(item.product, {
-              $inc: { quantity: item.quantity },
-            });
+          // Only refund stock for non-preorder items and items in preorder_ready status
+          if (
+            !item.isPreOrder ||
+            (item.isPreOrder && item.itemStatus === "preorder_ready")
+          ) {
+            await Product.findByIdAndUpdate(
+              item.product,
+              { $inc: { quantity: item.quantity } },
+              { session },
+            );
           }
         }
       }
@@ -160,6 +188,8 @@ const updateOrderStatus = async (req, res) => {
     if (paymentStatus) {
       const validPaymentStatuses = ["pending", "paid", "failed"];
       if (!validPaymentStatuses.includes(paymentStatus)) {
+        await session.abortTransaction();
+        session.endSession();
         return res
           .status(400)
           .json({ message: "Trạng thái thanh toán không hợp lệ" });
@@ -167,13 +197,18 @@ const updateOrderStatus = async (req, res) => {
       order.paymentStatus = paymentStatus;
     }
 
-    await order.save();
+    await order.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
 
     res.status(200).json({
       message: "Cập nhật trạng thái đơn hàng thành công",
       order,
     });
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     console.error(error);
     res.status(500).json({
       message: "Lỗi khi cập nhật trạng thái đơn hàng",
@@ -183,14 +218,19 @@ const updateOrderStatus = async (req, res) => {
 };
 
 const cancelOrder = async (req, res) => {
+  const session = await require("mongoose").startSession();
+  session.startTransaction();
+
   try {
     const { id } = req.params;
     const userId = req.user?.id;
     const userRole = req.user?.role;
     const { reason } = req.body;
 
-    const order = await Order.findById(id);
+    const order = await Order.findById(id).session(session);
     if (!order) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
     }
 
@@ -199,16 +239,22 @@ const cancelOrder = async (req, res) => {
       userRole !== "Staff" &&
       order.customer.toString() !== userId
     ) {
+      await session.abortTransaction();
+      session.endSession();
       return res
         .status(403)
         .json({ message: "Bạn không có quyền hủy đơn hàng này" });
     }
 
     if (order.orderStatus === "cancelled") {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({ message: "Đơn hàng đã bị hủy trước đó" });
     }
 
     if (order.orderStatus === "delivered") {
+      await session.abortTransaction();
+      session.endSession();
       return res
         .status(400)
         .json({ message: "Không thể hủy đơn hàng đã giao" });
@@ -219,6 +265,8 @@ const cancelOrder = async (req, res) => {
       userRole !== "Staff" &&
       order.orderStatus !== "processing"
     ) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({
         message: "Chỉ có thể hủy đơn hàng đang xử lý. Vui lòng liên hệ hỗ trợ.",
       });
@@ -231,24 +279,35 @@ const cancelOrder = async (req, res) => {
         : `Lý do hủy: ${reason}`;
     }
 
+    // ✅ FIX 3: Hoàn stock trong transaction
     if (order.paymentStatus !== "paid" || order.paymentMethod === "cod") {
       for (const item of order.cartItems) {
-        // Only refund stock for non-preorder items
-        if (!item.isPreOrder) {
-          await Product.findByIdAndUpdate(item.product, {
-            $inc: { quantity: item.quantity },
-          });
+        // Only refund stock for non-preorder items and items not in preorder_pending status
+        if (
+          !item.isPreOrder ||
+          (item.isPreOrder && item.itemStatus === "preorder_ready")
+        ) {
+          await Product.findByIdAndUpdate(
+            item.product,
+            { $inc: { quantity: item.quantity } },
+            { session },
+          );
         }
       }
     }
 
-    await order.save();
+    await order.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
 
     res.status(200).json({
       message: "Hủy đơn hàng thành công",
       order,
     });
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     console.error(error);
     res.status(500).json({
       message: "Lỗi khi hủy đơn hàng",
@@ -301,32 +360,85 @@ const confirmDelivery = async (req, res) => {
 };
 
 const updateItemStatus = async (req, res) => {
+  const session = await require("mongoose").startSession();
+  session.startTransaction();
+
   try {
     const { orderId, itemIndex } = req.params;
     const { itemStatus } = req.body;
 
-    const validItemStatuses = ["available", "preorder_pending", "preorder_ready", "shipped"];
+    const validItemStatuses = [
+      "available",
+      "preorder_pending",
+      "preorder_ready",
+      "shipped",
+    ];
     if (!validItemStatuses.includes(itemStatus)) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({ message: "Trạng thái item không hợp lệ" });
     }
 
-    const order = await Order.findById(orderId);
+    const order = await Order.findById(orderId).session(session);
     if (!order) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
     }
 
     if (!order.cartItems[itemIndex]) {
-      return res.status(404).json({ message: "Không tìm thấy item trong đơn hàng" });
+      await session.abortTransaction();
+      session.endSession();
+      return res
+        .status(404)
+        .json({ message: "Không tìm thấy item trong đơn hàng" });
+    }
+
+    const item = order.cartItems[itemIndex];
+    const oldStatus = item.itemStatus;
+
+    // ✅ FIX 5: Trừ stock khi chuyển từ preorder_pending → preorder_ready
+    if (
+      oldStatus === "preorder_pending" &&
+      itemStatus === "preorder_ready" &&
+      item.isPreOrder
+    ) {
+      const product = await Product.findById(item.product).session(session);
+      if (!product) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
+      }
+
+      if (product.quantity < item.quantity) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          message: `Sản phẩm "${product.name}" không đủ tồn kho để chuyển sang trạng thái ready (cần ${item.quantity}, còn ${product.quantity})`,
+        });
+      }
+
+      // Trừ tồn kho
+      await Product.findByIdAndUpdate(
+        item.product,
+        { $inc: { quantity: -item.quantity } },
+        { session },
+      );
     }
 
     order.cartItems[itemIndex].itemStatus = itemStatus;
-    await order.save();
+    await order.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
 
     res.status(200).json({
       message: "Cập nhật trạng thái item thành công",
       order,
     });
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     console.error(error);
     res.status(500).json({
       message: "Lỗi khi cập nhật trạng thái item",
@@ -367,18 +479,23 @@ const notifyPreOrderReady = async (req, res) => {
   try {
     const { orderId } = req.params;
 
-    const order = await Order.findById(orderId).populate("customer", "fullname email");
+    const order = await Order.findById(orderId).populate(
+      "customer",
+      "fullname email",
+    );
     if (!order) {
       return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
     }
 
     if (!order.hasPreOrderItems) {
-      return res.status(400).json({ message: "Đơn hàng này không có sản phẩm pre-order" });
+      return res
+        .status(400)
+        .json({ message: "Đơn hàng này không có sản phẩm pre-order" });
     }
 
     // Kiểm tra xem có item nào preorder_ready không
     const hasReadyItems = order.cartItems.some(
-      (item) => item.itemStatus === "preorder_ready"
+      (item) => item.itemStatus === "preorder_ready",
     );
 
     if (!hasReadyItems) {
