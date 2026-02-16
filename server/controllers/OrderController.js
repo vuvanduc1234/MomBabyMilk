@@ -34,7 +34,7 @@ const getMyOrders = async (req, res) => {
 
 const getAllOrders = async (req, res) => {
   try {
-    const { status, paymentStatus, paymentMethod, search } = req.query;
+    const { status, paymentStatus, paymentMethod, search, hasPreOrder, itemStatus } = req.query;
     const query = {};
 
     if (status) {
@@ -47,6 +47,14 @@ const getAllOrders = async (req, res) => {
 
     if (paymentMethod) {
       query.paymentMethod = paymentMethod;
+    }
+
+    if (hasPreOrder === "true" || hasPreOrder === true) {
+      query.hasPreOrderItems = true;
+    }
+
+    if (itemStatus) {
+      query["cartItems.itemStatus"] = itemStatus;
     }
 
     if (search) {
@@ -131,7 +139,7 @@ const updateOrderStatus = async (req, res) => {
     }
 
     if (orderStatus) {
-      const validStatuses = ["processing", "shipped", "delivered", "cancelled"];
+      const validStatuses = ["processing", "partially_shipped", "shipped", "delivered", "cancelled"];
       if (!validStatuses.includes(orderStatus)) {
         return res.status(400).json({ message: "Trạng thái không hợp lệ" });
       }
@@ -139,9 +147,12 @@ const updateOrderStatus = async (req, res) => {
 
       if (orderStatus === "cancelled" && order.paymentStatus !== "paid") {
         for (const item of order.cartItems) {
-          await Product.findByIdAndUpdate(item.product, {
-            $inc: { quantity: item.quantity },
-          });
+          // Only refund stock for non-preorder items
+          if (!item.isPreOrder) {
+            await Product.findByIdAndUpdate(item.product, {
+              $inc: { quantity: item.quantity },
+            });
+          }
         }
       }
     }
@@ -222,9 +233,12 @@ const cancelOrder = async (req, res) => {
 
     if (order.paymentStatus !== "paid" || order.paymentMethod === "cod") {
       for (const item of order.cartItems) {
-        await Product.findByIdAndUpdate(item.product, {
-          $inc: { quantity: item.quantity },
-        });
+        // Only refund stock for non-preorder items
+        if (!item.isPreOrder) {
+          await Product.findByIdAndUpdate(item.product, {
+            $inc: { quantity: item.quantity },
+          });
+        }
       }
     }
 
@@ -286,6 +300,111 @@ const confirmDelivery = async (req, res) => {
   }
 };
 
+const updateItemStatus = async (req, res) => {
+  try {
+    const { orderId, itemIndex } = req.params;
+    const { itemStatus } = req.body;
+
+    const validItemStatuses = ["available", "preorder_pending", "preorder_ready", "shipped"];
+    if (!validItemStatuses.includes(itemStatus)) {
+      return res.status(400).json({ message: "Trạng thái item không hợp lệ" });
+    }
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
+    }
+
+    if (!order.cartItems[itemIndex]) {
+      return res.status(404).json({ message: "Không tìm thấy item trong đơn hàng" });
+    }
+
+    order.cartItems[itemIndex].itemStatus = itemStatus;
+    await order.save();
+
+    res.status(200).json({
+      message: "Cập nhật trạng thái item thành công",
+      order,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Lỗi khi cập nhật trạng thái item",
+      error: error.message,
+    });
+  }
+};
+
+const getPreOrderOrders = async (req, res) => {
+  try {
+    const { itemStatus } = req.query;
+    const query = { hasPreOrderItems: true };
+
+    if (itemStatus) {
+      query["cartItems.itemStatus"] = itemStatus;
+    }
+
+    const orders = await Order.find(query)
+      .populate("customer", "fullname email phone")
+      .populate("cartItems.product", "name images")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      message: "Lấy danh sách đơn hàng pre-order thành công",
+      orders,
+      total: orders.length,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Lỗi khi lấy danh sách đơn hàng pre-order",
+      error: error.message,
+    });
+  }
+};
+
+const notifyPreOrderReady = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    const order = await Order.findById(orderId).populate("customer", "fullname email");
+    if (!order) {
+      return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
+    }
+
+    if (!order.hasPreOrderItems) {
+      return res.status(400).json({ message: "Đơn hàng này không có sản phẩm pre-order" });
+    }
+
+    // Kiểm tra xem có item nào preorder_ready không
+    const hasReadyItems = order.cartItems.some(
+      (item) => item.itemStatus === "preorder_ready"
+    );
+
+    if (!hasReadyItems) {
+      return res.status(400).json({
+        message: "Không có sản phẩm pre-order nào sẵn sàng để thông báo",
+      });
+    }
+
+    // TODO: Gửi email/notification cho khách hàng
+    // Có thể tích hợp với mailer service
+    // await sendEmail(order.customer.email, 'Pre-order ready', ...)
+
+    res.status(200).json({
+      message: "Thông báo đã được gửi cho khách hàng",
+      customerEmail: order.customer.email,
+      customerName: order.customer.fullname,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Lỗi khi gửi thông báo pre-order",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   getMyOrders,
   getAllOrders,
@@ -293,5 +412,8 @@ module.exports = {
   updateOrderStatus,
   cancelOrder,
   confirmDelivery,
+  // Pre-order functions
+  updateItemStatus,
+  getPreOrderOrders,
+  notifyPreOrderReady,
 };
-
