@@ -37,8 +37,10 @@ const createMomoUrl = async (order) => {
   const orderId = order._id.toString();
   const requestId = orderId;
   const amount = order.totalAmount.toString();
+  // ✅ FIX: Redirect về /payment-result, MoMo sẽ append resultCode
   const redirectUrl =
-    process.env.MOMO_REDIRECT_URL || `http://localhost:5173/?payment=success`;
+    process.env.MOMO_REDIRECT_URL ||
+    `${process.env.CLIENT_URL || "http://localhost:5173"}/payment-result`;
   const ipnUrl = `${process.env.BASE_URL}/api/checkout/momo-ipn`;
   const orderInfo = "Thanh toan don hang " + orderId;
   const requestType = "payWithMethod";
@@ -361,7 +363,9 @@ const checkout = async (req, res) => {
           rewardPointsEarned,
           paymentMethod,
           paymentStatus: "pending",
-          orderStatus: "processing",
+          // ✅ FIX: Online payment chỉ là pending_payment, chưa phải order thực sự
+          orderStatus:
+            paymentMethod === "cod" ? "processing" : "pending_payment",
         },
       ],
       { session },

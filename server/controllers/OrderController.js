@@ -14,7 +14,7 @@ const getMyOrders = async (req, res) => {
     }
 
     const orders = await Order.find(query)
-      .populate("cartItems.product", "name images")
+      .populate("cartItems.product", "name imageUrl")
       .populate("voucherUsed", "code discountPercentage")
       .sort({ createdAt: -1 });
 
@@ -58,7 +58,7 @@ const getAllOrders = async (req, res) => {
 
     const orders = await Order.find(query)
       .populate("customer", "fullname email phone")
-      .populate("cartItems.product", "name images")
+      .populate("cartItems.product", "name imageUrl")
       .populate("voucherUsed", "code discountPercentage")
       .sort({ createdAt: -1 });
 
@@ -84,7 +84,7 @@ const getOrderById = async (req, res) => {
 
     const order = await Order.findById(id)
       .populate("customer", "fullname email phone address")
-      .populate("cartItems.product", "name images price sale_price")
+      .populate("cartItems.product", "name imageUrl price")
       .populate("voucherUsed", "code discountPercentage minOrderValue");
 
     if (!order) {
@@ -209,8 +209,7 @@ const cancelOrder = async (req, res) => {
       order.orderStatus !== "processing"
     ) {
       return res.status(400).json({
-        message:
-          "Chỉ có thể hủy đơn hàng đang xử lý. Vui lòng liên hệ hỗ trợ.",
+        message: "Chỉ có thể hủy đơn hàng đang xử lý. Vui lòng liên hệ hỗ trợ.",
       });
     }
 
@@ -296,11 +295,3 @@ module.exports = {
   confirmDelivery,
 };
 
-module.exports = {
-  getMyOrders,
-  getAllOrders,
-  getOrderById,
-  updateOrderStatus,
-  cancelOrder,
-  confirmDelivery,
-};
