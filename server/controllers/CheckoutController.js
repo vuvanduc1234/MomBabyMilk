@@ -208,18 +208,30 @@ const checkout = async (req, res) => {
           itemStatus: "available",
         });
       } else if (productFromDB.allowPreOrder) {
-        if (productFromDB.quantity > 0) {
-          // Item 1: Số lượng có sẵn
+        // ✅ FIX 1 & 2: Validate maxPreOrderQuantity TRƯỚC KHI trừ stock
+        const availableStock = productFromDB.quantity;
+        const preOrderQuantity = quantity - availableStock;
+
+        // Validate giới hạn pre-order trước
+        if (preOrderQuantity > productFromDB.maxPreOrderQuantity) {
+          await session.abortTransaction();
+          return res.status(400).json({
+            message: `Sản phẩm "${productFromDB.name}" chỉ cho phép đặt trước tối đa ${productFromDB.maxPreOrderQuantity} sản phẩm (bạn đang đặt trước ${preOrderQuantity})`,
+          });
+        }
+
+        // Xử lý phần có sẵn (nếu có)
+        if (availableStock > 0) {
           const product = await Product.findOneAndUpdate(
-            { _id: productId, quantity: { $gte: productFromDB.quantity } },
-            { $inc: { quantity: -productFromDB.quantity } },
+            { _id: productId, quantity: { $gte: availableStock } },
+            { $inc: { quantity: -availableStock } },
             { new: true, session },
           );
 
           if (!product) {
             await session.abortTransaction();
             return res.status(400).json({
-              message: `Không thể xử lý sản phẩm "${productFromDB.name}"`,
+              message: `Không thể xử lý sản phẩm "${productFromDB.name}" do tồn kho thay đổi`,
             });
           }
 
@@ -227,36 +239,27 @@ const checkout = async (req, res) => {
             product: product._id,
             name: product.name,
             price: product.price,
-            quantity: productFromDB.quantity,
+            quantity: availableStock,
             isPreOrder: false,
             itemStatus: "available",
           });
         }
 
-        // Item 2: Số lượng pre-order (phần còn thiếu)
-        const preOrderQuantity = quantity - (productFromDB.quantity > 0 ? productFromDB.quantity : 0);
-
-        // Kiểm tra giới hạn pre-order
-        if (preOrderQuantity > productFromDB.maxPreOrderQuantity) {
-          await session.abortTransaction();
-          return res.status(400).json({
-            message: `Sản phẩm ${productFromDB.name} chỉ cho phép đặt trước tối đa ${productFromDB.maxPreOrderQuantity} sản phẩm (bạn đang đặt trước ${preOrderQuantity})`,
+        // ✅ FIX 2: Chỉ push pre-order item nếu quantity > 0
+        if (preOrderQuantity > 0) {
+          orderItems.push({
+            product: productFromDB._id,
+            name: productFromDB.name,
+            price: productFromDB.price,
+            quantity: preOrderQuantity,
+            isPreOrder: true,
+            expectedAvailableDate:
+              productFromDB.expectedRestockDate ||
+              new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+            itemStatus: "preorder_pending",
           });
+          hasPreOrder = true;
         }
-
-        orderItems.push({
-          product: productFromDB._id,
-          name: productFromDB.name,
-          price: productFromDB.price,
-          quantity: preOrderQuantity,
-          isPreOrder: true,
-          expectedAvailableDate:
-            productFromDB.expectedRestockDate ||
-            new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-          itemStatus: "preorder_pending",
-        });
-
-        hasPreOrder = true;
       } else {
         await session.abortTransaction();
         return res.status(400).json({
@@ -509,6 +512,9 @@ const checkout = async (req, res) => {
 };
 
 const momoNotify = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const {
       partnerCode,
@@ -545,18 +551,26 @@ const momoNotify = async (req, res) => {
         signature,
         expectedSignature,
       });
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({ message: "Invalid signature" });
     }
 
-    const order = await Order.findById(orderId).populate("customer");
+    const order = await Order.findById(orderId)
+      .populate("customer")
+      .session(session);
     if (!order) {
       console.error("Order not found:", orderId);
+      await session.abortTransaction();
+      session.endSession();
       return res.status(404).json({ message: "Order not found" });
     }
 
     // Check idempotency
     if (order.paymentStatus === "paid") {
       console.log("Order already paid:", orderId);
+      await session.abortTransaction();
+      session.endSession();
       return res.status(200).json({ message: "Already processed" });
     }
 
@@ -564,7 +578,7 @@ const momoNotify = async (req, res) => {
       // Payment success
       order.paymentStatus = "paid";
       order.orderStatus = "processing";
-      await order.save();
+      await order.save({ session });
 
       // ✅ FIX 7: Trừ voucher & points sau khi payment success
       const userId = order.customer._id || order.customer;
@@ -580,13 +594,14 @@ const momoNotify = async (req, res) => {
           {
             $inc: { "userVouchers.$.quantity": -1 },
           },
-          { new: true },
+          { new: true, session },
         );
 
         // Remove voucher if quantity = 0
         await User.updateOne(
           { _id: userId },
           { $pull: { userVouchers: { quantity: 0 } } },
+          { session },
         );
       }
 
@@ -605,7 +620,7 @@ const momoNotify = async (req, res) => {
               },
             },
           },
-          { new: true },
+          { new: true, session },
         );
       }
 
@@ -619,33 +634,48 @@ const momoNotify = async (req, res) => {
         );
       }
 
+      await session.commitTransaction();
+      session.endSession();
+
       console.log("Order paid successfully:", orderId);
       return res.status(200).json({ message: "Payment successful" });
     } else {
       // Payment failed
       order.paymentStatus = "failed";
       order.orderStatus = "cancelled";
-      await order.save();
+      await order.save({ session });
 
       console.log("Order payment failed:", orderId, message);
 
-      // Refund stock
+      // ✅ FIX: Refund stock with transaction, only for non-preorder items
       for (const item of order.cartItems) {
-        await Product.findByIdAndUpdate(item.product, {
-          $inc: { quantity: item.quantity },
-        });
+        if (!item.isPreOrder) {
+          await Product.findByIdAndUpdate(
+            item.product,
+            { $inc: { quantity: item.quantity } },
+            { session },
+          );
+        }
       }
+
+      await session.commitTransaction();
+      session.endSession();
 
       // Không cần hoàn voucher/points vì chưa trừ
       return res.status(200).json({ message: "Payment failed" });
     }
   } catch (e) {
+    await session.abortTransaction();
+    session.endSession();
     console.error("MOMO IPN Error:", e);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
 
 const vnpayReturn = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     let vnp_Params = req.query;
     const secureHash = vnp_Params["vnp_SecureHash"];
@@ -666,14 +696,20 @@ const vnpayReturn = async (req, res) => {
     // Verify signature
     if (secureHash !== signed) {
       console.error("Invalid VNPAY signature");
+      await session.abortTransaction();
+      session.endSession();
       return res.redirect(
         `${process.env.CLIENT_URL || "http://localhost:5173"}/payment-result?status=error&message=Invalid signature`,
       );
     }
 
-    const order = await Order.findById(orderId).populate("customer");
+    const order = await Order.findById(orderId)
+      .populate("customer")
+      .session(session);
     if (!order) {
       console.error("Order not found:", orderId);
+      await session.abortTransaction();
+      session.endSession();
       return res.redirect(
         `${process.env.CLIENT_URL || "http://localhost:5173"}/payment-result?status=error&message=Order not found`,
       );
@@ -686,6 +722,8 @@ const vnpayReturn = async (req, res) => {
         paidAmount,
         expectedAmount: order.totalAmount,
       });
+      await session.abortTransaction();
+      session.endSession();
       return res.redirect(
         `${process.env.CLIENT_URL || "http://localhost:5173"}/payment-result?status=error&message=Amount mismatch`,
       );
@@ -694,6 +732,8 @@ const vnpayReturn = async (req, res) => {
     // Check idempotency
     if (order.paymentStatus === "paid") {
       console.log("VNPAY: Order already paid:", orderId);
+      await session.abortTransaction();
+      session.endSession();
       return res.redirect(
         `${process.env.CLIENT_URL || "http://localhost:5173"}/payment-result?status=success&orderId=${orderId}&amount=${paidAmount}`,
       );
@@ -703,7 +743,7 @@ const vnpayReturn = async (req, res) => {
       // Payment success
       order.paymentStatus = "paid";
       order.orderStatus = "processing";
-      await order.save();
+      await order.save({ session });
 
       // ✅ FIX 7: Trừ voucher & points sau khi payment success
       const userId = order.customer._id || order.customer;
@@ -719,13 +759,14 @@ const vnpayReturn = async (req, res) => {
           {
             $inc: { "userVouchers.$.quantity": -1 },
           },
-          { new: true },
+          { new: true, session },
         );
 
         // Remove voucher if quantity = 0
         await User.updateOne(
           { _id: userId },
           { $pull: { userVouchers: { quantity: 0 } } },
+          { session },
         );
       }
 
@@ -744,7 +785,7 @@ const vnpayReturn = async (req, res) => {
               },
             },
           },
-          { new: true },
+          { new: true, session },
         );
       }
 
@@ -758,6 +799,9 @@ const vnpayReturn = async (req, res) => {
         );
       }
 
+      await session.commitTransaction();
+      session.endSession();
+
       console.log("VNPAY: Order paid successfully:", orderId);
       return res.redirect(
         `${process.env.CLIENT_URL || "http://localhost:5173"}/payment-result?status=success&orderId=${orderId}&amount=${paidAmount}`,
@@ -767,16 +811,23 @@ const vnpayReturn = async (req, res) => {
     // Payment failed
     order.paymentStatus = "failed";
     order.orderStatus = "cancelled";
-    await order.save();
+    await order.save({ session });
 
     console.log("VNPAY: Payment failed:", orderId, responseCode);
 
-    // Refund stock
+    // ✅ FIX: Refund stock with transaction, only for non-preorder items
     for (const item of order.cartItems) {
-      await Product.findByIdAndUpdate(item.product, {
-        $inc: { quantity: item.quantity },
-      });
+      if (!item.isPreOrder) {
+        await Product.findByIdAndUpdate(
+          item.product,
+          { $inc: { quantity: item.quantity } },
+          { session },
+        );
+      }
     }
+
+    await session.commitTransaction();
+    session.endSession();
 
     // Không cần hoàn voucher/points vì chưa trừ
 
@@ -799,6 +850,8 @@ const vnpayReturn = async (req, res) => {
       `${process.env.CLIENT_URL || "http://localhost:5173"}/payment-result?status=failed&orderId=${orderId}&message=${encodeURIComponent(errorMessage)}`,
     );
   } catch (e) {
+    await session.abortTransaction();
+    session.endSession();
     console.error("VNPAY Return Error:", e);
     return res.redirect(
       `${process.env.CLIENT_URL || "http://localhost:5173"}/payment-result?status=error&message=${encodeURIComponent("Lỗi hệ thống")}`,
