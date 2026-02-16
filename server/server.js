@@ -17,6 +17,9 @@ const paymentRoutes = require("./routes/PaymentRoutes");
 const BlogRoute = require("./routes/BlogRoute");
 const CommentRoute = require("./routes/CommentRoute");
 const WishlistRoute = require("./routes/WishlistRoute");
+const OrderRoute = require("./routes/OrderRoute");
+const RewardRoute = require("./routes/RewardRoute");
+const AnalyticsRoute = require("./routes/AnalyticsRoute");
 const app = express();
 
 database.connect();
@@ -55,6 +58,9 @@ app.use("/api/voucher", VoucherRoute);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/blogs", BlogRoute);
 app.use("/api/wishlist", WishlistRoute);
+app.use("/api/orders", OrderRoute);
+app.use("/api/rewards", RewardRoute);
+app.use("/api/analytics", AnalyticsRoute);
 
 app.use("/api/upload", UploadRoute);
 
