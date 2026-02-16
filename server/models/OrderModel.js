@@ -14,6 +14,24 @@ const orderSchema = new mongoose.Schema(
         name: { type: String, required: true },
         price: { type: Number, required: true },
         quantity: { type: Number, required: true },
+
+        isPreOrder: {
+          type: Boolean,
+          default: false,
+          description: "True nếu item này là đặt trước",
+        },
+
+        expectedAvailableDate: {
+          type: Date,
+          description: "Ngày dự kiến có hàng (chỉ có khi isPreOrder = true)",
+        },
+
+        itemStatus: {
+          type: String,
+          enum: ["available", "preorder_pending", "preorder_ready", "shipped"],
+          default: "available",
+          description: "Trạng thái riêng của từng item trong đơn",
+        },
       },
     ],
 
@@ -35,6 +53,18 @@ const orderSchema = new mongoose.Schema(
     },
 
     totalAmount: { type: Number, required: true },
+
+    hasPreOrderItems: {
+      type: Boolean,
+      default: false,
+      description: "Đánh dấu đơn hàng có chứa pre-order",
+    },
+
+    preOrderNote: {
+      type: String,
+      trim: true,
+      description: "Ghi chú về pre-order cho khách",
+    },
 
     voucherUsed: {
       type: mongoose.Schema.Types.ObjectId,
@@ -66,8 +96,9 @@ const orderSchema = new mongoose.Schema(
 
     orderStatus: {
       type: String,
-      enum: ["processing", "shipped", "delivered", "cancelled"],
+      enum: ["processing", "partially_shipped", "shipped", "delivered", "cancelled"],
       default: "processing",
+      description: "Hỗ trợ giao hàng từng phần với partially_shipped",
     },
   },
   { timestamps: true },

@@ -18,6 +18,23 @@ const productSchema = new mongoose.Schema(
     tags: {type: String},
     quantity: { type: Number, default: 0, required: true },
     imageUrl: [{ type: String, required: true }],
+
+    expectedRestockDate: {
+      type: Date,
+      description: "Ngày dự kiến nhập hàng lại (để hiển thị cho khách)",
+    },
+
+    allowPreOrder: {
+      type: Boolean,
+      default: true,
+      description: "Sản phẩm có cho phép đặt trước khi hết hàng không",
+    },
+
+    maxPreOrderQuantity: {
+      type: Number,
+      default: 100,
+      description: "Giới hạn số lượng đặt trước",
+    },
     manufacture: { type: String },
     expiry: { type: String },
     storageInstructions: { type: String },

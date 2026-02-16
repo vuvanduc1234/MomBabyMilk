@@ -165,8 +165,8 @@ const checkout = async (req, res) => {
     }
 
     const orderItems = [];
+    let hasPreOrder = false;
 
-    // ✅ FIX 4: Atomic stock deduction với transaction
     for (const item of cartItems) {
       const { productId, quantity } = item;
       if (!productId || !quantity || quantity < 1) {
@@ -183,26 +183,84 @@ const checkout = async (req, res) => {
         return res.status(400).json({ message: "Sản phẩm không tồn tại" });
       }
 
-      // Atomic stock update
-      const product = await Product.findOneAndUpdate(
-        { _id: productId, quantity: { $gte: quantity } },
-        { $inc: { quantity: -quantity } },
-        { new: true, session },
-      );
+      if (productFromDB.quantity >= quantity) {
+        const product = await Product.findOneAndUpdate(
+          { _id: productId, quantity: { $gte: quantity } },
+          { $inc: { quantity: -quantity } },
+          { new: true, session },
+        );
 
-      if (!product) {
+        if (!product) {
+          await session.abortTransaction();
+          return res.status(400).json({
+            message: `Sản phẩm "${productFromDB.name}" không đủ tồn kho`,
+          });
+        }
+
+        orderItems.push({
+          product: product._id,
+          name: product.name,
+          price: product.price,
+          quantity,
+          isPreOrder: false,
+          itemStatus: "available",
+        });
+      } else if (productFromDB.allowPreOrder) {
+        if (productFromDB.quantity > 0) {
+          // Item 1: Số lượng có sẵn
+          const product = await Product.findOneAndUpdate(
+            { _id: productId, quantity: { $gte: productFromDB.quantity } },
+            { $inc: { quantity: -productFromDB.quantity } },
+            { new: true, session },
+          );
+
+          if (!product) {
+            await session.abortTransaction();
+            return res.status(400).json({
+              message: `Không thể xử lý sản phẩm "${productFromDB.name}"`,
+            });
+          }
+
+          orderItems.push({
+            product: product._id,
+            name: product.name,
+            price: product.price,
+            quantity: productFromDB.quantity,
+            isPreOrder: false,
+            itemStatus: "available",
+          });
+        }
+
+        // Item 2: Số lượng pre-order (phần còn thiếu)
+        const preOrderQuantity = quantity - (productFromDB.quantity > 0 ? productFromDB.quantity : 0);
+
+        // Kiểm tra giới hạn pre-order
+        if (preOrderQuantity > productFromDB.maxPreOrderQuantity) {
+          await session.abortTransaction();
+          return res.status(400).json({
+            message: `Sản phẩm ${productFromDB.name} chỉ cho phép đặt trước tối đa ${productFromDB.maxPreOrderQuantity} sản phẩm (bạn đang đặt trước ${preOrderQuantity})`,
+          });
+        }
+
+        orderItems.push({
+          product: productFromDB._id,
+          name: productFromDB.name,
+          price: productFromDB.price,
+          quantity: preOrderQuantity,
+          isPreOrder: true,
+          expectedAvailableDate:
+            productFromDB.expectedRestockDate ||
+            new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+          itemStatus: "preorder_pending",
+        });
+
+        hasPreOrder = true;
+      } else {
         await session.abortTransaction();
         return res.status(400).json({
-          message: `Sản phẩm "${productFromDB.name}" không đủ tồn kho`,
+          message: `Sản phẩm ${productFromDB.name} tạm hết hàng và không hỗ trợ đặt trước`,
         });
       }
-
-      orderItems.push({
-        product: product._id,
-        name: product.name,
-        price: product.price, // Use DB price, not frontend
-        quantity,
-      });
     }
 
     // Calculate subtotal
@@ -315,7 +373,6 @@ const checkout = async (req, res) => {
 
       rewardDiscount = rewardPointsUsed;
 
-      // ✅ FIX 7: Chỉ trừ xu nếu COD
       if (paymentMethod === "cod") {
         const reward = await Reward.findOneAndUpdate(
           { user: userId, balance: { $gte: rewardPointsUsed } },
@@ -346,6 +403,15 @@ const checkout = async (req, res) => {
     );
     const rewardPointsEarned = calculateRewardPoints(total);
 
+    const allPreOrder = orderItems.every((item) => item.isPreOrder);
+    if (allPreOrder && paymentMethod === "cod") {
+      await session.abortTransaction();
+      return res.status(400).json({
+        message:
+          "Đơn hàng pre-order phải thanh toán online (MoMo/VNPay), không hỗ trợ COD",
+      });
+    }
+
     // Create Order
     const orderDoc = await Order.create(
       [
@@ -362,6 +428,10 @@ const checkout = async (req, res) => {
           paymentMethod,
           paymentStatus: "pending",
           orderStatus: "processing",
+          hasPreOrderItems: hasPreOrder,
+          preOrderNote: hasPreOrder
+            ? "Đơn hàng có sản phẩm đặt trước. Chúng tôi sẽ giao hàng ngay khi có đủ sản phẩm."
+            : null,
         },
       ],
       { session },

@@ -8,6 +8,9 @@ const {
   updateOrderStatus,
   cancelOrder,
   confirmDelivery,
+  updateItemStatus,
+  getPreOrderOrders,
+  notifyPreOrderReady,
 } = require("../controllers/OrderController");
 
 /**
@@ -23,7 +26,7 @@ const {
  *         name: status
  *         schema:
  *           type: string
- *           enum: [processing, shipped, delivered, cancelled]
+ *           enum: [processing, partially_shipped, shipped, delivered, cancelled]
  *         description: Filter by order status (optional - if not provided, returns all orders)
  *     responses:
  *       200:
@@ -46,7 +49,7 @@ router.get("/my-orders", authenticateToken, getMyOrders);
  *         name: status
  *         schema:
  *           type: string
- *           enum: [processing, shipped, delivered, cancelled]
+ *           enum: [processing, partially_shipped, shipped, delivered, cancelled]
  *         description: Filter by order status (optional)
  *       - in: query
  *         name: paymentStatus
@@ -65,6 +68,17 @@ router.get("/my-orders", authenticateToken, getMyOrders);
  *         schema:
  *           type: string
  *         description: Search by phone or shipping address (optional)
+ *       - in: query
+ *         name: hasPreOrder
+ *         schema:
+ *           type: boolean
+ *         description: Filter orders with pre-order items (optional)
+ *       - in: query
+ *         name: itemStatus
+ *         schema:
+ *           type: string
+ *           enum: [available, preorder_pending, preorder_ready, shipped]
+ *         description: Filter by item status in cart items (optional)
  *     responses:
  *       200:
  *         description: List of all orders (returns all if no filter provided)
@@ -122,7 +136,7 @@ router.get("/:id", authenticateToken, getOrderById);
  *             properties:
  *               orderStatus:
  *                 type: string
- *                 enum: [processing, shipped, delivered, cancelled]
+ *                 enum: [processing, partially_shipped, shipped, delivered, cancelled]
  *                 description: New order status
  *               paymentStatus:
  *                 type: string
@@ -208,5 +222,109 @@ router.patch("/:id/cancel", authenticateToken, cancelOrder);
  *         description: Order not found
  */
 router.patch("/:id/confirm-delivery", authenticateToken, confirmDelivery);
+
+/**
+ * @swagger
+ * /api/orders/pre-orders:
+ *   get:
+ *     summary: Get all orders with pre-order items (Staff/Admin only)
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: itemStatus
+ *         schema:
+ *           type: string
+ *           enum: [preorder_pending, preorder_ready]
+ *         description: Filter by item status (optional)
+ *     responses:
+ *       200:
+ *         description: List of pre-order orders
+ *       401:
+ *         description: Unauthorized
+ */
+router.get(
+  "/pre-orders",
+  authenticateToken,
+  checkRole(["Admin", "Staff"]),
+  getPreOrderOrders
+);
+
+/**
+ * @swagger
+ * /api/orders/{orderId}/items/{itemIndex}/status:
+ *   patch:
+ *     summary: Update item status in order (Staff/Admin only)
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: orderId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Order ID
+ *       - in: path
+ *         name: itemIndex
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Index of item in cartItems array
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               itemStatus:
+ *                 type: string
+ *                 enum: [available, preorder_pending, preorder_ready, shipped]
+ *     responses:
+ *       200:
+ *         description: Item status updated
+ *       400:
+ *         description: Invalid status
+ *       404:
+ *         description: Order or item not found
+ */
+router.patch(
+  "/:orderId/items/:itemIndex/status",
+  authenticateToken,
+  checkRole(["Admin", "Staff"]),
+  updateItemStatus
+);
+
+/**
+ * @swagger
+ * /api/orders/{orderId}/notify-preorder-ready:
+ *   post:
+ *     summary: Notify customer when pre-order items are ready (Staff/Admin only)
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: orderId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Order ID
+ *     responses:
+ *       200:
+ *         description: Notification sent successfully
+ *       400:
+ *         description: No pre-order items ready
+ *       404:
+ *         description: Order not found
+ */
+router.post(
+  "/:orderId/notify-preorder-ready",
+  authenticateToken,
+  checkRole(["Admin", "Staff"]),
+  notifyPreOrderReady
+);
 
 module.exports = router;
