@@ -129,13 +129,10 @@ export function FilterBar({ onFilterChange, onProductsUpdate }) {
     try {
       setIsLoadingProducts(true);
 
-      const token = localStorage.getItem("accessToken");
-
       const response = await fetch(`${API_BASE}/api/product`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -172,22 +169,15 @@ export function FilterBar({ onFilterChange, onProductsUpdate }) {
     try {
       setIsLoadingProducts(true);
 
-      const token = localStorage.getItem("accessToken");
+      const token = localStorage.getItem("token");
 
-      const headers = {
-        "Content-Type": "application/json",
-      };
-
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-
-      const response = await fetch(
-        `${API_BASE}/api/product/category/${categoryId}`,
-        {
-          headers: headers,
+      const response = await fetch(`${API_BASE}/api/product`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-      );
+      });
 
       if (!response.ok) {
         throw new Error("Failed to fetch products by category");
@@ -215,18 +205,10 @@ export function FilterBar({ onFilterChange, onProductsUpdate }) {
     try {
       setIsLoadingProducts(true);
 
-      const token = localStorage.getItem("accessToken");
-
-      const headers = {
-        "Content-Type": "application/json",
-      };
-
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-
       const response = await fetch(`${API_BASE}/api/product/brand/${brandId}`, {
-        headers: headers,
+        headers: {
+          "Content-Type": "application/json",
+        },
       });
 
       if (!response.ok) {

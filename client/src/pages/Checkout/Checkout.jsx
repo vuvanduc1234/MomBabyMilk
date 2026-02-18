@@ -1,5 +1,5 @@
 // src/pages/Checkout/Checkout.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Truck,
@@ -11,9 +11,13 @@ import {
   Info,
 } from "lucide-react";
 import { useCart } from "../../context/CartContext";
+import { useAuth } from "../../context/AuthContext";
+import { createOrder } from "../../services/orderService";
+import { toast } from "sonner";
 
 export default function Checkout() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const {
     cartItems,
     getRegularItems,
@@ -30,8 +34,22 @@ export default function Checkout() {
     note: "",
   });
 
+  // Auto-fill form từ user profile
+  useEffect(() => {
+    if (user) {
+      setFormData((prev) => ({
+        ...prev,
+        fullName: user.name || "",
+        phone: user.phone || "",
+        email: user.email || "",
+        address: user.address || "",
+      }));
+    }
+  }, [user]);
+
   const [paymentMethod, setPaymentMethod] = useState("cod");
   const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const formatVND = (price) => {
     return new Intl.NumberFormat("vi-VN", {
@@ -45,7 +63,6 @@ export default function Checkout() {
   const outOfStockItems = getPreOrdersByType("OUT_OF_STOCK").filter(
     (item) => item.paymentOption === "PAY_NOW",
   );
-  const comingSoonItems = getPreOrdersByType("COMING_SOON");
 
   // Tính toán
   const subtotal = getTotalPayNow();
@@ -85,47 +102,69 @@ export default function Checkout() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!validateForm()) {
+      toast.error("Vui lòng điền đầy đủ thông tin");
       return;
     }
 
-    // Tạo message chi tiết
-    let message = `Đặt hàng thành công!\n\n`;
+    if (isSubmitting) return;
 
-    if (regularItems.length > 0) {
-      message += `✓ Sản phẩm thường: ${regularItems.length} sản phẩm\n`;
+    setIsSubmitting(true);
+
+    try {
+      // Chuẩn bị dữ liệu đơn hàng
+      const orderData = {
+        cartItems: cartItems.map((item) => ({
+          productId: item.id, // Backend expects "productId"
+          quantity: item.quantity,
+        })),
+        shippingAddress: formData.address,
+        phone: formData.phone,
+        note: formData.note || "",
+        paymentMethod: paymentMethod,
+        // voucherUsed: "", // TODO: Thêm voucher nếu có
+        // rewardPointsUsed: 0, // TODO: Thêm reward points nếu có
+      };
+
+      console.log("Submitting order:", orderData);
+
+      // Gọi API tạo đơn hàng
+      const response = await createOrder(orderData);
+
+      console.log("Order response:", response);
+
+      // Nếu có payUrl (MoMo/VNPay), redirect đến trang thanh toán
+      if (response.payUrl) {
+        console.log("Redirecting to payment URL:", response.payUrl);
+        window.location.href = response.payUrl;
+        return;
+      }
+
+      // Nếu COD, hiển thị thông báo thành công
+      toast.success("Đặt hàng thành công!");
+
+      // Clear giỏ hàng
+      clearCart();
+
+      // Chuyển đến trang track-order
+      setTimeout(() => {
+        navigate("/track-order");
+      }, 1500);
+    } catch (error) {
+      console.error("Checkout error:", error);
+
+      const errorMessage =
+        error.message ||
+        error.error ||
+        "Có lỗi xảy ra khi đặt hàng. Vui lòng thử lại.";
+
+      toast.error(errorMessage);
+    } finally {
+      setIsSubmitting(false);
     }
-
-    if (outOfStockItems.length > 0) {
-      message += `✓ Đặt trước (hết hàng): ${outOfStockItems.length} sản phẩm\n`;
-    }
-
-    if (comingSoonItems.length > 0) {
-      message += `✓ Đặt trước (sắp ra mắt): ${comingSoonItems.length} sản phẩm (đã đăng ký)\n`;
-    }
-
-    message += `\nPhương thức: ${
-      paymentMethod === "cod"
-        ? "COD"
-        : paymentMethod === "vnpay"
-          ? "VNPay"
-          : paymentMethod === "momo"
-            ? "Ví MoMo"
-            : "Chuyển khoản"
-    }\n`;
-
-    message += `Tổng thanh toán: ${formatVND(total)}`;
-
-    alert(message);
-
-    // Xóa tất cả items đã thanh toán
-    // TODO: Implement logic để chỉ xóa items đã thanh toán
-    clearCart();
-
-    navigate("/");
   };
 
   // Kiểm tra nếu không có gì để thanh toán
@@ -528,9 +567,40 @@ export default function Checkout() {
                 {/* Nút đặt hàng */}
                 <button
                   type="submit"
-                  className="w-full mt-6 bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition"
+                  disabled={isSubmitting}
+                  className={`w-full mt-6 py-3 rounded-lg font-semibold transition ${
+                    isSubmitting
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:shadow-lg"
+                  }`}
                 >
-                  Đặt hàng ngay
+                  {isSubmitting ? (
+                    <span className="flex items-center justify-center">
+                      <svg
+                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Đang xử lý...
+                    </span>
+                  ) : (
+                    "Đặt hàng ngay"
+                  )}
                 </button>
 
                 <p className="text-xs text-center text-gray-500 mt-4">
