@@ -16,6 +16,7 @@ import {
   Check,
 } from "lucide-react";
 import { useCart } from "../../context/CartContext";
+import { useAuth } from "../../context/AuthContext";
 import axiosInstance from "@/lib/axios";
 
 // API Configuration
@@ -28,6 +29,7 @@ export default function ProductDetail() {
   const productId = id || slug; // hỗ trợ cả route /product/:id và /product/:slug
   const navigate = useNavigate();
   const { addToCart } = useCart();
+  const { user: currentUser } = useAuth();
 
   // States
   const [product, setProduct] = useState(null);
@@ -125,7 +127,11 @@ export default function ProductDetail() {
       if (!response.ok) throw new Error("fetch failed");
       const json = await response.json();
       const productData = json.data || json;
-      setComments(productData.comments || []);
+      const fetchedComments = productData.comments || [];
+      if (fetchedComments.length > 0) {
+        console.log("[DEBUG] comment object:", fetchedComments[0]);
+      }
+      setComments(fetchedComments);
     } catch (err) {
       setCommentError("Không thể tải đánh giá. Vui lòng thử lại.");
     } finally {
@@ -688,6 +694,26 @@ export default function ProductDetail() {
                         commentUserId &&
                         String(commentUserId) === String(currentUserId);
 
+                      // Lấy tên người comment: ưu tiên data từ backend, fallback về currentUser nếu là comment của mình
+                      const commenterName =
+                        comment.user?.fullname ||
+                        comment.user?.fullName ||
+                        comment.user?.name ||
+                        comment.user?.username ||
+                        comment.userId?.fullname ||
+                        comment.userId?.fullName ||
+                        comment.userId?.name ||
+                        comment.userName ||
+                        comment.author?.fullname ||
+                        comment.author?.name ||
+                        (isOwner
+                          ? currentUser?.fullname ||
+                            currentUser?.fullName ||
+                            currentUser?.name ||
+                            currentUser?.username
+                          : null) ||
+                        "Người dùng";
+
                       const isEditing = editingId === comment._id;
 
                       return (
@@ -699,12 +725,7 @@ export default function ProductDetail() {
                           <div className="flex items-start justify-between mb-2">
                             <div>
                               <p className="font-semibold text-gray-800 text-sm">
-                                {comment.user?.name ||
-                                  comment.user?.username ||
-                                  comment.userName ||
-                                  comment.author?.name ||
-                                  comment.author?.username ||
-                                  "Người dùng"}
+                                {commenterName}
                               </p>
                               <div className="flex items-center gap-1 mt-0.5">
                                 {[1, 2, 3, 4, 5].map((s) => (
