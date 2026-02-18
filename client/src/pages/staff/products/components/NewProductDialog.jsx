@@ -63,7 +63,10 @@ const productValidationSchema = Yup.object().shape({
     .min(2, "Nhà sản xuất phải có ít nhất 2 ký tự")
     .max(200, "Nhà sản xuất không được vượt quá 200 ký tự"),
 
-  imageUrl: Yup.string().required("Hình ảnh sản phẩm là bắt buộc"),
+  imageUrl: Yup.array()
+    .of(Yup.string())
+    .min(1, "Hình ảnh sản phẩm là bắt buộc")
+    .required("Hình ảnh sản phẩm là bắt buộc"),
 
   description: Yup.string().max(2000, "Mô tả không được vượt quá 2000 ký tự"),
 
@@ -170,7 +173,7 @@ export default function NewProductDialog({
 
       try {
         setIsUploadingImage(true);
-        
+
         // Create preview
         const reader = new FileReader();
         reader.onloadend = () => {
@@ -180,16 +183,18 @@ export default function NewProductDialog({
 
         // Upload to server
         const response = await uploadProductImage(file);
-        
+
         if (response?.data?.imageUrl) {
-          formik.setFieldValue("imageUrl", response.data.imageUrl);
+          formik.setFieldValue("imageUrl", [response.data.imageUrl]);
           toast.success("Tải ảnh lên thành công!");
         }
       } catch (error) {
         console.error("Error uploading image:", error);
-        toast.error(error.message || "Không thể tải ảnh lên. Vui lòng thử lại.");
+        toast.error(
+          error.message || "Không thể tải ảnh lên. Vui lòng thử lại.",
+        );
         setImagePreview(null);
-        formik.setFieldValue("imageUrl", "");
+        formik.setFieldValue("imageUrl", []);
       } finally {
         setIsUploadingImage(false);
       }
@@ -269,7 +274,7 @@ export default function NewProductDialog({
                     size="small"
                     onClick={() => {
                       setImagePreview(null);
-                      formik.setFieldValue("imageUrl", "");
+                      formik.setFieldValue("imageUrl", []);
                     }}
                     type="button"
                     className="cursor-pointer"
@@ -321,7 +326,7 @@ export default function NewProductDialog({
                       <Button
                         variant="link"
                         size="small"
-                        onClick={() => navigate('/staff/brands?openDialog=1')}
+                        onClick={() => navigate("/staff/brands?openDialog=1")}
                         type="button"
                         className="cursor-pointer"
                       >
@@ -373,7 +378,9 @@ export default function NewProductDialog({
                       <Button
                         variant="link"
                         size="small"
-                        onClick={() => navigate('/staff/categories?openDialog=1')}
+                        onClick={() =>
+                          navigate("/staff/categories?openDialog=1")
+                        }
                         type="button"
                         className="cursor-pointer"
                       >
