@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axiosInstance from "@/lib/axios";
 import {
   Shield,
   Plus,
@@ -185,8 +186,31 @@ const roleColorClasses = {
 export default function RoleManagement() {
   const [roles, setRoles] = useState(mockRoles);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogMode, setDialogMode] = useState("create"); // create, edit, delete
+  const [dialogMode, setDialogMode] = useState("create");
   const [selectedRole, setSelectedRole] = useState(null);
+
+  // Fetch real user counts per role from API
+  useEffect(() => {
+    const fetchUserCounts = async () => {
+      try {
+        const res = await axiosInstance.get("/api/users");
+        const users = res.data?.data || res.data || [];
+        if (!Array.isArray(users)) return;
+
+        setRoles((prev) =>
+          prev.map((role) => ({
+            ...role,
+            userCount: users.filter(
+              (u) => (u.role || "").toLowerCase() === role.name.toLowerCase(),
+            ).length,
+          })),
+        );
+      } catch (err) {
+        console.error("Error fetching user counts:", err);
+      }
+    };
+    fetchUserCounts();
+  }, []);
 
   const handleCreateRole = () => {
     setDialogMode("create");

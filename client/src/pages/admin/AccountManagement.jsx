@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import axiosInstance from "@/lib/axios";
 import {
   Search,
   Plus,
@@ -52,61 +53,10 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 
-// Mock data
-const mockUsers = [
-  {
-    id: 1,
-    fullName: "Nguyễn Văn An",
-    email: "an.nguyen@email.com",
-    phone: "0901234567",
-    role: "customer",
-    status: "active",
-    created_at: "2025-12-15T10:00:00Z",
-    last_login: "2026-01-28T08:30:00Z",
-  },
-  {
-    id: 2,
-    fullName: "Trần Thị Bình",
-    email: "binh.tran@email.com",
-    phone: "0902345678",
-    role: "staff",
-    status: "active",
-    created_at: "2025-11-20T14:30:00Z",
-    last_login: "2026-01-27T16:45:00Z",
-  },
-  {
-    id: 3,
-    fullName: "Lê Văn Cường",
-    email: "cuong.le@email.com",
-    phone: "0903456789",
-    role: "customer",
-    status: "inactive",
-    created_at: "2025-10-10T09:15:00Z",
-    last_login: "2025-12-20T11:20:00Z",
-  },
-  {
-    id: 4,
-    fullName: "Phạm Thị Dung",
-    email: "dung.pham@email.com",
-    phone: "0904567890",
-    role: "admin",
-    status: "active",
-    created_at: "2025-09-05T08:00:00Z",
-    last_login: "2026-01-28T07:15:00Z",
-  },
-  {
-    id: 5,
-    fullName: "Hoàng Văn Em",
-    email: "em.hoang@email.com",
-    phone: "0905678901",
-    role: "customer",
-    status: "active",
-    created_at: "2026-01-10T13:45:00Z",
-    last_login: "2026-01-28T09:00:00Z",
-  },
-];
-
 const roleColors = {
+  Admin: "bg-purple-100 text-purple-800",
+  Staff: "bg-blue-100 text-blue-800",
+  Customer: "bg-green-100 text-green-800",
   admin: "bg-purple-100 text-purple-800",
   staff: "bg-blue-100 text-blue-800",
   customer: "bg-green-100 text-green-800",
@@ -119,6 +69,7 @@ const statusColors = {
 };
 
 const formatDate = (dateString) => {
+  if (!dateString) return "Chưa đăng nhập";
   return new Intl.DateTimeFormat("vi-VN", {
     year: "numeric",
     month: "2-digit",
@@ -129,27 +80,56 @@ const formatDate = (dateString) => {
 };
 
 export default function AccountManagement() {
-  const [users, setUsers] = useState(mockUsers);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedUser, setSelectedUser] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogMode, setDialogMode] = useState("create"); // create, edit, delete
+  const [dialogMode, setDialogMode] = useState("create");
   const [currentPage, setCurrentPage] = useState(1);
+  const [saving, setSaving] = useState(false);
   const itemsPerPage = 10;
 
-  // Filter and search
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await axiosInstance.get("/api/users");
+      const data = res.data?.data || res.data || [];
+      setUsers(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(
+        err.response?.data?.message || "Không thể tải danh sách người dùng.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  // Filter and search - normalize field names from API
   const filteredUsers = useMemo(() => {
     return users.filter((user) => {
-      const matchesSearch =
-        user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.phone.includes(searchQuery);
+      const name = user.fullname || user.fullName || user.name || "";
+      const email = user.email || "";
+      const phone = user.phone || user.phoneNumber || "";
+      const role = (user.role || "").toLowerCase();
+      const status = user.status || (user.isActive ? "active" : "inactive");
 
-      const matchesRole = roleFilter === "all" || user.role === roleFilter;
-      const matchesStatus =
-        statusFilter === "all" || user.status === statusFilter;
+      const matchesSearch =
+        name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        phone.includes(searchQuery);
+
+      const matchesRole =
+        roleFilter === "all" || role === roleFilter.toLowerCase();
+      const matchesStatus = statusFilter === "all" || status === statusFilter;
 
       return matchesSearch && matchesRole && matchesStatus;
     });
@@ -165,10 +145,10 @@ export default function AccountManagement() {
   const handleCreateUser = () => {
     setDialogMode("create");
     setSelectedUser({
-      fullName: "",
+      fullname: "",
       email: "",
       phone: "",
-      role: "customer",
+      role: "Customer",
       status: "active",
     });
     setDialogOpen(true);
@@ -186,37 +166,56 @@ export default function AccountManagement() {
     setDialogOpen(true);
   };
 
-  const handleToggleStatus = (user) => {
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.id === user.id
-          ? { ...u, status: u.status === "active" ? "inactive" : "active" }
-          : u,
-      ),
-    );
+  const handleToggleStatus = async (user) => {
+    const userId = user._id || user.id;
+    const newStatus = user.status === "active" ? "inactive" : "active";
+    try {
+      await axiosInstance.put(`/api/users/${userId}`, { status: newStatus });
+      setUsers((prev) =>
+        prev.map((u) =>
+          (u._id || u.id) === userId ? { ...u, status: newStatus } : u,
+        ),
+      );
+    } catch (err) {
+      alert(err.response?.data?.message || "Không thể cập nhật trạng thái.");
+    }
   };
 
-  const handleSaveUser = () => {
-    if (dialogMode === "create") {
-      const newUser = {
-        ...selectedUser,
-        id: users.length + 1,
-        created_at: new Date().toISOString(),
-        last_login: null,
-      };
-      setUsers((prev) => [...prev, newUser]);
-    } else if (dialogMode === "edit") {
-      setUsers((prev) =>
-        prev.map((u) => (u.id === selectedUser.id ? selectedUser : u)),
-      );
-    } else if (dialogMode === "delete") {
-      setUsers((prev) => prev.filter((u) => u.id !== selectedUser.id));
+  const handleSaveUser = async () => {
+    try {
+      setSaving(true);
+      if (dialogMode === "create") {
+        const res = await axiosInstance.post("/api/auth/register", {
+          fullname: selectedUser.fullname || selectedUser.fullName,
+          email: selectedUser.email,
+          phone: selectedUser.phone,
+          password: selectedUser.password || "Nura@123456",
+          role: selectedUser.role,
+        });
+        await fetchUsers();
+      } else if (dialogMode === "edit") {
+        const userId = selectedUser._id || selectedUser.id;
+        await axiosInstance.put(`/api/users/${userId}`, {
+          fullname: selectedUser.fullname || selectedUser.fullName,
+          phone: selectedUser.phone,
+          role: selectedUser.role,
+          status: selectedUser.status,
+        });
+        await fetchUsers();
+      } else if (dialogMode === "delete") {
+        const userId = selectedUser._id || selectedUser.id;
+        await axiosInstance.delete(`/api/users/${userId}`);
+        setUsers((prev) => prev.filter((u) => (u._id || u.id) !== userId));
+      }
+      setDialogOpen(false);
+    } catch (err) {
+      alert(err.response?.data?.message || "Thao tác thất bại.");
+    } finally {
+      setSaving(false);
     }
-    setDialogOpen(false);
   };
 
   const handleExport = () => {
-    // Export to CSV
     console.log("Exporting users...");
   };
 
@@ -263,7 +262,11 @@ export default function AccountManagement() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {users.filter((u) => u.status === "active").length}
+              {
+                users.filter(
+                  (u) => u.status === "active" || u.isActive === true,
+                ).length
+              }
             </div>
           </CardContent>
         </Card>
@@ -276,8 +279,10 @@ export default function AccountManagement() {
           <CardContent>
             <div className="text-2xl font-bold">
               {
-                users.filter((u) => u.role === "admin" || u.role === "staff")
-                  .length
+                users.filter((u) => {
+                  const r = (u.role || "").toLowerCase();
+                  return r === "admin" || r === "staff";
+                }).length
               }
             </div>
           </CardContent>
@@ -290,7 +295,10 @@ export default function AccountManagement() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {users.filter((u) => u.role === "customer").length}
+              {
+                users.filter((u) => (u.role || "").toLowerCase() === "customer")
+                  .length
+              }
             </div>
           </CardContent>
         </Card>
@@ -353,80 +361,131 @@ export default function AccountManagement() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedUsers.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{user.fullName}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {user.email}
-                      </div>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-10">
+                    <div className="flex justify-center items-center gap-2 text-muted-foreground">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-pink-600" />
+                      Đang tải...
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1 text-sm">
-                      <Phone className="h-3 w-3 text-muted-foreground" />
-                      {user.phone}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={roleColors[user.role]}>{user.role}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={statusColors[user.status]}>
-                      {user.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">{formatDate(user.created_at)}</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      {user.last_login
-                        ? formatDate(user.last_login)
-                        : "Chưa đăng nhập"}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEditUser(user)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Chỉnh sửa
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleToggleStatus(user)}
-                        >
-                          {user.status === "active" ? (
-                            <>
-                              <Lock className="mr-2 h-4 w-4" />
-                              Vô hiệu hóa
-                            </>
-                          ) : (
-                            <>
-                              <Unlock className="mr-2 h-4 w-4" />
-                              Kích hoạt
-                            </>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => handleDeleteUser(user)}
-                          className="text-red-600"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Xóa
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : error ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={7}
+                    className="text-center py-10 text-red-600"
+                  >
+                    {error}
+                  </TableCell>
+                </TableRow>
+              ) : paginatedUsers.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={7}
+                    className="text-center py-10 text-muted-foreground"
+                  >
+                    Không tìm thấy người dùng nào.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                paginatedUsers.map((user) => {
+                  const userId = user._id || user.id;
+                  const userName =
+                    user.fullname || user.fullName || user.name || "—";
+                  const userPhone = user.phone || user.phoneNumber || "—";
+                  const userRole = user.role || "customer";
+                  const userStatus =
+                    user.status || (user.isActive ? "active" : "inactive");
+                  const createdAt = user.createdAt || user.created_at;
+                  const lastLogin = user.lastLogin || user.last_login;
+                  return (
+                    <TableRow key={userId}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{userName}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {user.email}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1 text-sm">
+                          <Phone className="h-3 w-3 text-muted-foreground" />
+                          {userPhone}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          className={
+                            roleColors[userRole] || "bg-gray-100 text-gray-800"
+                          }
+                        >
+                          {userRole}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          className={
+                            statusColors[userStatus] ||
+                            "bg-gray-100 text-gray-800"
+                          }
+                        >
+                          {userStatus}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">{formatDate(createdAt)}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          {lastLogin ? formatDate(lastLogin) : "Chưa đăng nhập"}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => handleEditUser(user)}
+                            >
+                              <Edit className="mr-2 h-4 w-4" />
+                              Chỉnh sửa
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleToggleStatus(user)}
+                            >
+                              {user.status === "active" ? (
+                                <>
+                                  <Lock className="mr-2 h-4 w-4" />
+                                  Vô hiệu hóa
+                                </>
+                              ) : (
+                                <>
+                                  <Unlock className="mr-2 h-4 w-4" />
+                                  Kích hoạt
+                                </>
+                              )}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteUser(user)}
+                              className="text-red-600"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Xóa
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -471,8 +530,10 @@ export default function AccountManagement() {
             {dialogMode === "delete" && (
               <DialogDescription>
                 Bạn có chắc chắn muốn xóa người dùng{" "}
-                <strong>{selectedUser?.fullName}</strong>? Hành động này không
-                thể hoàn tác.
+                <strong>
+                  {selectedUser?.fullname || selectedUser?.fullName}
+                </strong>
+                ? Hành động này không thể hoàn tác.
               </DialogDescription>
             )}
           </DialogHeader>
@@ -483,11 +544,11 @@ export default function AccountManagement() {
                 <div className="space-y-2">
                   <Label>Họ và tên</Label>
                   <Input
-                    value={selectedUser.fullName}
+                    value={selectedUser.fullname || selectedUser.fullName || ""}
                     onChange={(e) =>
                       setSelectedUser({
                         ...selectedUser,
-                        fullName: e.target.value,
+                        fullname: e.target.value,
                       })
                     }
                     placeholder="Nhập họ và tên"
@@ -532,9 +593,9 @@ export default function AccountManagement() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="customer">Customer</SelectItem>
-                      <SelectItem value="staff">Staff</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="Customer">Customer</SelectItem>
+                      <SelectItem value="Staff">Staff</SelectItem>
+                      <SelectItem value="Admin">Admin</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -566,8 +627,13 @@ export default function AccountManagement() {
             <Button
               onClick={handleSaveUser}
               variant={dialogMode === "delete" ? "destructive" : "default"}
+              disabled={saving}
             >
-              {dialogMode === "delete" ? "Xóa" : "Lưu"}
+              {saving
+                ? "Đang xử lý..."
+                : dialogMode === "delete"
+                  ? "Xóa"
+                  : "Lưu"}
             </Button>
           </DialogFooter>
         </DialogContent>

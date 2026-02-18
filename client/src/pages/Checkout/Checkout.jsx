@@ -7,12 +7,15 @@ import {
   Smartphone,
   Building2,
   Package,
-  Calendar,
-  Info,
+  Tag,
+  X,
+  CheckCircle,
+  Loader2,
 } from "lucide-react";
 import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
 import { createOrder } from "../../services/orderService";
+import axiosInstance from "@/lib/axios";
 import { toast } from "sonner";
 
 export default function Checkout() {
@@ -33,13 +36,24 @@ export default function Checkout() {
     address: "",
     note: "",
   });
+  const [paymentMethod, setPaymentMethod] = useState("cod");
+  const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Auto-fill form từ user profile
+  // Voucher state
+  const [voucherCode, setVoucherCode] = useState("");
+  const [voucherLoading, setVoucherLoading] = useState(false);
+  const [voucherError, setVoucherError] = useState("");
+  const [appliedVoucher, setAppliedVoucher] = useState(null);
+  const [myVouchers, setMyVouchers] = useState([]);
+  const [myVouchersLoading, setMyVouchersLoading] = useState(false);
+  const [showVoucherList, setShowVoucherList] = useState(false);
+
   useEffect(() => {
     if (user) {
       setFormData((prev) => ({
         ...prev,
-        fullName: user.name || "",
+        fullName: user.name || user.fullname || user.fullName || "",
         phone: user.phone || "",
         email: user.email || "",
         address: user.address || "",
@@ -47,127 +61,174 @@ export default function Checkout() {
     }
   }, [user]);
 
-  const [paymentMethod, setPaymentMethod] = useState("cod");
-  const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  useEffect(() => {
+    const fetchMyVouchers = async () => {
+      if (!user) return;
+      try {
+        setMyVouchersLoading(true);
+        const res = await axiosInstance.get("/api/users/my-vouchers");
+        // API trả về { vouchers: [...] }, mỗi item: { voucherId: {...}, quantity }
+        const raw = res.data?.vouchers || res.data?.data || res.data || [];
+        const list = Array.isArray(raw) ? raw : [];
+        const flattened = list.map((item) =>
+          item.voucherId && typeof item.voucherId === "object"
+            ? { ...item.voucherId, quantity: item.quantity ?? 1 }
+            : item,
+        );
+        setMyVouchers(flattened);
+      } catch (err) {
+        console.error("Không thể tải danh sách voucher:", err);
+      } finally {
+        setMyVouchersLoading(false);
+      }
+    };
+    fetchMyVouchers();
+  }, [user]);
 
-  const formatVND = (price) => {
-    return new Intl.NumberFormat("vi-VN", {
+  const formatVND = (price) =>
+    new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
     }).format(price);
-  };
 
-  // Lấy các loại sản phẩm
   const regularItems = getRegularItems();
   const outOfStockItems = getPreOrdersByType("OUT_OF_STOCK").filter(
     (item) => item.paymentOption === "PAY_NOW",
   );
 
-  // Tính toán
   const subtotal = getTotalPayNow();
   const shipping = subtotal > 500000 ? 0 : 30000;
-  const total = subtotal + shipping;
+  const discountAmount = appliedVoucher
+    ? Math.round((subtotal * appliedVoucher.discountPercentage) / 100)
+    : 0;
+  const total = subtotal + shipping - discountAmount;
+
+  // ── Validate & apply voucher ──────────────────────────────────────────────
+  const handleApplyVoucher = async () => {
+    if (!voucherCode.trim()) {
+      setVoucherError("Vui lòng nhập mã voucher");
+      return;
+    }
+    try {
+      setVoucherLoading(true);
+      setVoucherError("");
+      const res = await axiosInstance.post("/api/voucher/validate", {
+        code: voucherCode.trim().toUpperCase(),
+        orderTotal: subtotal,
+      });
+      const voucher = res.data?.data || res.data;
+      setAppliedVoucher(voucher);
+      toast.success(
+        `Áp dụng voucher "${voucher.code}" thành công! Giảm ${voucher.discountPercentage}%`,
+      );
+    } catch (err) {
+      setVoucherError(
+        err.response?.data?.message ||
+          err.response?.data?.error ||
+          "Mã voucher không hợp lệ",
+      );
+      setAppliedVoucher(null);
+    } finally {
+      setVoucherLoading(false);
+    }
+  };
+
+  const handleRemoveVoucher = () => {
+    setAppliedVoucher(null);
+    setVoucherCode("");
+    setVoucherError("");
+  };
+
+  const handleSelectMyVoucher = async (voucher) => {
+    setShowVoucherList(false);
+    setVoucherCode(voucher.code);
+    setVoucherError("");
+    try {
+      setVoucherLoading(true);
+      const res = await axiosInstance.post("/api/voucher/validate", {
+        code: voucher.code,
+        orderTotal: subtotal,
+      });
+      const validated = res.data?.data || res.data;
+      setAppliedVoucher(validated);
+      toast.success(
+        `Áp dụng voucher "${validated.code}" thành công! Giảm ${validated.discountPercentage}%`,
+      );
+    } catch (err) {
+      setVoucherError(
+        err.response?.data?.message ||
+          err.response?.data?.error ||
+          "Mã voucher không hợp lệ",
+      );
+      setAppliedVoucher(null);
+    } finally {
+      setVoucherLoading(false);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
-    }
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const validateForm = () => {
     const newErrors = {};
-
-    if (!formData.fullName.trim()) {
+    if (!formData.fullName.trim())
       newErrors.fullName = "Vui lòng nhập họ và tên";
-    }
-
-    if (!formData.phone.trim()) {
-      newErrors.phone = "Vui lòng nhập số điện thoại";
-    } else if (!/^[0-9]{10}$/.test(formData.phone.replace(/\s/g, ""))) {
+    if (!formData.phone.trim()) newErrors.phone = "Vui lòng nhập số điện thoại";
+    else if (!/^[0-9]{10}$/.test(formData.phone.replace(/\s/g, "")))
       newErrors.phone = "Số điện thoại không hợp lệ";
-    }
-
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
       newErrors.email = "Email không hợp lệ";
-    }
-
-    if (!formData.address.trim()) {
+    if (!formData.address.trim())
       newErrors.address = "Vui lòng nhập địa chỉ giao hàng";
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!validateForm()) {
       toast.error("Vui lòng điền đầy đủ thông tin");
       return;
     }
-
     if (isSubmitting) return;
-
     setIsSubmitting(true);
-
     try {
-      // Chuẩn bị dữ liệu đơn hàng
       const orderData = {
         cartItems: cartItems.map((item) => ({
-          productId: item.id, // Backend expects "productId"
+          productId: item.id,
           quantity: item.quantity,
         })),
         shippingAddress: formData.address,
         phone: formData.phone,
         note: formData.note || "",
         paymentMethod: paymentMethod,
-        // voucherUsed: "", // TODO: Thêm voucher nếu có
-        // rewardPointsUsed: 0, // TODO: Thêm reward points nếu có
+        ...(appliedVoucher && {
+          voucherUsed:
+            appliedVoucher.voucherId || appliedVoucher._id || appliedVoucher.id,
+        }),
       };
-
-      console.log("Submitting order:", orderData);
-
-      // Gọi API tạo đơn hàng
       const response = await createOrder(orderData);
-
-      console.log("Order response:", response);
-
-      // Nếu có payUrl (MoMo/VNPay), redirect đến trang thanh toán
       if (response.payUrl) {
-        console.log("Redirecting to payment URL:", response.payUrl);
         window.location.href = response.payUrl;
         return;
       }
-
-      // Nếu COD, hiển thị thông báo thành công
       toast.success("Đặt hàng thành công!");
-
-      // Clear giỏ hàng
       clearCart();
-
-      // Chuyển đến trang track-order
-      setTimeout(() => {
-        navigate("/track-order");
-      }, 1500);
+      setTimeout(() => navigate("/track-order"), 1500);
     } catch (error) {
-      console.error("Checkout error:", error);
-
-      const errorMessage =
+      toast.error(
         error.message ||
-        error.error ||
-        "Có lỗi xảy ra khi đặt hàng. Vui lòng thử lại.";
-
-      toast.error(errorMessage);
+          error.error ||
+          "Có lỗi xảy ra khi đặt hàng. Vui lòng thử lại.",
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Kiểm tra nếu không có gì để thanh toán
   if (regularItems.length === 0 && outOfStockItems.length === 0) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -205,7 +266,6 @@ export default function Checkout() {
           <span className="text-gray-800 font-medium">Thanh toán</span>
         </div>
 
-        {/* Tiêu đề */}
         <h1 className="text-3xl font-bold text-gray-800 mb-2">Thanh toán</h1>
         <p className="text-gray-600 mb-8">
           {regularItems.length > 0 && `${regularItems.length} sản phẩm thường`}
@@ -223,9 +283,7 @@ export default function Checkout() {
                 <h2 className="text-xl font-bold text-gray-800 mb-6">
                   Thông tin giao hàng
                 </h2>
-
                 <div className="space-y-4">
-                  {/* Họ và tên */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Họ và tên <span className="text-red-500">*</span>
@@ -235,9 +293,7 @@ export default function Checkout() {
                       name="fullName"
                       value={formData.fullName}
                       onChange={handleInputChange}
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 ${
-                        errors.fullName ? "border-red-500" : "border-gray-300"
-                      }`}
+                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 ${errors.fullName ? "border-red-500" : "border-gray-300"}`}
                       placeholder="Nguyễn Văn A"
                     />
                     {errors.fullName && (
@@ -246,8 +302,6 @@ export default function Checkout() {
                       </p>
                     )}
                   </div>
-
-                  {/* Số điện thoại */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Số điện thoại <span className="text-red-500">*</span>
@@ -257,9 +311,7 @@ export default function Checkout() {
                       name="phone"
                       value={formData.phone}
                       onChange={handleInputChange}
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 ${
-                        errors.phone ? "border-red-500" : "border-gray-300"
-                      }`}
+                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 ${errors.phone ? "border-red-500" : "border-gray-300"}`}
                       placeholder="0912345678"
                     />
                     {errors.phone && (
@@ -268,8 +320,6 @@ export default function Checkout() {
                       </p>
                     )}
                   </div>
-
-                  {/* Email */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Email
@@ -279,9 +329,7 @@ export default function Checkout() {
                       name="email"
                       value={formData.email}
                       onChange={handleInputChange}
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 ${
-                        errors.email ? "border-red-500" : "border-gray-300"
-                      }`}
+                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 ${errors.email ? "border-red-500" : "border-gray-300"}`}
                       placeholder="example@email.com"
                     />
                     {errors.email && (
@@ -290,8 +338,6 @@ export default function Checkout() {
                       </p>
                     )}
                   </div>
-
-                  {/* Địa chỉ */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Địa chỉ giao hàng <span className="text-red-500">*</span>
@@ -301,9 +347,7 @@ export default function Checkout() {
                       value={formData.address}
                       onChange={handleInputChange}
                       rows="3"
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 ${
-                        errors.address ? "border-red-500" : "border-gray-300"
-                      }`}
+                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 ${errors.address ? "border-red-500" : "border-gray-300"}`}
                       placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố"
                     />
                     {errors.address && (
@@ -312,8 +356,6 @@ export default function Checkout() {
                       </p>
                     )}
                   </div>
-
-                  {/* Ghi chú */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Ghi chú đơn hàng (tùy chọn)
@@ -335,123 +377,58 @@ export default function Checkout() {
                 <h2 className="text-xl font-bold text-gray-800 mb-6">
                   Phương thức thanh toán
                 </h2>
-
                 <div className="space-y-3">
-                  {/* COD */}
-                  <label
-                    className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition ${
-                      paymentMethod === "cod"
-                        ? "border-pink-400 bg-pink-50"
-                        : "border-gray-200 hover:border-gray-300"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="cod"
-                      checked={paymentMethod === "cod"}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                      className="mt-1"
-                    />
-                    <div className="ml-3 flex-1">
-                      <div className="flex items-center gap-2">
-                        <Truck className="h-5 w-5 text-pink-500" />
-                        <span className="font-semibold text-gray-800">
-                          Thanh toán khi nhận hàng (COD)
-                        </span>
+                  {[
+                    {
+                      value: "cod",
+                      icon: <Truck className="h-5 w-5 text-pink-500" />,
+                      label: "Thanh toán khi nhận hàng (COD)",
+                      desc: "Thanh toán bằng tiền mặt khi nhận hàng",
+                    },
+                    {
+                      value: "vnpay",
+                      icon: <CreditCard className="h-5 w-5 text-pink-500" />,
+                      label: "VNPay",
+                      desc: "Thanh toán qua cổng VNPay",
+                    },
+                    {
+                      value: "momo",
+                      icon: <Smartphone className="h-5 w-5 text-pink-500" />,
+                      label: "Ví MoMo",
+                      desc: "Thanh toán qua ví điện tử MoMo",
+                    },
+                    {
+                      value: "bank",
+                      icon: <Building2 className="h-5 w-5 text-pink-500" />,
+                      label: "Chuyển khoản ngân hàng",
+                      desc: "Chuyển khoản trực tiếp",
+                    },
+                  ].map((method) => (
+                    <label
+                      key={method.value}
+                      className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition ${paymentMethod === method.value ? "border-pink-400 bg-pink-50" : "border-gray-200 hover:border-gray-300"}`}
+                    >
+                      <input
+                        type="radio"
+                        name="payment"
+                        value={method.value}
+                        checked={paymentMethod === method.value}
+                        onChange={(e) => setPaymentMethod(e.target.value)}
+                        className="mt-1"
+                      />
+                      <div className="ml-3 flex-1">
+                        <div className="flex items-center gap-2">
+                          {method.icon}
+                          <span className="font-semibold text-gray-800">
+                            {method.label}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {method.desc}
+                        </p>
                       </div>
-                      <p className="text-sm text-gray-600 mt-1">
-                        Thanh toán bằng tiền mặt khi nhận hàng
-                      </p>
-                    </div>
-                  </label>
-
-                  {/* VNPay */}
-                  <label
-                    className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition ${
-                      paymentMethod === "vnpay"
-                        ? "border-pink-400 bg-pink-50"
-                        : "border-gray-200 hover:border-gray-300"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="vnpay"
-                      checked={paymentMethod === "vnpay"}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                      className="mt-1"
-                    />
-                    <div className="ml-3 flex-1">
-                      <div className="flex items-center gap-2">
-                        <CreditCard className="h-5 w-5 text-pink-500" />
-                        <span className="font-semibold text-gray-800">
-                          VNPay
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 mt-1">
-                        Thanh toán qua cổng VNPay
-                      </p>
-                    </div>
-                  </label>
-
-                  {/* MoMo */}
-                  <label
-                    className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition ${
-                      paymentMethod === "momo"
-                        ? "border-pink-400 bg-pink-50"
-                        : "border-gray-200 hover:border-gray-300"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="momo"
-                      checked={paymentMethod === "momo"}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                      className="mt-1"
-                    />
-                    <div className="ml-3 flex-1">
-                      <div className="flex items-center gap-2">
-                        <Smartphone className="h-5 w-5 text-pink-500" />
-                        <span className="font-semibold text-gray-800">
-                          Ví MoMo
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 mt-1">
-                        Thanh toán qua ví điện tử MoMo
-                      </p>
-                    </div>
-                  </label>
-
-                  {/* Chuyển khoản */}
-                  <label
-                    className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition ${
-                      paymentMethod === "bank"
-                        ? "border-pink-400 bg-pink-50"
-                        : "border-gray-200 hover:border-gray-300"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="bank"
-                      checked={paymentMethod === "bank"}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                      className="mt-1"
-                    />
-                    <div className="ml-3 flex-1">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-5 w-5 text-pink-500" />
-                        <span className="font-semibold text-gray-800">
-                          Chuyển khoản ngân hàng
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 mt-1">
-                        Chuyển khoản trực tiếp
-                      </p>
-                    </div>
-                  </label>
+                    </label>
+                  ))}
                 </div>
               </div>
             </div>
@@ -465,7 +442,6 @@ export default function Checkout() {
 
                 {/* Danh sách sản phẩm */}
                 <div className="space-y-4 mb-6 max-h-80 overflow-y-auto">
-                  {/* Sản phẩm thường */}
                   {regularItems.length > 0 && (
                     <>
                       <div className="text-xs font-bold text-gray-500 uppercase tracking-wide">
@@ -486,19 +462,15 @@ export default function Checkout() {
                               x{item.quantity}
                             </p>
                           </div>
-                          <div className="text-right">
-                            <p className="text-sm font-bold text-pink-500">
-                              {formatVND(
-                                (item.sale_price || item.price) * item.quantity,
-                              )}
-                            </p>
-                          </div>
+                          <p className="text-sm font-bold text-pink-500">
+                            {formatVND(
+                              (item.sale_price || item.price) * item.quantity,
+                            )}
+                          </p>
                         </div>
                       ))}
                     </>
                   )}
-
-                  {/* Sản phẩm đặt trước (thanh toán ngay) */}
                   {outOfStockItems.length > 0 && (
                     <>
                       <div className="text-xs font-bold text-orange-600 uppercase tracking-wide flex items-center gap-1 mt-4">
@@ -523,16 +495,159 @@ export default function Checkout() {
                               x{item.quantity}
                             </p>
                           </div>
-                          <div className="text-right">
-                            <p className="text-sm font-bold text-orange-600">
-                              {formatVND(
-                                (item.sale_price || item.price) * item.quantity,
-                              )}
-                            </p>
-                          </div>
+                          <p className="text-sm font-bold text-orange-600">
+                            {formatVND(
+                              (item.sale_price || item.price) * item.quantity,
+                            )}
+                          </p>
                         </div>
                       ))}
                     </>
+                  )}
+                </div>
+
+                {/* ── Voucher Input ─────────────────────────────────────── */}
+                <div className="border-t border-gray-200 pt-4 mb-4">
+                  <p className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                    <Tag className="h-4 w-4 text-pink-500" />
+                    Mã giảm giá
+                  </p>
+
+                  {appliedVoucher ? (
+                    <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
+                        <div>
+                          <span className="font-mono font-bold text-green-700 text-sm">
+                            {appliedVoucher.code}
+                          </span>
+                          <p className="text-xs text-green-600">
+                            Giảm {appliedVoucher.discountPercentage}% → -
+                            {formatVND(discountAmount)}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRemoveVoucher}
+                        className="text-gray-400 hover:text-red-500 transition ml-2"
+                        title="Bỏ voucher"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={voucherCode}
+                          onChange={(e) => {
+                            setVoucherCode(e.target.value.toUpperCase());
+                            setVoucherError("");
+                          }}
+                          onKeyDown={(e) =>
+                            e.key === "Enter" &&
+                            (e.preventDefault(), handleApplyVoucher())
+                          }
+                          placeholder="Nhập mã voucher"
+                          className={`flex-1 px-3 py-2 border rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-pink-400 ${voucherError ? "border-red-400" : "border-gray-300"}`}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleApplyVoucher}
+                          disabled={voucherLoading || !voucherCode.trim()}
+                          className="px-4 py-2 bg-pink-500 text-white text-sm font-semibold rounded-lg hover:bg-pink-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                        >
+                          {voucherLoading ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            "Áp dụng"
+                          )}
+                        </button>
+                      </div>
+                      {voucherError && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {voucherError}
+                        </p>
+                      )}
+
+                      {/* Voucher của tôi */}
+                      {user && (
+                        <div className="mt-2">
+                          <button
+                            type="button"
+                            onClick={() => setShowVoucherList((v) => !v)}
+                            className="text-xs text-pink-600 hover:text-pink-700 font-semibold flex items-center gap-1 transition"
+                          >
+                            {myVouchersLoading ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Tag className="h-3 w-3" />
+                            )}
+                            {showVoucherList
+                              ? "Ẩn voucher của tôi"
+                              : `Voucher của tôi${myVouchers.length > 0 ? ` (${myVouchers.length})` : ""}`}
+                          </button>
+
+                          {showVoucherList && (
+                            <div className="mt-2 border border-gray-200 rounded-lg overflow-hidden">
+                              {myVouchersLoading ? (
+                                <div className="flex items-center justify-center py-4 text-gray-400">
+                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                  <span className="text-xs">Đang tải...</span>
+                                </div>
+                              ) : myVouchers.length === 0 ? (
+                                <p className="text-xs text-gray-400 text-center py-4">
+                                  Bạn chưa có voucher nào
+                                </p>
+                              ) : (
+                                <div className="max-h-48 overflow-y-auto divide-y divide-gray-100">
+                                  {myVouchers.map((v) => {
+                                    const isUsedUp =
+                                      v.quantity !== undefined &&
+                                      v.quantity <= 0;
+                                    return (
+                                      <button
+                                        key={v.code || v.id}
+                                        type="button"
+                                        disabled={isUsedUp}
+                                        onClick={() => handleSelectMyVoucher(v)}
+                                        className={`w-full flex items-center justify-between px-3 py-2 text-left transition ${
+                                          isUsedUp
+                                            ? "opacity-40 cursor-not-allowed bg-gray-50"
+                                            : "hover:bg-pink-50 cursor-pointer"
+                                        }`}
+                                      >
+                                        <div>
+                                          <span className="font-mono font-bold text-pink-600 text-sm">
+                                            {v.code}
+                                          </span>
+                                          <p className="text-xs text-gray-500">
+                                            Giảm {v.discountPercentage}%
+                                            {v.minOrderValue
+                                              ? ` • Đơn tối thiểu ${formatVND(v.minOrderValue)}`
+                                              : ""}
+                                            {v.quantity !== undefined
+                                              ? ` • Còn ${v.quantity} lượt`
+                                              : ""}
+                                          </p>
+                                        </div>
+                                        {!isUsedUp && (
+                                          <span className="text-xs text-pink-500 font-semibold shrink-0 ml-2">
+                                            Dùng
+                                          </span>
+                                        )}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
 
@@ -545,13 +660,21 @@ export default function Checkout() {
                   <div className="flex justify-between text-gray-600">
                     <span>Phí vận chuyển</span>
                     <span
-                      className={`font-semibold ${
-                        shipping === 0 ? "text-green-600" : ""
-                      }`}
+                      className={`font-semibold ${shipping === 0 ? "text-green-600" : ""}`}
                     >
                       {shipping === 0 ? "Miễn phí" : formatVND(shipping)}
                     </span>
                   </div>
+                  {appliedVoucher && (
+                    <div className="flex justify-between text-green-600">
+                      <span>
+                        Giảm giá ({appliedVoucher.discountPercentage}%)
+                      </span>
+                      <span className="font-semibold">
+                        -{formatVND(discountAmount)}
+                      </span>
+                    </div>
+                  )}
                   <div className="border-t border-gray-200 pt-3">
                     <div className="flex justify-between items-center">
                       <span className="text-lg font-bold text-gray-800">
@@ -568,11 +691,7 @@ export default function Checkout() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className={`w-full mt-6 py-3 rounded-lg font-semibold transition ${
-                    isSubmitting
-                      ? "bg-gray-400 cursor-not-allowed"
-                      : "bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:shadow-lg"
-                  }`}
+                  className={`w-full mt-6 py-3 rounded-lg font-semibold transition ${isSubmitting ? "bg-gray-400 cursor-not-allowed" : "bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:shadow-lg"}`}
                 >
                   {isSubmitting ? (
                     <span className="flex items-center justify-center">

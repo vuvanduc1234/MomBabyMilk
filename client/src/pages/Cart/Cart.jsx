@@ -98,9 +98,9 @@ export default function Cart() {
                   </h2>
                 </div>
                 <div className="space-y-4">
-                  {regularItems.map((item) => (
+                  {regularItems.map((item, idx) => (
                     <div
-                      key={item.id}
+                      key={item.id ?? item._id ?? `regular-${idx}`}
                       className="bg-white rounded-lg p-4 shadow-sm border border-gray-200"
                     >
                       <div className="flex gap-4">
@@ -173,9 +173,9 @@ export default function Cart() {
                   </h2>
                 </div>
                 <div className="space-y-4">
-                  {outOfStockItems.map((item) => (
+                  {outOfStockItems.map((item, idx) => (
                     <div
-                      key={item.id}
+                      key={item.id ?? item._id ?? `outofstock-${idx}`}
                       className="bg-white rounded-lg p-4 shadow-sm border-2 border-orange-200"
                     >
                       <div className="flex gap-4">
@@ -257,9 +257,9 @@ export default function Cart() {
                   </h2>
                 </div>
                 <div className="space-y-4">
-                  {comingSoonItems.map((item) => (
+                  {comingSoonItems.map((item, idx) => (
                     <div
-                      key={item.id}
+                      key={item.id ?? item._id ?? `comingsoon-${idx}`}
                       className="bg-white rounded-lg p-4 shadow-sm border-2 border-purple-200"
                     >
                       <div className="flex gap-4">

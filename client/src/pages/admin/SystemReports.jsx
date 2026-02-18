@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import axiosInstance from "@/lib/axios";
 import {
   FileText,
   Download,
@@ -166,6 +167,27 @@ const formatDateTime = (dateString) => {
 
 export default function SystemReports() {
   const [logs, setLogs] = useState(mockSystemLogs);
+  const [logsLoading, setLogsLoading] = useState(false);
+
+  // Try to fetch real logs from API; fall back to mock data if not available
+  useEffect(() => {
+    const fetchLogs = async () => {
+      try {
+        setLogsLoading(true);
+        const res = await axiosInstance.get("/api/logs");
+        const data = res.data?.data || res.data || [];
+        if (Array.isArray(data) && data.length > 0) {
+          setLogs(data);
+        }
+      } catch (err) {
+        // API not available yet — keep mock data
+        console.info("Logs API not available, using mock data.");
+      } finally {
+        setLogsLoading(false);
+      }
+    };
+    fetchLogs();
+  }, []);
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
