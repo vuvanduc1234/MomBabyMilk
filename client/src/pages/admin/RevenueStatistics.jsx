@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axiosInstance from "@/lib/axios";
 import {
   TrendingUp,
   TrendingDown,
@@ -107,7 +108,39 @@ const formatCompactPrice = (price) => {
 
 export default function RevenueStatistics() {
   const [timeRange, setTimeRange] = useState("year");
-  const [data] = useState(mockRevenueData);
+  const [data, setData] = useState(mockRevenueData);
+
+  // Fetch real order stats from API; fall back to mock if unavailable
+  useEffect(() => {
+    const fetchOrderStats = async () => {
+      try {
+        const res = await axiosInstance.get("/api/orders");
+        const orders = res.data?.data || res.data || [];
+        if (!Array.isArray(orders) || orders.length === 0) return;
+
+        const totalRevenue = orders.reduce(
+          (sum, o) => sum + (o.totalAmount || o.total || o.totalPrice || 0),
+          0,
+        );
+        const totalOrders = orders.length;
+        const avgOrderValue =
+          totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
+
+        setData((prev) => ({
+          ...prev,
+          current: {
+            ...prev.current,
+            total: totalRevenue || prev.current.total,
+            orders: totalOrders || prev.current.orders,
+            avgOrderValue: avgOrderValue || prev.current.avgOrderValue,
+          },
+        }));
+      } catch (err) {
+        console.info("Orders API not available, using mock revenue data.");
+      }
+    };
+    fetchOrderStats();
+  }, []);
 
   const handleExport = () => {
     console.log("Exporting revenue report...");

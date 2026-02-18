@@ -15,9 +15,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-
-// API Base URL
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
+import axiosInstance from "@/lib/axios";
 
 // Mock data - thay thế bằng API thực
 const mockDashboardData = {
@@ -163,6 +161,51 @@ export default function AdminDashboard() {
   const [vouchersLoading, setVouchersLoading] = useState(true);
   const [vouchersError, setVouchersError] = useState(null);
 
+  // Fetch real stats: users + orders
+  useEffect(() => {
+    const fetchDashboardStats = async () => {
+      try {
+        const [usersRes, ordersRes] = await Promise.allSettled([
+          axiosInstance.get("/api/users"),
+          axiosInstance.get("/api/orders"),
+        ]);
+
+        setData((prev) => {
+          const updated = { ...prev, stats: { ...prev.stats } };
+
+          if (usersRes.status === "fulfilled") {
+            const users =
+              usersRes.value.data?.data || usersRes.value.data || [];
+            const userList = Array.isArray(users) ? users : [];
+            updated.stats.totalUsers = userList.length;
+            updated.stats.activeUsers = userList.filter(
+              (u) => u.status === "active" || u.isActive === true,
+            ).length;
+          }
+
+          if (ordersRes.status === "fulfilled") {
+            const orders =
+              ordersRes.value.data?.data || ordersRes.value.data || [];
+            const orderList = Array.isArray(orders) ? orders : [];
+            updated.stats.totalOrders = orderList.length;
+            updated.stats.pendingOrders = orderList.filter(
+              (o) =>
+                o.status === "pending" ||
+                o.status === "Pending" ||
+                o.orderStatus === "pending",
+            ).length;
+          }
+
+          return updated;
+        });
+      } catch (err) {
+        console.error("Error fetching dashboard stats:", err);
+      }
+    };
+
+    fetchDashboardStats();
+  }, []);
+
   // Fetch vouchers from API
   useEffect(() => {
     const fetchVouchers = async () => {
@@ -170,88 +213,33 @@ export default function AdminDashboard() {
         setVouchersLoading(true);
         setVouchersError(null);
 
-        // Try multiple possible token storage keys
-        const token =
-          localStorage.getItem("token") ||
-          localStorage.getItem("authToken") ||
-          localStorage.getItem("accessToken") ||
-          localStorage.getItem("access_token") ||
-          sessionStorage.getItem("token") ||
-          sessionStorage.getItem("authToken");
+        const result = await axiosInstance.get("/api/voucher");
+        const voucherData =
+          result.data?.data || result.data?.vouchers || result.data || [];
 
-        console.log("🔍 Debug - Token found:", token ? "Yes" : "No");
-        console.log("🔍 Debug - LocalStorage keys:", Object.keys(localStorage));
-
-        // If no token, try without authentication first (some APIs allow public access)
-        const headers = {
-          "Content-Type": "application/json",
-        };
-
-        if (token) {
-          headers["Authorization"] = `Bearer ${token}`;
-        }
-
-        const response = await fetch(`${API_BASE}/api/voucher`, { headers });
-
-        if (!response.ok) {
-          if (response.status === 401) {
-            throw new Error(
-              "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
-            );
-          }
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        console.log("🔍 Debug - API response:", result);
-        console.log("🔍 Debug - First voucher:", result.data?.[0] || result[0]);
-
-        // Handle different response structures
-        const voucherData = result.data || result.vouchers || result;
-
-        // Filter active vouchers and sort by expiry date (soonest first)
         const allActiveVouchers = (
           Array.isArray(voucherData) ? voucherData : []
         )
           .filter((v) => v.isActive === true)
           .sort((a, b) => {
-            // If both have expiry dates, sort by soonest expiry
             if (a.expiryDate && b.expiryDate) {
               return new Date(a.expiryDate) - new Date(b.expiryDate);
             }
-            // If only one has expiry date, prioritize it
             if (a.expiryDate) return -1;
             if (b.expiryDate) return 1;
-            // Otherwise sort by creation date (newest first)
             return new Date(b.createdAt) - new Date(a.createdAt);
           });
 
-        console.log(
-          "🔍 Debug - Total active vouchers from API:",
-          allActiveVouchers.length,
-        );
-        console.log(
-          "🔍 Debug - All voucher codes:",
-          allActiveVouchers.map((v) => v.code),
-        );
-
-        // Show top 5 on dashboard (user can click "Xem tất cả" for more)
-        const topVouchers = allActiveVouchers.slice(0, 5);
-        setVouchers(topVouchers);
+        setVouchers(allActiveVouchers.slice(0, 5));
       } catch (error) {
         console.error("Error fetching vouchers:", error);
-        setVouchersError(error.message);
+        setVouchersError(error.response?.data?.message || error.message);
       } finally {
         setVouchersLoading(false);
       }
     };
 
     fetchVouchers();
-  }, []);
-
-  useEffect(() => {
-    // Fetch dashboard data from API
-    // fetchDashboardData();
   }, []);
 
   const StatCard = ({ title, value, change, icon: Icon, trend, linkTo }) => (

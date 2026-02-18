@@ -1,9 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
+import axiosInstance from "@/lib/axios";
 import {
   Plus,
   Tag,
   Search,
-  Download,
   MoreVertical,
   Edit,
   Trash2,
@@ -17,13 +17,15 @@ import {
   ChevronRight,
   Loader2,
   AlertCircle,
+  Shuffle,
+  UserPlus,
+  Users,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-
 import {
   Table,
   TableBody,
@@ -54,75 +56,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
-// ─── Mock voucher data ───────────────────────────────────────────────────────
-const mockVouchers = [
-  {
-    id: 1,
-    code: "WELCOME10",
-    discountPercentage: 10,
-    description: "Giảm 10% cho khách hàng mới",
-    expiryDate: "2026-03-31",
-    minOrderValue: 200000,
-    status: "active",
-    usageCount: 145,
-    createdAt: "2026-01-01T00:00:00Z",
-  },
-  {
-    id: 2,
-    code: "SUMMER20",
-    discountPercentage: 20,
-    description: "Khuyến mãi hè 2026",
-    expiryDate: "2026-08-31",
-    minOrderValue: 500000,
-    status: "active",
-    usageCount: 89,
-    createdAt: "2026-01-15T00:00:00Z",
-  },
-  {
-    id: 3,
-    code: "FLASH15",
-    discountPercentage: 15,
-    description: "Flash sale cuối tuần",
-    expiryDate: "2026-02-01",
-    minOrderValue: 300000,
-    status: "expired",
-    usageCount: 312,
-    createdAt: "2026-01-20T00:00:00Z",
-  },
-  {
-    id: 4,
-    code: "VIP30",
-    discountPercentage: 30,
-    description: "Ưu đãi khách hàng VIP",
-    expiryDate: "2026-12-31",
-    minOrderValue: 1000000,
-    status: "active",
-    usageCount: 23,
-    createdAt: "2026-01-10T00:00:00Z",
-  },
-  {
-    id: 5,
-    code: "BABY5",
-    discountPercentage: 5,
-    description: "Giảm 5% cho đơn hàng sữa bột",
-    expiryDate: "2026-04-30",
-    minOrderValue: 150000,
-    status: "inactive",
-    usageCount: 0,
-    createdAt: "2026-01-25T00:00:00Z",
-  },
-];
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-const formatDate = (dateString) => {
-  if (!dateString) return "-";
-
-  const date = new Date(dateString);
-
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const formatDate = (d) => {
+  if (!d) return "-";
+  const date = new Date(d);
   if (isNaN(date.getTime())) return "-";
-
   return new Intl.DateTimeFormat("vi-VN", {
     year: "numeric",
     month: "2-digit",
@@ -130,28 +69,11 @@ const formatDate = (dateString) => {
   }).format(date);
 };
 
-const formatPrice = (price) =>
-  new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-  }).format(price);
+const formatPrice = (p) =>
+  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
+    p,
+  );
 
-const statusConfig = {
-  active: {
-    label: "Đang hoạt động",
-    color: "bg-green-100 text-green-800",
-  },
-  inactive: {
-    label: "Tạm dừng",
-    color: "bg-gray-100 text-gray-700",
-  },
-  expired: {
-    label: "Hết hạn",
-    color: "bg-red-100 text-red-800",
-  },
-};
-
-// ─── Default form state ───────────────────────────────────────────────────────
 const defaultForm = {
   code: "",
   discountPercentage: "",
@@ -159,97 +81,133 @@ const defaultForm = {
   expiryDate: "",
   minOrderValue: "",
 };
+const defaultRandomForm = {
+  discountPercentage: 10,
+  description: "",
+  expiryDate: "",
+  minOrderValue: 0,
+  quantity: 1,
+};
 
-// ─── Component ───────────────────────────────────────────────────────────────
+// ─── Component ────────────────────────────────────────────────────────────────
 export default function VoucherManagement() {
+  // Data
   const [vouchers, setVouchers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Filters
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Dialog state
+  // Dialogs
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingVoucher, setEditingVoucher] = useState(null);
+  const [createRandomDialogOpen, setCreateRandomDialogOpen] = useState(false);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedVoucher, setSelectedVoucher] = useState(null);
 
-  // Form state
+  // Create form
   const [form, setForm] = useState(defaultForm);
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitResult, setSubmitResult] = useState(null); // { success, message }
+  const [submitResult, setSubmitResult] = useState(null);
+
+  // Random form
+  const [randomForm, setRandomForm] = useState(defaultRandomForm);
+
+  // Assign
+  const [assignVoucherCode, setAssignVoucherCode] = useState("");
+  const [assignMode, setAssignMode] = useState("user");
+  const [assignEmail, setAssignEmail] = useState("");
+  const [assignUserId, setAssignUserId] = useState("");
+  const [assignQuantity, setAssignQuantity] = useState(1);
+  const [usersList, setUsersList] = useState([]);
+  const [usersLoading, setUsersLoading] = useState(false);
 
   // Copy feedback
   const [copiedCode, setCopiedCode] = useState(null);
 
-  // ── Fetch vouchers from API ────────────────────────────────────────────────
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  const updateField = (field, value) => {
+    setForm((p) => ({ ...p, [field]: value }));
+    setFormErrors((p) => ({ ...p, [field]: "" }));
+  };
+
+  const getVoucherStatus = (v) => {
+    if (v.status === "inactive" || v.isActive === false) return "inactive";
+    if (v.expiryDate && new Date(v.expiryDate) <= new Date()) return "expired";
+    return "active";
+  };
+
+  const getStatusBadge = (v) => {
+    const s = getVoucherStatus(v);
+    if (s === "active")
+      return (
+        <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+          Đang hoạt động
+        </Badge>
+      );
+    if (s === "expired")
+      return (
+        <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
+          Hết hạn
+        </Badge>
+      );
+    return (
+      <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-100">
+        Tạm dừng
+      </Badge>
+    );
+  };
+
+  const normalizeVoucher = (v) => ({
+    id: v._id || v.id,
+    code: v.code,
+    discountPercentage: v.discountPercentage ?? v.discount ?? 0,
+    description: v.description || "",
+    expiryDate: v.expiryDate || v.expiry_date || "",
+    minOrderValue: v.minOrderValue ?? v.min_order_value ?? 0,
+    isActive: v.isActive,
+    status: v.status || (v.isActive ? "active" : "inactive"),
+    usageCount: v.usageCount ?? v.usage_count ?? 0,
+    createdAt: v.createdAt || v.created_at || "",
+  });
+
+  // ── API calls ──────────────────────────────────────────────────────────────
   const fetchVouchers = async () => {
     try {
       setLoading(true);
       setError(null);
-
-      const token =
-        localStorage.getItem("token") ||
-        localStorage.getItem("authToken") ||
-        localStorage.getItem("accessToken");
-
-      const headers = {
-        "Content-Type": "application/json",
-      };
-
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
-      const response = await fetch(`${API_BASE}/api/voucher`, { headers });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      const voucherData = result.data || result.vouchers || result;
-
-      // Map API data to match the expected format
-      const mappedVouchers = (
-        Array.isArray(voucherData) ? voucherData : []
-      ).map((v) => ({
-        id: v._id || v.id,
-        code: v.code,
-        discountPercentage: v.discountPercentage,
-        description: v.description,
-        expiryDate: v.expiryDate,
-        minOrderValue: v.minOrderValue || 0,
-        status: v.isActive ? "active" : "inactive",
-        usageCount: v.usageCount || 0,
-        createdAt: v.createdAt,
-        updatedAt: v.updatedAt,
-      }));
-
-      setVouchers(mappedVouchers);
+      const res = await axiosInstance.get("/api/voucher");
+      const list = Array.isArray(res.data)
+        ? res.data
+        : res.data?.data || res.data?.vouchers || [];
+      setVouchers(list.map(normalizeVoucher));
     } catch (err) {
-      console.error("Error fetching vouchers:", err);
-      setError(err.message);
+      setError(err.response?.data?.message || "Không thể tải voucher");
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch on mount
   useEffect(() => {
     fetchVouchers();
   }, []);
 
-  // ── Filtered & paginated ──────────────────────────────────────────────────
+  // ── Filter & paginate ──────────────────────────────────────────────────────
   const filteredVouchers = useMemo(() => {
     return vouchers.filter((v) => {
-      const matchesSearch =
+      const matchSearch =
         v.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
         v.description.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus = statusFilter === "all" || v.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      const matchStatus =
+        statusFilter === "all" || getVoucherStatus(v) === statusFilter;
+      return matchSearch && matchStatus;
     });
   }, [vouchers, searchQuery, statusFilter]);
 
@@ -259,168 +217,54 @@ export default function VoucherManagement() {
     currentPage * itemsPerPage,
   );
 
-  // ── Stats ─────────────────────────────────────────────────────────────────
   const stats = {
     total: vouchers.length,
-    active: vouchers.filter((v) => {
-      if (v.status !== "active") return false;
-      if (!v.expiryDate) return true;
-      return new Date(v.expiryDate) > new Date();
-    }).length,
-    expired: vouchers.filter((v) => {
-      if (v.status === "inactive") return false;
-      if (!v.expiryDate) return false;
-      return new Date(v.expiryDate) <= new Date();
-    }).length,
-    totalUsage: vouchers.reduce((sum, v) => sum + (v.usageCount || 0), 0),
+    active: vouchers.filter((v) => getVoucherStatus(v) === "active").length,
+    expired: vouchers.filter((v) => getVoucherStatus(v) === "expired").length,
+    totalUsage: vouchers.reduce((s, v) => s + (v.usageCount || 0), 0),
   };
 
-  // ── Validation ────────────────────────────────────────────────────────────
+  // ── Handlers ───────────────────────────────────────────────────────────────
+  const handleCopyCode = (code) => {
+    navigator.clipboard
+      .writeText(code)
+      .then(() => {
+        setCopiedCode(code);
+        setTimeout(() => setCopiedCode(null), 1500);
+      })
+      .catch(() => {});
+  };
+
   const validateForm = () => {
     const errors = {};
-
-    if (!form.code.trim()) {
-      errors.code = "Mã voucher không được để trống";
-    } else if (!/^[A-Z0-9_-]+$/.test(form.code.toUpperCase())) {
-      errors.code = "Mã chỉ được chứa chữ in hoa, số, dấu _ hoặc -";
-    } else if (
-      vouchers.some((v) => v.code.toUpperCase() === form.code.toUpperCase())
-    ) {
-      errors.code = "Mã voucher này đã tồn tại";
-    }
+    if (!form.code.trim()) errors.code = "Mã voucher không được để trống";
+    else if (!/^[A-Z0-9_-]+$/.test(form.code))
+      errors.code = "Chỉ dùng chữ in hoa, số, dấu _ hoặc -";
+    else if (vouchers.some((v) => v.code.toUpperCase() === form.code))
+      errors.code = "Mã này đã tồn tại";
 
     const pct = Number(form.discountPercentage);
-    if (!form.discountPercentage) {
+    if (!form.discountPercentage)
       errors.discountPercentage = "Vui lòng nhập % giảm giá";
-    } else if (isNaN(pct) || pct <= 0 || pct > 100) {
+    else if (isNaN(pct) || pct <= 0 || pct > 100)
       errors.discountPercentage = "% giảm giá phải từ 1 đến 100";
-    }
 
-    if (!form.description.trim()) {
-      errors.description = "Vui lòng nhập mô tả voucher";
-    }
+    if (!form.description.trim()) errors.description = "Vui lòng nhập mô tả";
 
-    if (!form.expiryDate) {
-      errors.expiryDate = "Vui lòng chọn ngày hết hạn";
-    } else if (new Date(form.expiryDate) <= new Date()) {
-      errors.expiryDate = "Ngày hết hạn phải sau ngày hôm nay";
-    }
+    if (!form.expiryDate) errors.expiryDate = "Vui lòng chọn ngày hết hạn";
+    else if (new Date(form.expiryDate) <= new Date())
+      errors.expiryDate = "Ngày hết hạn phải sau hôm nay";
 
     const minVal = Number(form.minOrderValue);
-    if (!form.minOrderValue) {
+    if (!form.minOrderValue)
       errors.minOrderValue = "Vui lòng nhập giá trị đơn tối thiểu";
-    } else if (isNaN(minVal) || minVal < 0) {
+    else if (isNaN(minVal) || minVal < 0)
       errors.minOrderValue = "Giá trị không hợp lệ";
-    }
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  // ── Create voucher via API ────────────────────────────────────────────────
-  const token = localStorage.getItem("accessToken");
-
-  const handleCreateVoucher = async () => {
-    if (!validateForm()) return;
-
-    const token = localStorage.getItem("accessToken");
-
-    setIsSubmitting(true);
-    setSubmitResult(null);
-
-    const payload = {
-      code: form.code.toUpperCase().trim(),
-      discountPercentage: Number(form.discountPercentage),
-      description: form.description.trim(),
-      expiryDate: form.expiryDate,
-      minOrderValue: Number(form.minOrderValue),
-    };
-
-    try {
-      const response = await fetch(`${API_BASE}/api/voucher/create-manual`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        setSubmitResult({
-          success: true,
-          message: `Voucher "${payload.code}" đã được tạo thành công!`,
-        });
-
-        // Refresh the voucher list
-        await fetchVouchers();
-
-        // Close dialog after 1.5s
-        setTimeout(() => {
-          setCreateDialogOpen(false);
-          setForm(defaultForm);
-          setSubmitResult(null);
-        }, 1500);
-      } else {
-        setSubmitResult({
-          success: false,
-          message: result?.message || "Tạo voucher thất bại",
-        });
-      }
-    } catch (err) {
-      setSubmitResult({
-        success: false,
-        message: "Lỗi kết nối server",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // ── Delete voucher ────────────────────────────────────────────────────────
-  const handleConfirmDelete = async () => {
-    try {
-      const token =
-        localStorage.getItem("token") ||
-        localStorage.getItem("authToken") ||
-        localStorage.getItem("accessToken");
-
-      const response = await fetch(
-        `${API_BASE}/api/voucher/${selectedVoucher.id}`,
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      if (response.ok) {
-        // Refresh the list
-        await fetchVouchers();
-        setDeleteDialogOpen(false);
-        setSelectedVoucher(null);
-      } else {
-        const result = await response.json();
-        alert(result?.message || "Không thể xóa voucher");
-      }
-    } catch (err) {
-      console.error("Error deleting voucher:", err);
-      alert("Lỗi kết nối server");
-    }
-  };
-
-  // ── Copy code ─────────────────────────────────────────────────────────────
-  const handleCopyCode = (code) => {
-    navigator.clipboard.writeText(code).catch(() => {});
-    setCopiedCode(code);
-    setTimeout(() => setCopiedCode(null), 2000);
-  };
-
-  // ── Open create dialog (reset form) ──────────────────────────────────────
   const openCreateDialog = () => {
     setForm(defaultForm);
     setFormErrors({});
@@ -428,15 +272,147 @@ export default function VoucherManagement() {
     setCreateDialogOpen(true);
   };
 
-  // ── Field updater ─────────────────────────────────────────────────────────
-  const updateField = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-    if (formErrors[field]) {
-      setFormErrors((prev) => ({ ...prev, [field]: undefined }));
+  const handleCreateVoucher = async () => {
+    if (!validateForm()) return;
+    setIsSubmitting(true);
+    setSubmitResult(null);
+    try {
+      await axiosInstance.post("/api/voucher/create-manual", {
+        code: form.code.trim(),
+        discountPercentage: Number(form.discountPercentage),
+        description: form.description.trim(),
+        expiryDate: form.expiryDate,
+        minOrderValue: Number(form.minOrderValue),
+      });
+      setSubmitResult({
+        success: true,
+        message: `Voucher "${form.code}" đã được tạo thành công!`,
+      });
+      await fetchVouchers();
+      setTimeout(() => {
+        setCreateDialogOpen(false);
+        setForm(defaultForm);
+        setSubmitResult(null);
+      }, 1500);
+    } catch (err) {
+      setSubmitResult({
+        success: false,
+        message: err.response?.data?.message || "Tạo voucher thất bại",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  // ─────────────────────────────────────────────────────────────────────────
+  const handleConfirmDelete = async () => {
+    try {
+      await axiosInstance.delete(`/api/voucher/${selectedVoucher.id}`);
+      await fetchVouchers();
+      setDeleteDialogOpen(false);
+      setSelectedVoucher(null);
+    } catch (err) {
+      alert(err.response?.data?.message || "Lỗi khi xóa voucher");
+    }
+  };
+
+  const handleUpdateVoucher = async () => {
+    if (!editingVoucher) return;
+    try {
+      await axiosInstance.put(`/api/voucher/${editingVoucher.id}`, {
+        discountPercentage: Number(editingVoucher.discountPercentage),
+        description: editingVoucher.description,
+        expiryDate: editingVoucher.expiryDate,
+        minOrderValue: Number(editingVoucher.minOrderValue),
+        status: editingVoucher.status,
+      });
+      await fetchVouchers();
+      setEditDialogOpen(false);
+      setEditingVoucher(null);
+    } catch (err) {
+      alert(err.response?.data?.message || "Không thể cập nhật voucher");
+    }
+  };
+
+  const handleCreateRandom = async () => {
+    try {
+      await axiosInstance.post("/api/voucher/create-random", {
+        discountPercentage: Number(randomForm.discountPercentage),
+        description: randomForm.description,
+        expiryDate: randomForm.expiryDate,
+        minOrderValue: Number(randomForm.minOrderValue),
+        quantity: Number(randomForm.quantity) || 1,
+      });
+      await fetchVouchers();
+      setCreateRandomDialogOpen(false);
+      setRandomForm(defaultRandomForm);
+    } catch (err) {
+      alert(err.response?.data?.message || "Không thể tạo voucher ngẫu nhiên");
+    }
+  };
+
+  const handleOpenAssignDialog = () => {
+    setAssignVoucherCode("");
+    setAssignEmail("");
+    setAssignUserId("");
+    setAssignQuantity(1);
+    setAssignMode("user");
+    // Load users list nếu chưa có
+    if (usersList.length === 0) {
+      setUsersLoading(true);
+      axiosInstance
+        .get("/api/users")
+        .then((res) => {
+          const users = res.data?.data || res.data || [];
+          setUsersList(Array.isArray(users) ? users : []);
+        })
+        .catch(() => {})
+        .finally(() => setUsersLoading(false));
+    }
+    setAssignDialogOpen(true);
+  };
+
+  // Backend yêu cầu: { voucherId, userId, quantity } hoặc { voucherId, quantity }
+  const handleAssignVoucher = async () => {
+    if (!assignVoucherCode.trim()) return alert("Vui lòng nhập mã voucher");
+    try {
+      // Bước 1: lấy voucherId từ code
+      const voucherRes = await axiosInstance.get(
+        `/api/voucher/${assignVoucherCode.trim().toUpperCase()}`,
+      );
+      const voucherId = voucherRes.data?.data?._id || voucherRes.data?._id;
+      if (!voucherId) return alert("Không tìm thấy voucher với mã này");
+
+      const qty = Number(assignQuantity) || 1;
+
+      if (assignMode === "all") {
+        await axiosInstance.post("/api/voucher/assign-to-all", {
+          voucherId,
+          quantity: qty,
+        });
+        alert("Đã gán voucher cho tất cả người dùng!");
+      } else {
+        if (!assignUserId) return alert("Vui lòng chọn người dùng");
+        await axiosInstance.post("/api/voucher/assign-to-user", {
+          voucherId,
+          userId: assignUserId,
+          quantity: qty,
+        });
+        const found = usersList.find((u) => (u._id || u.id) === assignUserId);
+        alert(
+          `Đã gán voucher cho ${found?.email || found?.fullname || "người dùng"}!`,
+        );
+      }
+      setAssignDialogOpen(false);
+      setAssignUserId("");
+      setAssignEmail("");
+      setAssignVoucherCode("");
+      setAssignQuantity(1);
+    } catch (err) {
+      alert(err.response?.data?.message || "Không thể gán voucher");
+    }
+  };
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -450,9 +426,16 @@ export default function VoucherManagement() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
-            <Download className="mr-2 h-4 w-4" />
-            Export
+          <Button variant="outline" onClick={handleOpenAssignDialog}>
+            <UserPlus className="mr-2 h-4 w-4" />
+            Gán voucher
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setCreateRandomDialogOpen(true)}
+          >
+            <Shuffle className="mr-2 h-4 w-4" />
+            Tạo ngẫu nhiên
           </Button>
           <Button onClick={openCreateDialog}>
             <Plus className="mr-2 h-4 w-4" />
@@ -463,56 +446,44 @@ export default function VoucherManagement() {
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-              Tổng voucher
-              <Tag className="h-4 w-4" />
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              Đang hoạt động
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {stats.active}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-              <XCircle className="h-4 w-4 text-red-500" />
-              Hết hạn
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-500">
-              {stats.expired}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-              <ShoppingBag className="h-4 w-4 text-pink-500" />
-              Tổng lượt dùng
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-pink-600">
-              {stats.totalUsage.toLocaleString()}
-            </div>
-          </CardContent>
-        </Card>
+        {[
+          {
+            label: "Tổng voucher",
+            value: stats.total,
+            icon: <Tag className="h-4 w-4" />,
+            color: "",
+          },
+          {
+            label: "Đang hoạt động",
+            value: stats.active,
+            icon: <CheckCircle className="h-4 w-4 text-green-600" />,
+            color: "text-green-600",
+          },
+          {
+            label: "Đã hết hạn",
+            value: stats.expired,
+            icon: <XCircle className="h-4 w-4 text-red-600" />,
+            color: "text-red-600",
+          },
+          {
+            label: "Tổng lượt dùng",
+            value: stats.totalUsage,
+            icon: <ShoppingBag className="h-4 w-4" />,
+            color: "",
+          },
+        ].map((s) => (
+          <Card key={s.label}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+                {s.label}
+                {s.icon}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* Filters */}
@@ -520,17 +491,26 @@ export default function VoucherManagement() {
         <CardContent className="pt-6">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Tìm kiếm mã voucher hoặc mô tả..."
+                placeholder="Tìm kiếm mã hoặc mô tả..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
                 className="pl-10"
               />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select
+              value={statusFilter}
+              onValueChange={(v) => {
+                setStatusFilter(v);
+                setCurrentPage(1);
+              }}
+            >
               <SelectTrigger className="w-full md:w-[200px]">
-                <SelectValue placeholder="Lọc trạng thái" />
+                <SelectValue placeholder="Lọc theo trạng thái" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tất cả trạng thái</SelectItem>
@@ -548,27 +528,21 @@ export default function VoucherManagement() {
         <CardContent className="p-0">
           {loading ? (
             <div className="flex items-center justify-center py-16">
-              <div className="flex flex-col items-center gap-3">
-                <Loader2 className="h-8 w-8 animate-spin text-pink-600" />
-                <p className="text-sm text-muted-foreground">
-                  Đang tải voucher...
-                </p>
-              </div>
+              <Loader2 className="h-8 w-8 animate-spin text-pink-500 mr-3" />
+              <span className="text-muted-foreground">Đang tải voucher...</span>
             </div>
           ) : error ? (
-            <div className="flex items-center justify-center py-16">
-              <div className="flex flex-col items-center gap-3 text-center">
-                <AlertCircle className="h-12 w-12 text-red-500" />
-                <div>
-                  <p className="text-sm font-medium text-red-600">
-                    Không thể tải voucher
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">{error}</p>
-                </div>
-                <Button variant="outline" size="sm" onClick={fetchVouchers}>
-                  Thử lại
-                </Button>
-              </div>
+            <div className="text-center py-16 text-red-600">
+              <AlertCircle className="h-10 w-10 mx-auto mb-3" />
+              <p className="font-medium">{error}</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchVouchers}
+                className="mt-4"
+              >
+                Thử lại
+              </Button>
             </div>
           ) : (
             <Table>
@@ -579,7 +553,7 @@ export default function VoucherManagement() {
                   <TableHead>Giảm giá</TableHead>
                   <TableHead>Đơn tối thiểu</TableHead>
                   <TableHead>Hết hạn</TableHead>
-                  <TableHead>Đã dùng</TableHead>
+                  <TableHead>Lượt dùng</TableHead>
                   <TableHead>Trạng thái</TableHead>
                   <TableHead className="text-right">Thao tác</TableHead>
                 </TableRow>
@@ -589,101 +563,94 @@ export default function VoucherManagement() {
                   <TableRow>
                     <TableCell
                       colSpan={8}
-                      className="text-center text-muted-foreground py-10"
+                      className="text-center py-10 text-muted-foreground"
                     >
-                      Không tìm thấy voucher nào
+                      Không tìm thấy voucher nào.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  paginatedVouchers.map((voucher) => {
-                    // Determine actual status
-                    let actualStatus = voucher.status;
-                    if (
-                      voucher.expiryDate &&
-                      new Date(voucher.expiryDate) <= new Date()
-                    ) {
-                      actualStatus = "expired";
-                    }
-                    const config = statusConfig[actualStatus];
-
-                    return (
-                      <TableRow key={voucher.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono font-semibold text-pink-700 bg-pink-50 px-2 py-0.5 rounded text-sm">
-                              {voucher.code}
-                            </span>
-                            <button
+                  paginatedVouchers.map((voucher) => (
+                    <TableRow key={voucher.id}>
+                      <TableCell>
+                        <span className="font-mono font-bold text-pink-600 bg-pink-50 px-2 py-1 rounded border border-pink-200">
+                          {voucher.code}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm line-clamp-1">
+                          {voucher.description || "—"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-semibold text-green-700">
+                          {voucher.discountPercentage}%
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm">
+                          {formatPrice(voucher.minOrderValue)}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm">
+                          {formatDate(voucher.expiryDate)}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm">
+                          {voucher.usageCount || 0}
+                        </span>
+                      </TableCell>
+                      <TableCell>{getStatusBadge(voucher)}</TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
                               onClick={() => handleCopyCode(voucher.code)}
-                              className="text-muted-foreground hover:text-foreground transition-colors"
-                              title="Copy mã"
                             >
                               {copiedCode === voucher.code ? (
-                                <CheckCircle className="h-3.5 w-3.5 text-green-600" />
+                                <>
+                                  <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
+                                  Đã copy!
+                                </>
                               ) : (
-                                <Copy className="h-3.5 w-3.5" />
+                                <>
+                                  <Copy className="mr-2 h-4 w-4" />
+                                  Copy mã
+                                </>
                               )}
-                            </button>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm">{voucher.description}</span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="font-semibold text-pink-600">
-                            {voucher.discountPercentage}%
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm">
-                            {formatPrice(voucher.minOrderValue)}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1 text-sm">
-                            <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                            {formatDate(voucher.expiryDate)}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm">
-                            {voucher.usageCount.toLocaleString()}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={config.color}>{config.label}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => handleCopyCode(voucher.code)}
-                              >
-                                <Copy className="mr-2 h-4 w-4" />
-                                Copy mã
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setSelectedVoucher(voucher);
-                                  setDeleteDialogOpen(true);
-                                }}
-                                className="text-red-600"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Xóa voucher
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setEditingVoucher({ ...voucher });
+                                setEditDialogOpen(true);
+                              }}
+                            >
+                              <Edit className="mr-2 h-4 w-4" />
+                              Chỉnh sửa
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedVoucher(voucher);
+                                setDeleteDialogOpen(true);
+                              }}
+                              className="text-red-600"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Xóa voucher
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
                 )}
               </TableBody>
             </Table>
@@ -694,13 +661,9 @@ export default function VoucherManagement() {
       {/* Pagination */}
       <div className="flex items-center justify-between">
         <div className="text-sm text-muted-foreground">
-          Hiển thị{" "}
-          {Math.min(
-            (currentPage - 1) * itemsPerPage + 1,
-            filteredVouchers.length,
-          )}{" "}
-          đến {Math.min(currentPage * itemsPerPage, filteredVouchers.length)}{" "}
-          trong tổng số {filteredVouchers.length} voucher
+          {filteredVouchers.length === 0
+            ? "Không có kết quả"
+            : `Hiển thị ${(currentPage - 1) * itemsPerPage + 1}–${Math.min(currentPage * itemsPerPage, filteredVouchers.length)} trong ${filteredVouchers.length} voucher`}
         </div>
         <div className="flex gap-2">
           <Button
@@ -722,7 +685,7 @@ export default function VoucherManagement() {
         </div>
       </div>
 
-      {/* ── Create Voucher Dialog ─────────────────────────────────────────── */}
+      {/* ── Dialog: Tạo voucher ───────────────────────────────────────────────── */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -735,14 +698,9 @@ export default function VoucherManagement() {
             </DialogDescription>
           </DialogHeader>
 
-          {/* Success / Error banner */}
           {submitResult && (
             <div
-              className={`flex items-center gap-2 p-3 rounded-md text-sm ${
-                submitResult.success
-                  ? "bg-green-50 text-green-800 border border-green-200"
-                  : "bg-red-50 text-red-800 border border-red-200"
-              }`}
+              className={`flex items-center gap-2 p-3 rounded-md text-sm ${submitResult.success ? "bg-green-50 text-green-800 border border-green-200" : "bg-red-50 text-red-800 border border-red-200"}`}
             >
               {submitResult.success ? (
                 <CheckCircle className="h-4 w-4 shrink-0" />
@@ -754,7 +712,6 @@ export default function VoucherManagement() {
           )}
 
           <div className="space-y-4 py-2">
-            {/* Code */}
             <div className="space-y-1.5">
               <Label htmlFor="code">
                 Mã voucher <span className="text-red-500">*</span>
@@ -766,7 +723,7 @@ export default function VoucherManagement() {
                 onChange={(e) =>
                   updateField("code", e.target.value.toUpperCase())
                 }
-                className={`font-mono uppercase ${formErrors.code ? "border-red-400 focus-visible:ring-red-400" : ""}`}
+                className={`font-mono uppercase ${formErrors.code ? "border-red-400" : ""}`}
               />
               {formErrors.code && (
                 <p className="text-xs text-red-500">{formErrors.code}</p>
@@ -776,15 +733,14 @@ export default function VoucherManagement() {
               </p>
             </div>
 
-            {/* Discount percentage */}
             <div className="space-y-1.5">
-              <Label htmlFor="discountPercentage">
+              <Label htmlFor="pct">
                 Phần trăm giảm giá (%) <span className="text-red-500">*</span>
               </Label>
               <div className="relative">
                 <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  id="discountPercentage"
+                  id="pct"
                   type="number"
                   min={1}
                   max={100}
@@ -793,7 +749,7 @@ export default function VoucherManagement() {
                   onChange={(e) =>
                     updateField("discountPercentage", e.target.value)
                   }
-                  className={`pl-9 ${formErrors.discountPercentage ? "border-red-400 focus-visible:ring-red-400" : ""}`}
+                  className={`pl-9 ${formErrors.discountPercentage ? "border-red-400" : ""}`}
                 />
               </div>
               {formErrors.discountPercentage && (
@@ -803,40 +759,34 @@ export default function VoucherManagement() {
               )}
             </div>
 
-            {/* Description */}
             <div className="space-y-1.5">
-              <Label htmlFor="description">
+              <Label htmlFor="desc">
                 Mô tả <span className="text-red-500">*</span>
               </Label>
               <Input
-                id="description"
+                id="desc"
                 placeholder="VD: Giảm 10% cho khách hàng mới"
                 value={form.description}
                 onChange={(e) => updateField("description", e.target.value)}
-                className={
-                  formErrors.description
-                    ? "border-red-400 focus-visible:ring-red-400"
-                    : ""
-                }
+                className={formErrors.description ? "border-red-400" : ""}
               />
               {formErrors.description && (
                 <p className="text-xs text-red-500">{formErrors.description}</p>
               )}
             </div>
 
-            {/* Expiry date */}
             <div className="space-y-1.5">
-              <Label htmlFor="expiryDate">
+              <Label htmlFor="expiry">
                 Ngày hết hạn <span className="text-red-500">*</span>
               </Label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  id="expiryDate"
+                  id="expiry"
                   type="date"
                   value={form.expiryDate}
                   onChange={(e) => updateField("expiryDate", e.target.value)}
-                  className={`pl-9 ${formErrors.expiryDate ? "border-red-400 focus-visible:ring-red-400" : ""}`}
+                  className={`pl-9 ${formErrors.expiryDate ? "border-red-400" : ""}`}
                 />
               </div>
               {formErrors.expiryDate && (
@@ -844,22 +794,21 @@ export default function VoucherManagement() {
               )}
             </div>
 
-            {/* Min order value */}
             <div className="space-y-1.5">
-              <Label htmlFor="minOrderValue">
-                Giá trị đơn hàng tối thiểu (VNĐ){" "}
+              <Label htmlFor="minOrder">
+                Giá trị đơn tối thiểu (VNĐ){" "}
                 <span className="text-red-500">*</span>
               </Label>
               <div className="relative">
                 <ShoppingBag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  id="minOrderValue"
+                  id="minOrder"
                   type="number"
                   min={0}
                   placeholder="200000"
                   value={form.minOrderValue}
                   onChange={(e) => updateField("minOrderValue", e.target.value)}
-                  className={`pl-9 ${formErrors.minOrderValue ? "border-red-400 focus-visible:ring-red-400" : ""}`}
+                  className={`pl-9 ${formErrors.minOrderValue ? "border-red-400" : ""}`}
                 />
               </div>
               {formErrors.minOrderValue && (
@@ -875,7 +824,6 @@ export default function VoucherManagement() {
             </div>
           </div>
 
-          {/* Preview */}
           {form.code && form.discountPercentage && (
             <div className="bg-pink-50 border border-pink-200 rounded-lg p-3 text-sm">
               <p className="font-medium text-pink-800 mb-1">Xem trước:</p>
@@ -922,7 +870,7 @@ export default function VoucherManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Delete Confirm Dialog ─────────────────────────────────────────── */}
+      {/* ── Dialog: Xóa voucher ───────────────────────────────────────────────── */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -945,6 +893,373 @@ export default function VoucherManagement() {
             <Button variant="destructive" onClick={handleConfirmDelete}>
               <Trash2 className="mr-2 h-4 w-4" />
               Xóa
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Dialog: Chỉnh sửa voucher ─────────────────────────────────────────── */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5 text-pink-600" />
+              Chỉnh sửa voucher
+            </DialogTitle>
+          </DialogHeader>
+          {editingVoucher && (
+            <div className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <Label>Mã voucher</Label>
+                <Input
+                  value={editingVoucher.code}
+                  disabled
+                  className="font-mono bg-gray-50"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Giảm giá (%)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={editingVoucher.discountPercentage}
+                  onChange={(e) =>
+                    setEditingVoucher((p) => ({
+                      ...p,
+                      discountPercentage: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Mô tả</Label>
+                <Input
+                  value={editingVoucher.description}
+                  onChange={(e) =>
+                    setEditingVoucher((p) => ({
+                      ...p,
+                      description: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Ngày hết hạn</Label>
+                <Input
+                  type="date"
+                  value={editingVoucher.expiryDate?.split("T")[0] || ""}
+                  onChange={(e) =>
+                    setEditingVoucher((p) => ({
+                      ...p,
+                      expiryDate: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Đơn tối thiểu (VNĐ)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={editingVoucher.minOrderValue}
+                  onChange={(e) =>
+                    setEditingVoucher((p) => ({
+                      ...p,
+                      minOrderValue: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Trạng thái</Label>
+                <Select
+                  value={editingVoucher.status}
+                  onValueChange={(v) =>
+                    setEditingVoucher((p) => ({ ...p, status: v }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Đang hoạt động</SelectItem>
+                    <SelectItem value="inactive">Tạm dừng</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              Hủy
+            </Button>
+            <Button onClick={handleUpdateVoucher}>Lưu thay đổi</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Dialog: Tạo voucher ngẫu nhiên ───────────────────────────────────── */}
+      <Dialog
+        open={createRandomDialogOpen}
+        onOpenChange={setCreateRandomDialogOpen}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shuffle className="h-5 w-5 text-pink-600" />
+              Tạo voucher mã ngẫu nhiên
+            </DialogTitle>
+            <DialogDescription>
+              Hệ thống sẽ tự động sinh mã voucher ngẫu nhiên.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>Số lượng</Label>
+              <Input
+                type="number"
+                min={1}
+                value={randomForm.quantity}
+                onChange={(e) =>
+                  setRandomForm((p) => ({ ...p, quantity: e.target.value }))
+                }
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Giảm giá (%)</Label>
+              <Input
+                type="number"
+                min={1}
+                max={100}
+                value={randomForm.discountPercentage}
+                onChange={(e) =>
+                  setRandomForm((p) => ({
+                    ...p,
+                    discountPercentage: e.target.value,
+                  }))
+                }
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Mô tả</Label>
+              <Input
+                value={randomForm.description}
+                onChange={(e) =>
+                  setRandomForm((p) => ({ ...p, description: e.target.value }))
+                }
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Ngày hết hạn</Label>
+              <Input
+                type="date"
+                value={randomForm.expiryDate}
+                onChange={(e) =>
+                  setRandomForm((p) => ({ ...p, expiryDate: e.target.value }))
+                }
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Đơn tối thiểu (VNĐ)</Label>
+              <Input
+                type="number"
+                min={0}
+                value={randomForm.minOrderValue}
+                onChange={(e) =>
+                  setRandomForm((p) => ({
+                    ...p,
+                    minOrderValue: e.target.value,
+                  }))
+                }
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setCreateRandomDialogOpen(false)}
+            >
+              Hủy
+            </Button>
+            <Button onClick={handleCreateRandom}>
+              <Shuffle className="mr-2 h-4 w-4" />
+              Tạo ngẫu nhiên
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Dialog: Gán voucher ───────────────────────────────────────────────── */}
+      <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-pink-600" />
+              Gán voucher cho người dùng
+            </DialogTitle>
+            <DialogDescription>
+              Nhập mã voucher và chọn đối tượng nhận.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {/* Mã voucher */}
+            <div className="space-y-1.5">
+              <Label>Mã voucher</Label>
+              <Select
+                value={assignVoucherCode}
+                onValueChange={setAssignVoucherCode}
+              >
+                <SelectTrigger className="font-mono">
+                  <SelectValue placeholder="Chọn voucher..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {vouchers.map((v) => (
+                    <SelectItem key={v.id} value={v.code}>
+                      <span className="font-mono font-bold">{v.code}</span>
+                      <span className="ml-2 text-muted-foreground text-xs">
+                        — {v.discountPercentage}%
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Số lượng */}
+            <div className="space-y-1.5">
+              <Label>Số lượng</Label>
+              <Input
+                type="number"
+                min={1}
+                value={assignQuantity}
+                onChange={(e) => setAssignQuantity(e.target.value)}
+                placeholder="1"
+              />
+            </div>
+
+            {/* Gán cho */}
+            <div className="space-y-1.5">
+              <Label>Gán cho</Label>
+              <Select
+                value={assignMode}
+                onValueChange={(v) => {
+                  setAssignMode(v);
+                  setAssignUserId("");
+                  setAssignEmail("");
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">Một người dùng</SelectItem>
+                  <SelectItem value="all">Tất cả người dùng</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Chọn user cụ thể */}
+            {assignMode === "user" && (
+              <div className="space-y-1.5">
+                <Label>Người dùng</Label>
+                {usersLoading ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Đang tải danh sách...
+                  </div>
+                ) : usersList.length > 0 ? (
+                  <>
+                    {/* Search filter */}
+                    <Input
+                      placeholder="Tìm theo email hoặc tên..."
+                      value={assignEmail}
+                      onChange={(e) => {
+                        setAssignEmail(e.target.value);
+                        setAssignUserId("");
+                      }}
+                      className="mb-1"
+                    />
+                    <Select
+                      value={assignUserId}
+                      onValueChange={setAssignUserId}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Chọn người dùng..." />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-48">
+                        {usersList
+                          .filter((u) => {
+                            if (!assignEmail) return true;
+                            const q = assignEmail.toLowerCase();
+                            return (
+                              u.email?.toLowerCase().includes(q) ||
+                              u.fullname?.toLowerCase().includes(q) ||
+                              u.fullName?.toLowerCase().includes(q)
+                            );
+                          })
+                          .map((u) => (
+                            <SelectItem
+                              key={u._id || u.id}
+                              value={u._id || u.id}
+                            >
+                              <div className="flex flex-col">
+                                <span className="font-medium">
+                                  {u.fullname || u.fullName || u.name || "—"}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {u.email}
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    {assignUserId && (
+                      <p className="text-xs text-green-600">
+                        ✓ Đã chọn:{" "}
+                        {
+                          usersList.find(
+                            (u) => (u._id || u.id) === assignUserId,
+                          )?.email
+                        }
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-xs text-orange-500">
+                    Không thể tải danh sách người dùng
+                  </p>
+                )}
+              </div>
+            )}
+
+            {assignMode === "all" && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-md text-sm text-amber-800">
+                ⚠️ Voucher sẽ được gán cho <strong>tất cả người dùng</strong>{" "}
+                trong hệ thống.
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setAssignDialogOpen(false)}
+            >
+              Hủy
+            </Button>
+            <Button onClick={handleAssignVoucher}>
+              {assignMode === "all" ? (
+                <>
+                  <Users className="mr-2 h-4 w-4" />
+                  Gán tất cả
+                </>
+              ) : (
+                <>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Gán voucher
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
