@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   ShoppingCart,
@@ -9,8 +9,14 @@ import {
   Shield,
   RotateCcw,
   Loader2,
+  Send,
+  Pencil,
+  Trash2,
+  X,
+  Check,
 } from "lucide-react";
 import { useCart } from "../../context/CartContext";
+import axiosInstance from "@/lib/axios";
 
 // API Configuration
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -31,6 +37,28 @@ export default function ProductDetail() {
   const [selectedImage, setSelectedImage] = useState(0);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [activeTab, setActiveTab] = useState("description");
+
+  // Comment states
+  const [comments, setComments] = useState([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [newComment, setNewComment] = useState({ rating: 5, content: "" });
+  const [submitting, setSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editContent, setEditContent] = useState({ rating: 5, content: "" });
+  const [commentError, setCommentError] = useState(null);
+
+  // Lấy userId từ JWT token (nếu có)
+  const getCurrentUserId = () => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) return null;
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      return payload?.id || payload?.userId || payload?._id || null;
+    } catch {
+      return null;
+    }
+  };
+  const currentUserId = getCurrentUserId();
 
   // Fetch product details from API
   useEffect(() => {
@@ -74,6 +102,95 @@ export default function ProductDetail() {
       fetchProductDetail();
     }
   }, [productId]);
+
+  // Fetch comments khi chuyển sang tab reviews
+  useEffect(() => {
+    if (activeTab === "reviews" && productId) {
+      fetchComments();
+    }
+  }, [activeTab, productId]);
+
+  const fetchComments = async () => {
+    // Backend không có GET /comments riêng, fetch lại product để lấy comments mới nhất
+    try {
+      setCommentsLoading(true);
+      setCommentError(null);
+      const token = localStorage.getItem("accessToken");
+      const response = await fetch(`${API_BASE}/api/product/${productId}`, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      });
+      if (!response.ok) throw new Error("fetch failed");
+      const json = await response.json();
+      const productData = json.data || json;
+      setComments(productData.comments || []);
+    } catch (err) {
+      setCommentError("Không thể tải đánh giá. Vui lòng thử lại.");
+    } finally {
+      setCommentsLoading(false);
+    }
+  };
+
+  const handleSubmitComment = async () => {
+    if (!newComment.content.trim()) return;
+    if (!localStorage.getItem("accessToken")) {
+      setCommentError("Bạn cần đăng nhập để gửi đánh giá.");
+      return;
+    }
+    try {
+      setSubmitting(true);
+      setCommentError(null);
+      const res = await axiosInstance.post(
+        `/api/product/${productId}/comments`,
+        {
+          rating: newComment.rating,
+          content: newComment.content.trim(),
+        },
+      );
+      const created = res.data.data || res.data;
+      setComments((prev) => [created, ...prev]);
+      setNewComment({ rating: 5, content: "" });
+    } catch (err) {
+      setCommentError(err.response?.data?.message || "Không thể gửi đánh giá.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleUpdateComment = async (commentId) => {
+    if (!editContent.content.trim()) return;
+    try {
+      setCommentError(null);
+      const res = await axiosInstance.put(
+        `/api/product/${productId}/comments/${commentId}`,
+        { rating: editContent.rating, content: editContent.content.trim() },
+      );
+      const updated = res.data.data || res.data;
+      setComments((prev) =>
+        prev.map((c) => (c._id === commentId ? { ...c, ...updated } : c)),
+      );
+      setEditingId(null);
+    } catch (err) {
+      setCommentError(
+        err.response?.data?.message || "Không thể cập nhật đánh giá.",
+      );
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    if (!window.confirm("Bạn có chắc muốn xóa đánh giá này?")) return;
+    try {
+      setCommentError(null);
+      await axiosInstance.delete(
+        `/api/product/${productId}/comments/${commentId}`,
+      );
+      setComments((prev) => prev.filter((c) => c._id !== commentId));
+    } catch (err) {
+      setCommentError(err.response?.data?.message || "Không thể xóa đánh giá.");
+    }
+  };
 
   // Loading state
   if (loading) {
@@ -227,25 +344,6 @@ export default function ProductDetail() {
               {product.name}
             </h1>
 
-            {/* Rating */}
-            <div className="flex items-center gap-4 mb-6">
-              <div className="flex gap-1">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className={`h-5 w-5 ${
-                      i < Math.floor(product.rating || 0)
-                        ? "fill-yellow-400 text-yellow-400"
-                        : "text-gray-300"
-                    }`}
-                  />
-                ))}
-              </div>
-              <span className="text-sm text-gray-600">
-                {product.rating || 0}/5 ({product.reviews || 0} đánh giá)
-              </span>
-            </div>
-
             {/* Giá */}
             <div className="mb-6 p-4 bg-pink-50 rounded-lg">
               <div className="flex items-baseline gap-3 mb-2">
@@ -315,21 +413,6 @@ export default function ProductDetail() {
                 >
                   <ShoppingCart className="h-5 w-5" />
                   {stock > 0 ? "Thêm vào giỏ" : "Hết hàng"}
-                </button>
-                <button
-                  onClick={() => setIsWishlisted(!isWishlisted)}
-                  className={`px-6 py-3 rounded-lg font-semibold border-2 transition ${
-                    isWishlisted
-                      ? "border-pink-500 text-pink-500 bg-pink-50"
-                      : "border-gray-300 text-gray-600 hover:border-pink-300"
-                  }`}
-                >
-                  <Heart
-                    className={`h-5 w-5 ${isWishlisted ? "fill-pink-500" : ""}`}
-                  />
-                </button>
-                <button className="px-6 py-3 rounded-lg border-2 border-gray-300 text-gray-600 hover:border-gray-400 transition">
-                  <Share2 className="h-5 w-5" />
                 </button>
               </div>
             </div>
@@ -500,11 +583,243 @@ export default function ProductDetail() {
             )}
 
             {activeTab === "reviews" && (
-              <div className="space-y-4">
-                <p className="text-gray-500 text-center py-8">
-                  Chưa có đánh giá nào cho sản phẩm này.
-                </p>
-                {/* TODO: Tích hợp API reviews sau */}
+              <div className="space-y-6">
+                {/* Error */}
+                {commentError && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-lg">
+                    {commentError}
+                  </div>
+                )}
+
+                {/* Form gửi đánh giá */}
+                {localStorage.getItem("accessToken") ? (
+                  <div className="bg-pink-50 border border-pink-100 rounded-xl p-5">
+                    <h3 className="font-bold text-gray-800 mb-4">
+                      Viết đánh giá của bạn
+                    </h3>
+                    {/* Chọn sao */}
+                    <div className="flex items-center gap-1 mb-3">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          onClick={() =>
+                            setNewComment((p) => ({ ...p, rating: star }))
+                          }
+                          className="focus:outline-none"
+                        >
+                          <Star
+                            className={`h-7 w-7 transition ${
+                              star <= newComment.rating
+                                ? "fill-yellow-400 text-yellow-400"
+                                : "text-gray-300 hover:text-yellow-300"
+                            }`}
+                          />
+                        </button>
+                      ))}
+                      <span className="ml-2 text-sm text-gray-500">
+                        {newComment.rating}/5
+                      </span>
+                    </div>
+                    <textarea
+                      rows={3}
+                      value={newComment.content}
+                      onChange={(e) =>
+                        setNewComment((p) => ({
+                          ...p,
+                          content: e.target.value,
+                        }))
+                      }
+                      placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm này..."
+                      className="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300 resize-none"
+                    />
+                    <button
+                      onClick={handleSubmitComment}
+                      disabled={submitting || !newComment.content.trim()}
+                      className="mt-3 flex items-center gap-2 px-5 py-2 bg-pink-500 hover:bg-pink-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition"
+                    >
+                      {submitting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                      {submitting ? "Đang gửi..." : "Gửi đánh giá"}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="text-center py-4 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                    <p className="text-gray-500 text-sm mb-2">
+                      Đăng nhập để gửi đánh giá
+                    </p>
+                    <Link
+                      to="/login"
+                      className="text-pink-600 font-semibold text-sm hover:underline"
+                    >
+                      Đăng nhập ngay →
+                    </Link>
+                  </div>
+                )}
+
+                {/* Danh sách đánh giá */}
+                {commentsLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-pink-400" />
+                  </div>
+                ) : comments.length === 0 ? (
+                  <p className="text-center text-gray-400 py-8">
+                    Chưa có đánh giá nào. Hãy là người đầu tiên!
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    <p className="text-sm text-gray-500 font-medium">
+                      {comments.length} đánh giá
+                    </p>
+                    {comments.map((comment) => {
+                      // Debug: log comment để xem structure
+                      console.log("comment:", comment);
+
+                      // Handle nhiều format userId có thể có từ backend
+                      const commentUserId =
+                        comment.userId?._id ||
+                        comment.userId ||
+                        comment.user?._id ||
+                        comment.user ||
+                        comment.author?._id ||
+                        comment.author;
+
+                      const isOwner =
+                        currentUserId &&
+                        commentUserId &&
+                        String(commentUserId) === String(currentUserId);
+
+                      const isEditing = editingId === comment._id;
+
+                      return (
+                        <div
+                          key={comment._id}
+                          className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm"
+                        >
+                          {/* Header */}
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <p className="font-semibold text-gray-800 text-sm">
+                                {comment.user?.name ||
+                                  comment.user?.username ||
+                                  comment.userName ||
+                                  comment.author?.name ||
+                                  comment.author?.username ||
+                                  "Người dùng"}
+                              </p>
+                              <div className="flex items-center gap-1 mt-0.5">
+                                {[1, 2, 3, 4, 5].map((s) => (
+                                  <Star
+                                    key={s}
+                                    className={`h-3.5 w-3.5 ${
+                                      s <= (comment.rating || 0)
+                                        ? "fill-yellow-400 text-yellow-400"
+                                        : "text-gray-200"
+                                    }`}
+                                  />
+                                ))}
+                                <span className="text-xs text-gray-400 ml-1">
+                                  {comment.createdAt
+                                    ? new Date(
+                                        comment.createdAt,
+                                      ).toLocaleDateString("vi-VN")
+                                    : ""}
+                                </span>
+                              </div>
+                            </div>
+                            {/* Nút edit/delete - chỉ hiện với chủ comment */}
+                            {isOwner && !isEditing && (
+                              <div className="flex gap-1">
+                                <button
+                                  onClick={() => {
+                                    setEditingId(comment._id);
+                                    setEditContent({
+                                      rating: comment.rating || 5,
+                                      content: comment.content || "",
+                                    });
+                                  }}
+                                  className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition"
+                                  title="Sửa"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handleDeleteComment(comment._id)
+                                  }
+                                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
+                                  title="Xóa"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Nội dung hoặc form edit */}
+                          {isEditing ? (
+                            <div className="mt-2 space-y-2">
+                              <div className="flex items-center gap-1">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <button
+                                    key={star}
+                                    onClick={() =>
+                                      setEditContent((p) => ({
+                                        ...p,
+                                        rating: star,
+                                      }))
+                                    }
+                                  >
+                                    <Star
+                                      className={`h-5 w-5 ${
+                                        star <= editContent.rating
+                                          ? "fill-yellow-400 text-yellow-400"
+                                          : "text-gray-300"
+                                      }`}
+                                    />
+                                  </button>
+                                ))}
+                              </div>
+                              <textarea
+                                rows={2}
+                                value={editContent.content}
+                                onChange={(e) =>
+                                  setEditContent((p) => ({
+                                    ...p,
+                                    content: e.target.value,
+                                  }))
+                                }
+                                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300 resize-none"
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() =>
+                                    handleUpdateComment(comment._id)
+                                  }
+                                  className="flex items-center gap-1 px-3 py-1.5 bg-pink-500 hover:bg-pink-600 text-white text-xs font-semibold rounded-lg transition"
+                                >
+                                  <Check className="h-3.5 w-3.5" /> Lưu
+                                </button>
+                                <button
+                                  onClick={() => setEditingId(null)}
+                                  className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-semibold rounded-lg transition"
+                                >
+                                  <X className="h-3.5 w-3.5" /> Hủy
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-gray-700 text-sm leading-relaxed mt-1">
+                              {comment.content}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>
