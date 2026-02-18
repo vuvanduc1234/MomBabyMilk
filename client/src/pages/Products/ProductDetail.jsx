@@ -142,16 +142,13 @@ export default function ProductDetail() {
     try {
       setSubmitting(true);
       setCommentError(null);
-      const res = await axiosInstance.post(
-        `/api/product/${productId}/comments`,
-        {
-          rating: newComment.rating,
-          content: newComment.content.trim(),
-        },
-      );
-      const created = res.data.data || res.data;
-      setComments((prev) => [created, ...prev]);
+      await axiosInstance.post(`/api/product/${productId}/comments`, {
+        rating: newComment.rating,
+        content: newComment.content.trim(),
+      });
       setNewComment({ rating: 5, content: "" });
+      // Reload lại từ product API để lấy comment đầy đủ (có createdAt, user info...)
+      await fetchComments();
     } catch (err) {
       setCommentError(err.response?.data?.message || "Không thể gửi đánh giá.");
     } finally {
@@ -300,7 +297,7 @@ export default function ProductDetail() {
               <img
                 src={finalImages[selectedImage]}
                 alt={product.name}
-                className="w-full h-96 object-cover"
+                className="w-full h-96 object-contain p-4"
                 onError={(e) => {
                   e.target.src =
                     "https://via.placeholder.com/800x600?text=Image+Not+Found";
@@ -322,7 +319,7 @@ export default function ProductDetail() {
                     <img
                       src={img}
                       alt={`View ${idx + 1}`}
-                      className="w-full h-20 object-cover"
+                      className="w-full h-20 object-contain p-1"
                       onError={(e) => {
                         e.target.src =
                           "https://via.placeholder.com/200x200?text=No+Image";
