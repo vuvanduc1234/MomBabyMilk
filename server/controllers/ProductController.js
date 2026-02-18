@@ -109,7 +109,9 @@ const viewProduct = async (req, res) => {
 const getProductsById = async (req, res) => {
   const { id } = req.params;
   try {
-    const product = await ProductModel.findById(id).populate("category brand");
+    const product = await ProductModel.findById(id)
+      .populate("category brand")
+      .populate("comments.author", "fullname");
     if (!product) {
       return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
     }
