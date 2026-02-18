@@ -140,9 +140,12 @@ export function ProductCard({ product }) {
         {/* Nội dung thông tin */}
         <div className="p-4 pb-5">
           {/* Thương hiệu */}
-          {product.brand && (
-            <p className="text-xs text-gray-500 mb-1.5">{product.brand.name}</p>
-          )}
+          {product.brand?.name &&
+            !/^[a-f0-9]{24}$/i.test(product.brand.name) && (
+              <p className="text-xs text-gray-500 mb-1.5">
+                {product.brand.name}
+              </p>
+            )}
 
           {/* Tên sản phẩm */}
           <h3 className="text-sm font-medium text-gray-800 line-clamp-2 mb-3 min-h-10 leading-tight">

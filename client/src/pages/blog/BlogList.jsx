@@ -7,9 +7,8 @@ export default function BlogList() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [sortBy, setSortBy] = useState("latest"); // latest, popular, oldest
+  const [sortBy, setSortBy] = useState("latest");
 
-  // Fetch all blogs
   useEffect(() => {
     fetchBlogs();
   }, [sortBy]);
@@ -20,17 +19,11 @@ export default function BlogList() {
       setError(null);
 
       let endpoint = "/api/blogs";
-
-      // Use different endpoint based on sort option
-      if (sortBy === "popular") {
-        endpoint = "/api/blogs/popular";
-      }
+      if (sortBy === "popular") endpoint = "/api/blogs/popular";
 
       const response = await axiosInstance.get(endpoint);
-
       let fetchedPosts = response.data.data || response.data;
 
-      // Sort posts if needed
       if (sortBy === "oldest") {
         fetchedPosts = [...fetchedPosts].reverse();
       }
@@ -44,11 +37,8 @@ export default function BlogList() {
     }
   };
 
-  const handleSortChange = (e) => {
-    setSortBy(e.target.value);
-  };
+  const handleSortChange = (e) => setSortBy(e.target.value);
 
-  // Get featured post (first post or one marked as featured)
   const featuredPost = posts.find((post) => post.featured) || posts[0];
   const regularPosts = posts.filter((post) => post._id !== featuredPost?._id);
 
@@ -141,21 +131,34 @@ export default function BlogList() {
               to={`/blog/${featuredPost._id}`}
               className="lg:col-span-2 group relative overflow-hidden rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-500"
             >
-              <div className="relative h-[500px] overflow-hidden">
-                <img
-                  src={
-                    featuredPost.image ||
-                    featuredPost.thumbnail ||
-                    "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=800&auto=format&fit=crop"
-                  }
-                  alt={featuredPost.title}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                  onError={(e) => {
-                    e.target.src =
-                      "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=800&auto=format&fit=crop";
-                  }}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+              <div className="relative h-[500px] overflow-hidden bg-gray-200">
+                {featuredPost.image || featuredPost.thumbnail ? (
+                  <>
+                    <img
+                      src={featuredPost.image || featuredPost.thumbnail}
+                      alt={featuredPost.title}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                  </>
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
+                    <svg
+                      className="w-16 h-16 mb-3"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                    <span className="text-sm">Không có ảnh</span>
+                  </div>
+                )}
                 <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
                   <span className="inline-block px-4 py-2 bg-pink-500 text-white text-xs font-bold rounded-full mb-4 uppercase tracking-wide">
                     {featuredPost.category || "BÀI VIẾT NỔI BẬT"}
@@ -184,21 +187,34 @@ export default function BlogList() {
                   to={`/blog/${post._id}`}
                   className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500"
                 >
-                  <div className="relative h-[242px] overflow-hidden">
-                    <img
-                      src={
-                        post.image ||
-                        post.thumbnail ||
-                        "https://images.unsplash.com/photo-1578496781379-7dcfb995293d?w=800&auto=format&fit=crop"
-                      }
-                      alt={post.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                      onError={(e) => {
-                        e.target.src =
-                          "https://images.unsplash.com/photo-1578496781379-7dcfb995293d?w=800&auto=format&fit=crop";
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                  <div className="relative h-[242px] overflow-hidden bg-gray-200">
+                    {post.image || post.thumbnail ? (
+                      <>
+                        <img
+                          src={post.image || post.thumbnail}
+                          alt={post.title}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                      </>
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
+                        <svg
+                          className="w-10 h-10 mb-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.5}
+                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                          />
+                        </svg>
+                        <span className="text-xs">Không có ảnh</span>
+                      </div>
+                    )}
                     <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
                       <span className="inline-block px-3 py-1 bg-pink-500 text-white text-[10px] font-bold rounded-full mb-3 uppercase tracking-wide">
                         {post.category || "BÀI VIẾT MỚI"}
@@ -226,21 +242,34 @@ export default function BlogList() {
               to={`/blog/${post._id}`}
               className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500"
             >
-              <div className="relative h-[320px] overflow-hidden">
-                <img
-                  src={
-                    post.image ||
-                    post.thumbnail ||
-                    "https://images.unsplash.com/photo-1609220136736-443848f681c4?w=800&auto=format&fit=crop"
-                  }
-                  alt={post.title}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                  onError={(e) => {
-                    e.target.src =
-                      "https://images.unsplash.com/photo-1609220136736-443848f681c4?w=800&auto=format&fit=crop";
-                  }}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+              <div className="relative h-[320px] overflow-hidden bg-gray-200">
+                {post.image || post.thumbnail ? (
+                  <>
+                    <img
+                      src={post.image || post.thumbnail}
+                      alt={post.title}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                  </>
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
+                    <svg
+                      className="w-12 h-12 mb-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                    <span className="text-sm">Không có ảnh</span>
+                  </div>
+                )}
                 <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
                   <span className="inline-block px-3 py-1 bg-pink-500 text-white text-[10px] font-bold rounded-full mb-3 uppercase tracking-wide">
                     {post.category || "BÀI VIẾT MỚI"}
@@ -262,19 +291,11 @@ export default function BlogList() {
         </div>
       </div>
 
-      {/* Custom Styles */}
-      <style jsx>{`
+      {/* Custom Styles — fixed: removed jsx prop */}
+      <style>{`
         @import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Open+Sans:wght@400;600&display=swap");
-
-        h1,
-        h2,
-        h3 {
-          font-family: "Montserrat", sans-serif;
-        }
-
-        body {
-          font-family: "Open Sans", sans-serif;
-        }
+        h1, h2, h3 { font-family: "Montserrat", sans-serif; }
+        body { font-family: "Open Sans", sans-serif; }
       `}</style>
     </div>
   );
