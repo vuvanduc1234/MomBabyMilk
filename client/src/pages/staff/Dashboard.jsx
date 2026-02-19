@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   ShoppingCart,
@@ -16,98 +16,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertTitle } from "@/components/ui/alert";
-
-// Mock data
-const mockStats = {
-  totalPendingOrders: 8,
-  totalConfirmedOrders: 15,
-  totalShippingOrders: 12,
-  lowStockProducts: [
-    {
-      id: 1,
-      name: "Similac Gain Plus 900g",
-      stock: 3,
-      image_url: "/placeholder.jpg",
-      slug: "similac-gain-plus-900g",
-    },
-    {
-      id: 2,
-      name: "Enfamil A+ 400g",
-      stock: 5,
-      image_url: "/placeholder.jpg",
-      slug: "enfamil-a-plus-400g",
-    },
-    {
-      id: 3,
-      name: "Abbott Grow Gold 1.7kg",
-      stock: 7,
-      image_url: "/placeholder.jpg",
-      slug: "abbott-grow-gold-1700g",
-    },
-    {
-      id: 4,
-      name: "Aptamil Essensis 800g",
-      stock: 4,
-      image_url: "/placeholder.jpg",
-      slug: "aptamil-essensis-800g",
-    },
-    {
-      id: 5,
-      name: "Meiji Infant Formula 800g",
-      stock: 6,
-      image_url: "/placeholder.jpg",
-      slug: "meiji-infant-formula-800g",
-    },
-  ],
-  pendingOrders: [
-    {
-      id: 1,
-      order_number: "ORD-2026-001",
-      customer_name: "Nguyễn Thị Lan",
-      total: 1250000,
-      created_at: "2026-01-28T08:30:00Z",
-      status: "pending",
-    },
-    {
-      id: 2,
-      order_number: "ORD-2026-002",
-      customer_name: "Trần Văn Minh",
-      total: 890000,
-      created_at: "2026-01-28T09:15:00Z",
-      status: "pending",
-    },
-    {
-      id: 3,
-      order_number: "ORD-2026-003",
-      customer_name: "Lê Thị Hương",
-      total: 2150000,
-      created_at: "2026-01-28T10:00:00Z",
-      status: "pending",
-    },
-    {
-      id: 4,
-      order_number: "ORD-2026-004",
-      customer_name: "Phạm Quốc Anh",
-      total: 650000,
-      created_at: "2026-01-28T10:45:00Z",
-      status: "pending",
-    },
-    {
-      id: 5,
-      order_number: "ORD-2026-005",
-      customer_name: "Hoàng Thị Mai",
-      total: 1780000,
-      created_at: "2026-01-28T11:20:00Z",
-      status: "pending",
-    },
-  ],
-  ordersByStatus: {
-    pending: 8,
-    confirmed: 15,
-    shipping: 12,
-  },
-};
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { toast } from "sonner";
+import { 
+  getDashboardStats, 
+  getLowStockProducts 
+} from "./orders/services/orderService";
 
 // Format price helper
 const formatPrice = (price) => {
@@ -138,8 +52,33 @@ const cardClasses = {
 };
 
 export default function StaffDashboard() {
-  const [isLoading] = useState(false);
-  const stats = mockStats;
+  const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState(null);
+  const [lowStockProducts, setLowStockProducts] = useState([]);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const [dashboardStats, lowStock] = await Promise.all([
+          getDashboardStats(),
+          getLowStockProducts(10),
+        ]);
+        setStats(dashboardStats);
+        setLowStockProducts(lowStock);
+      } catch (err) {
+        console.error('Failed to fetch dashboard data:', err);
+        setError(err.message || 'Không thể tải dữ liệu dashboard');
+        toast.error('Không thể tải dữ liệu dashboard');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -150,11 +89,13 @@ export default function StaffDashboard() {
         <p className="text-muted-foreground">Tổng quan công việc hàng ngày</p>
       </div>
 
-      {/* {CHƯA CÓ API} */}
-      <Alert variant="destructive">
-        <InfoIcon />
-        <AlertTitle>Chưa có API cho Products</AlertTitle>
-      </Alert>
+      {error && (
+        <Alert variant="destructive">
+          <InfoIcon className="h-4 w-4" />
+          <AlertTitle>Lỗi</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
       {/* Order Stats */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -166,9 +107,13 @@ export default function StaffDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={cardClasses.cardContent}>
-              {stats?.totalPendingOrders}
-            </div>
+            {isLoading ? (
+              <Skeleton className="h-10 w-16 mb-2" />
+            ) : (
+              <div className={cardClasses.cardContent}>
+                {stats?.totalPendingOrders || 0}
+              </div>
+            )}
             <p className="text-sm text-muted-foreground">đơn hàng cần xử lý</p>
           </CardContent>
         </Card>
@@ -181,9 +126,13 @@ export default function StaffDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={cardClasses.cardContent}>
-              {stats?.totalConfirmedOrders}
-            </div>
+            {isLoading ? (
+              <Skeleton className="h-10 w-16 mb-2" />
+            ) : (
+              <div className={cardClasses.cardContent}>
+                {stats?.totalConfirmedOrders || 0}
+              </div>
+            )}
             <p className="text-sm text-muted-foreground">đơn đã xác nhận</p>
           </CardContent>
         </Card>
@@ -196,9 +145,13 @@ export default function StaffDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={cardClasses.cardContent}>
-              {stats?.totalShippingOrders}
-            </div>
+            {isLoading ? (
+              <Skeleton className="h-10 w-16 mb-2" />
+            ) : (
+              <div className={cardClasses.cardContent}>
+                {stats?.totalShippingOrders || 0}
+              </div>
+            )}
             <p className="text-sm text-muted-foreground">đơn đang vận chuyển</p>
           </CardContent>
         </Card>
@@ -220,7 +173,22 @@ export default function StaffDashboard() {
             </Button>
           </CardHeader>
           <CardContent className="px-4">
-            {stats?.pendingOrders.length === 0 ? (
+            {isLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                    <div className="space-y-2 text-right">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-3 w-20" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : !stats?.pendingOrders || stats.pendingOrders.length === 0 ? (
               <p className="text-muted-foreground text-center py-4">
                 Không có đơn hàng chờ xử lý
               </p>
@@ -266,13 +234,25 @@ export default function StaffDashboard() {
             </Button>
           </CardHeader>
           <CardContent className="px-4">
-            {stats?.lowStockProducts.length === 0 ? (
+            {isLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="w-10 h-10 rounded" />
+                      <Skeleton className="h-4 w-32" />
+                    </div>
+                    <Skeleton className="h-6 w-16" />
+                  </div>
+                ))}
+              </div>
+            ) : !lowStockProducts || lowStockProducts.length === 0 ? (
               <p className="text-muted-foreground text-center py-4">
                 Không có sản phẩm sắp hết hàng
               </p>
             ) : (
               <div className="space-y-3">
-                {stats?.lowStockProducts.map((product) => (
+                {lowStockProducts.map((product) => (
                   <div
                     key={product.id}
                     className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"

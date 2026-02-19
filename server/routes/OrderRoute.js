@@ -89,6 +89,34 @@ router.get("/", authenticateToken, checkRole(["Admin", "Staff"]), getAllOrders);
 
 /**
  * @swagger
+ * /api/orders/pre-orders:
+ *   get:
+ *     summary: Get all orders with pre-order items (Staff/Admin only)
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: itemStatus
+ *         schema:
+ *           type: string
+ *           enum: [preorder_pending, preorder_ready]
+ *         description: Filter by item status (optional)
+ *     responses:
+ *       200:
+ *         description: List of pre-order orders
+ *       401:
+ *         description: Unauthorized
+ */
+router.get(
+  "/pre-orders",
+  authenticateToken,
+  checkRole(["Admin", "Staff"]),
+  getPreOrderOrders
+);
+
+/**
+ * @swagger
  * /api/orders/{id}:
  *   get:
  *     summary: Get order by ID
@@ -222,34 +250,6 @@ router.patch("/:id/cancel", authenticateToken, cancelOrder);
  *         description: Order not found
  */
 router.patch("/:id/confirm-delivery", authenticateToken, confirmDelivery);
-
-/**
- * @swagger
- * /api/orders/pre-orders:
- *   get:
- *     summary: Get all orders with pre-order items (Staff/Admin only)
- *     tags: [Orders]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: itemStatus
- *         schema:
- *           type: string
- *           enum: [preorder_pending, preorder_ready]
- *         description: Filter by item status (optional)
- *     responses:
- *       200:
- *         description: List of pre-order orders
- *       401:
- *         description: Unauthorized
- */
-router.get(
-  "/pre-orders",
-  authenticateToken,
-  checkRole(["Admin", "Staff"]),
-  getPreOrderOrders
-);
 
 /**
  * @swagger
