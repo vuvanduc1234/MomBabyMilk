@@ -32,6 +32,9 @@ const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/staff" },
   { icon: ShoppingCart, label: "Đơn hàng", href: "/staff/orders" },
   { icon: TicketPercent, label: "Voucher", href: "/staff/vouchers" },
+  { icon: Package, label: "Sản phẩm", href: "/staff/products" },
+  { icon: Tag, label: "Thương hiệu", href: "/staff/brands" },
+  { icon: List, label: "Danh mục", href: "/staff/categories" },
 ];
 
 // MobileSidebar component extracted to avoid re-creation on each render

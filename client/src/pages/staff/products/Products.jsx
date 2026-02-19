@@ -247,7 +247,6 @@ export default function StaffProducts() {
     stockFilter,
     minPrice,
     maxPrice,
-    activeFilter,
     search,
   ]);
 
@@ -264,17 +263,6 @@ export default function StaffProducts() {
       ),
     );
     setEditProduct(null);
-  };
-
-  const toggleActive = (id, is_active) => {
-    // TODO: Implement API call to toggle product active status
-    setProducts((prevProducts) =>
-      prevProducts.map((product) =>
-        product.id === id ? { ...product, is_active } : product,
-      ),
-    );
-    console.log("Đã cập nhật trạng thái");
-    toast.success(`Đã ${is_active ? "đăng hiển thị" : "ẩn"} sản phẩm`);
   };
 
   const totalPages = Math.ceil(filteredProducts.length / pageSize);
@@ -861,9 +849,6 @@ export default function StaffProducts() {
                           <TableHead className="bg-white">Độ tuổi</TableHead>
                           <TableHead className="bg-white">Khối lượng</TableHead>
                           <TableHead className="bg-white">Tồn kho</TableHead>
-                          <TableHead className="w-10 bg-white">
-                            Hiển thị
-                          </TableHead>
                           <TableHead className="text-right bg-white"></TableHead>
                         </TableRow>
                       </TableHeader>
@@ -933,14 +918,6 @@ export default function StaffProducts() {
                               >
                                 {product.quantity}
                               </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Switch
-                                checked={product.is_active !== false}
-                                onCheckedChange={(checked) =>
-                                  toggleActive(product.id, checked)
-                                }
-                              />
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">

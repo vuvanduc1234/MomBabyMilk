@@ -31,14 +31,14 @@ import { StaffLayout } from "./components/layouts/StaffLayout";
 import StaffDashboard from "./pages/staff/Dashboard";
 import StaffOrders from "./pages/staff/Orders";
 import StaffVouchers from "./pages/staff/VoucherManagement";
+import StaffProducts from "./pages/staff/products/Products";
+import StaffBrands from "./pages/staff/brands/Brands";
+import StaffCategories from "./pages/staff/categories/Categories";
 import { AdminLayout } from "./components/layouts/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AccountManagement from "./pages/admin/AccountManagement";
 import RevenueStatistics from "./pages/admin/RevenueStatistics";
 import SystemReports from "./pages/admin/SystemReports";
-import AdminProducts from "./pages/admin/products/Products";
-import AdminBrands from "./pages/admin/brands/Brands";
-import AdminCategories from "./pages/admin/categories/Categories";
 import { ProtectedRoute } from "./components/layouts/ProtectedRoute";
 import OrderTracking from "./pages/Orders/OrderTracking";
 
@@ -75,6 +75,9 @@ function App() {
               <Route index element={<StaffDashboard />} />
               <Route path="orders" element={<StaffOrders />} />
               <Route path="vouchers" element={<StaffVouchers />} />
+              <Route path="products" element={<StaffProducts />} />
+              <Route path="brands" element={<StaffBrands />} />
+              <Route path="categories" element={<StaffCategories />} />
             </Route>
 
             {/* Admin routes */}
@@ -89,9 +92,6 @@ function App() {
               <Route index element={<AdminDashboard />} />
               <Route path="accounts" element={<AccountManagement />} />
               <Route path="revenue" element={<RevenueStatistics />} />
-              <Route path="products" element={<AdminProducts />} />
-              <Route path="brands" element={<AdminBrands />} />
-              <Route path="categories" element={<AdminCategories />} />
               <Route path="reports" element={<SystemReports />} />
             </Route>
 
