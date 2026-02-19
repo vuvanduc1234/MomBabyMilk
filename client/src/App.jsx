@@ -29,7 +29,10 @@ import AccountPage from "./pages/Account";
 
 import { StaffLayout } from "./components/layouts/StaffLayout";
 import StaffDashboard from "./pages/staff/Dashboard";
-import StaffOrders from "./pages/staff/Orders";
+import StaffOrders from "./pages/staff/orders/Orders";
+import StaffPreOrders from "./pages/staff/PreOrders";
+import StaffInventory from "./pages/staff/Inventory";
+import StaffProfile from "./pages/staff/Profile";
 import StaffVouchers from "./pages/staff/VoucherManagement";
 import { AdminLayout } from "./components/layouts/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -74,6 +77,9 @@ function App() {
             >
               <Route index element={<StaffDashboard />} />
               <Route path="orders" element={<StaffOrders />} />
+              <Route path="preorders" element={<StaffPreOrders />} />
+              <Route path="inventory" element={<StaffInventory />} />
+              <Route path="profile" element={<StaffProfile />} />
               <Route path="vouchers" element={<StaffVouchers />} />
             </Route>
 
