@@ -31,26 +31,12 @@ import {
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/staff" },
   { icon: ShoppingCart, label: "Đơn hàng", href: "/staff/orders" },
-  { icon: Package, label: "Sản phẩm", href: "/staff/products" },
-  { icon: Tag, label: "Nhãn hiệu", href: "/staff/brands" },
-  { icon: List, label: "Danh mục", href: "/staff/categories" },
-  { icon: Users, label: "Khách hàng", href: "/staff/customers" },
   { icon: TicketPercent, label: "Voucher", href: "/staff/vouchers" },
-  { icon: MessageCircleWarning, label: "Khiếu nại", href: "/staff/complaints" },
 ];
 
-export function StaffLayout() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const { user, logout } = useAuth();
-
-  const handleLogout = async () => {
-    logout();
-    navigate("/auth/login");
-  };
-
-  const MobileSidebar = () => (
+// MobileSidebar component extracted to avoid re-creation on each render
+function MobileSidebar({ user, location, setMobileOpen, handleLogout }) {
+  return (
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="p-6">
@@ -117,6 +103,18 @@ export function StaffLayout() {
       </div>
     </div>
   );
+}
+
+export function StaffLayout() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    logout();
+    navigate("/auth/login");
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -205,7 +203,12 @@ export function StaffLayout() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="p-0 w-64">
-                <MobileSidebar />
+                <MobileSidebar
+                  user={user}
+                  location={location}
+                  setMobileOpen={setMobileOpen}
+                  handleLogout={handleLogout}
+                />
               </SheetContent>
             </Sheet>
           </div>

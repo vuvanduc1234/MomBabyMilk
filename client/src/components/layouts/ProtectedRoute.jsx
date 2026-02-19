@@ -5,11 +5,18 @@ import { useAuth } from "../../context/AuthContext";
  * ProtectedRoute component để bảo vệ các routes yêu cầu xác thực
  * @param {Object} props
  * @param {React.ReactNode} props.children - Component con cần được bảo vệ
- * @param {string[]} props.allowedRoles - Danh sách các vai trò được phép truy cập
+ * @param {string|string[]} props.allowedRoles - Vai trò hoặc danh sách vai trò được phép truy cập
  */
 export function ProtectedRoute({ children, allowedRoles = [] }) {
   const { isAuthenticated, user, loading } = useAuth();
   const location = useLocation();
+
+  // Normalize allowedRoles về array để tránh bug khi truyền string
+  const normalizedRoles = Array.isArray(allowedRoles)
+    ? allowedRoles
+    : allowedRoles
+      ? [allowedRoles]
+      : [];
 
   // Đang kiểm tra trạng thái đăng nhập
   if (loading) {
@@ -29,7 +36,7 @@ export function ProtectedRoute({ children, allowedRoles = [] }) {
   }
 
   // Kiểm tra quyền truy cập nếu có chỉ định allowedRoles
-  if (allowedRoles.length > 0) {
+  if (normalizedRoles.length > 0) {
     // Nếu chưa có user data nhưng đã authenticated, đợi load
     if (!user) {
       return (
@@ -44,9 +51,9 @@ export function ProtectedRoute({ children, allowedRoles = [] }) {
       );
     }
 
-    const userRole = user.role || "customer";
+    const userRole = user.role || "User";
 
-    if (!allowedRoles.includes(userRole)) {
+    if (!normalizedRoles.includes(userRole)) {
       // Không có quyền -> chuyển đến trang 403 hoặc trang chủ
       return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -97,29 +104,4 @@ export function ProtectedRoute({ children, allowedRoles = [] }) {
 
   // Đã đăng nhập và có quyền -> cho phép truy cập
   return children;
-}
-
-/**
- * Hook để kiểm tra quyền của người dùng hiện tại
- */
-export function usePermission() {
-  const { user } = useAuth();
-
-  const hasRole = (roles) => {
-    if (!user) return false;
-    const userRole = user.role || "customer";
-    return roles.includes(userRole);
-  };
-
-  const isAdmin = () => hasRole(["admin"]);
-  const isStaff = () => hasRole(["staff", "admin"]);
-  const isCustomer = () => hasRole(["customer", "staff", "admin"]);
-
-  return {
-    hasRole,
-    isAdmin,
-    isStaff,
-    isCustomer,
-    currentRole: user?.role || "customer",
-  };
 }
