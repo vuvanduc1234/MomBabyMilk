@@ -37,9 +37,8 @@ import Complaints from "./pages/staff/Complaints";
 import { AdminLayout } from "./components/layouts/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AccountManagement from "./pages/admin/AccountManagement";
-import RoleManagement from "./pages/admin/RoleManagement";
+
 import RevenueStatistics from "./pages/admin/RevenueStatistics";
-import SystemReports from "./pages/admin/SystemReports";
 import { ProtectedRoute } from "./components/layouts/ProtectedRoute";
 import OrderTracking from "./pages/Orders/OrderTracking";
 import VoucherManagement from "./pages/admin/Vouchermanagement";
@@ -64,7 +63,6 @@ function App() {
   return (
     <AuthProvider>
       <CartProvider>
-        {/* ❌ ĐÃ XÓA: <PreOrderProvider> */}
         <Router>
           <Routes>
             {/* Staff routes - separate layout */}
@@ -97,9 +95,8 @@ function App() {
             >
               <Route index element={<AdminDashboard />} />
               <Route path="accounts" element={<AccountManagement />} />
-              <Route path="roles" element={<RoleManagement />} />
+
               <Route path="revenue" element={<RevenueStatistics />} />
-              <Route path="reports" element={<SystemReports />} />
               <Route path="protect" element={<ProtectedRoute />} />
               <Route path="vouchers" element={<VoucherManagement />} />
             </Route>
@@ -124,7 +121,6 @@ function App() {
           </Routes>
           <Toaster position="bottom-right" richColors />
         </Router>
-        {/* ❌ ĐÃ XÓA: </PreOrderProvider> */}
       </CartProvider>
     </AuthProvider>
   );

@@ -34,20 +34,11 @@ const navigation = [
     href: "/admin/accounts",
     icon: Users,
   },
-  {
-    name: "Role Management",
-    href: "/admin/roles",
-    icon: ShieldCheck,
-  },
+
   {
     name: "Revenue Statistics",
     href: "/admin/revenue",
     icon: TrendingUp,
-  },
-  {
-    name: "System Reports",
-    href: "/admin/reports",
-    icon: FileBarChart,
   },
 ];
 
