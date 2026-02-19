@@ -27,7 +27,7 @@ const createComment = async (req, res) => {
     product.comments.push(newComment);
     await product.save();
 
-    await product.populate("comments.author", "email fullname");
+    await product.populate("comments.author", "fullname");
 
     return res.status(201).json(product);
   } catch (err) {
@@ -54,7 +54,7 @@ const updateComment = async (req, res) => {
     comment.rating = req.body.rating || comment.rating;
     comment.content = req.body.content || comment.content;
     await product.save();
-    await product.populate("comments.author", "email fullname");
+    await product.populate("comments.author", "fullname");
     res.json(comment);
   } catch (err) {
     res.status(500).json({ message: err.message });

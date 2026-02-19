@@ -124,7 +124,7 @@ export default function EditProductDialog({
       category: product?.category_id || "",
       brand: product?.brand_id || "",
       quantity: product?.quantity || 0,
-      imageUrl: "",
+      imageUrl: [],
       manufacture: product?.manufacture || "",
       expiry: product?.expiry || "",
       storageInstructions: product?.storageInstructions || "",
@@ -145,12 +145,11 @@ export default function EditProductDialog({
 
   // Set image preview from existing product
   useEffect(() => {
-    if (
-      product?.imageUrl &&
-      Array.isArray(product.imageUrl) &&
-      product.imageUrl[0]
-    ) {
-      setImagePreview(product.imageUrl[0]);
+    if (product?.imageUrl) {
+      const imageUrl = Array.isArray(product.imageUrl)
+        ? product.imageUrl[0]
+        : product.imageUrl;
+      setImagePreview(imageUrl);
     }
   }, [product]);
 
@@ -195,7 +194,7 @@ export default function EditProductDialog({
         const response = await uploadProductImage(file);
 
         if (response?.data?.imageUrl) {
-          formik.setFieldValue("imageUrl", response.data.imageUrl);
+          formik.setFieldValue("imageUrl", [response.data.imageUrl]);
           toast.success("Tải ảnh lên thành công!");
         }
       } catch (error) {
@@ -204,16 +203,15 @@ export default function EditProductDialog({
           error.message || "Không thể tải ảnh lên. Vui lòng thử lại.",
         );
         // Keep existing preview if upload fails
-        if (
-          product?.imageUrl &&
-          Array.isArray(product.imageUrl) &&
-          product.imageUrl[0]
-        ) {
-          setImagePreview(product.imageUrl[0]);
+        if (product?.imageUrl) {
+          const imageUrl = Array.isArray(product.imageUrl)
+            ? product.imageUrl[0]
+            : product.imageUrl;
+          setImagePreview(imageUrl);
         } else {
           setImagePreview(null);
         }
-        formik.setFieldValue("imageUrl", "");
+        formik.setFieldValue("imageUrl", []);
       } finally {
         setIsUploadingImage(false);
       }
@@ -240,8 +238,12 @@ export default function EditProductDialog({
       };
 
       // Only include imageUrl if a new image was uploaded
-      if (values.imageUrl && values.imageUrl !== product.imageUrl?.[0]) {
-        updateData.imageUrl = [values.imageUrl];
+      if (
+        values.imageUrl &&
+        values.imageUrl.length > 0 &&
+        JSON.stringify(values.imageUrl) !== JSON.stringify(product.imageUrl)
+      ) {
+        updateData.imageUrl = values.imageUrl;
       }
 
       // Add optional fields only if they have values
@@ -345,37 +347,6 @@ export default function EditProductDialog({
     }
   };
 
-  const handleCreateNewBrand = async () => {
-    if (!newBrand.name.trim()) {
-      toast.error("Tên thương hiệu không được để trống");
-      return;
-    }
-
-    const result = await onCreateBrand(newBrand);
-    if (result.success) {
-      formik.setFieldValue("brand", result.brand._id || result.brand.id);
-      setNewBrand({ name: "", description: "" });
-      setIsBrandDialogOpen(false);
-    }
-  };
-
-  const handleCreateNewCategory = async () => {
-    if (!newCategory.name.trim()) {
-      toast.error("Tên danh mục không được để trống");
-      return;
-    }
-
-    const result = await onCreateCategory(newCategory);
-    if (result.success) {
-      formik.setFieldValue(
-        "category",
-        result.category._id || result.category.id,
-      );
-      setNewCategory({ name: "", description: "" });
-      setIsCategoryDialogOpen(false);
-    }
-  };
-
   return (
     <>
       <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -434,7 +405,7 @@ export default function EditProductDialog({
                       size="small"
                       onClick={() => {
                         setImagePreview(null);
-                        formik.setFieldValue("imageUrl", "");
+                        formik.setFieldValue("imageUrl", []);
                       }}
                       type="button"
                       className="cursor-pointer"

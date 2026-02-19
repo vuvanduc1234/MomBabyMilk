@@ -172,6 +172,7 @@ export default function Categories() {
       toast.success("Tạo danh mục thành công");
       await fetchData();
       setIsNewCategoryDialogOpen(false);
+      console.log(response)
     } catch (error) {
       console.error("Error creating category:", error);
       toast.error(error.message || "Không thể tạo danh mục");
@@ -461,10 +462,6 @@ export default function Categories() {
                       )}
                     </div>
                     <div className="flex items-center gap-4">
-                      <p className="text-sm text-muted-foreground">
-                        Trang {page} / {totalPages} ({filteredCategories.length}{" "}
-                        danh mục)
-                      </p>
                       <div className="flex gap-2">
                         <Button
                           variant="outline"

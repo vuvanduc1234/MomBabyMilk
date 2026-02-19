@@ -56,102 +56,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-//Mock data
-const mockProducts = [
-  {
-    id: "1",
-    name: "Similac Gain Plus 900g",
-    description: "Sữa bột dành cho trẻ từ 1-3 tuổi",
-    price: 680000,
-    quantity: 45,
-    imageUrl: ["/placeholder.jpg"],
-    appropriateAge: "1-3 tuổi",
-    weight: 900,
-    manufacturer: "Abbott",
-    expiry: "2027-12-31",
-    manufacture: "2026-01-01",
-    instructionsForUse: "Pha 1 muỗng với 60ml nước ấm",
-    storageInstructions: "Nơi khô ráo thoáng mát",
-    warning: "Không dùng cho trẻ dị ứng đạm sữa bò",
-    category: { id: "1", name: "Sữa bột" },
-    brand: { id: "1", name: "Similac" },
-  },
-  {
-    id: "2",
-    name: "Enfamil A+ 400g",
-    description: "Sữa công thức cho trẻ sơ sinh",
-    price: 450000,
-    quantity: 5,
-    imageUrl: ["/placeholder.jpg"],
-    appropriateAge: "0-6 tháng",
-    weight: 400,
-    manufacturer: "Mead Johnson",
-    expiry: "2027-10-15",
-    manufacture: "2026-02-01",
-    instructionsForUse: "Pha 1 muỗng với 60ml nước ấm",
-    storageInstructions: "Nơi khô ráo thoáng mát",
-    warning: "Không dùng cho trẻ dị ứng đạm sữa bò",
-    category: { id: "1", name: "Sữa bột" },
-    brand: { id: "2", name: "Enfamil" },
-  },
-  {
-    id: "3",
-    name: "Abbott Grow Gold 1.7kg",
-    description: "Sữa bột dinh dưỡng cho trẻ 3-6 tuổi",
-    price: 850000,
-    quantity: 28,
-    imageUrl: ["/placeholder.jpg"],
-    appropriateAge: "3-6 tuổi",
-    weight: 1700,
-    manufacturer: "Abbott Laboratories",
-    expiry: "2027-11-20",
-    manufacture: "2026-01-15",
-    instructionsForUse: "Pha 2 muỗng với 120ml nước ấm",
-    storageInstructions: "Nơi khô ráo thoáng mát",
-    warning: "Không dùng cho trẻ dị ứng đạm sữa bò",
-    category: { id: "1", name: "Sữa bột" },
-    brand: { id: "3", name: "Abbott" },
-  },
-  {
-    id: "4",
-    name: "Aptamil Essensis 800g",
-    description: "Sữa công thức cao cấp từ Đức",
-    price: 520000,
-    sale_percentage: 10,
-    discount_end_datetime: "2026-02-14T23:59:59.000Z",
-    quantity: 4,
-    imageUrl: ["/placeholder.jpg"],
-    appropriateAge: "0-6 tháng",
-    weight: 800,
-    manufacturer: "Danone Nutricia",
-    expiry: "2027-09-30",
-    manufacture: "2026-01-20",
-    instructionsForUse: "Pha 1 muỗng với 60ml nước ấm",
-    storageInstructions: "Nơi khô ráo thoáng mát",
-    warning: "Không dùng cho trẻ dị ứng đạm sữa bò",
-    category: { id: "1", name: "Sữa bột" },
-    brand: { id: "4", name: "Aptamil" },
-  },
-  {
-    id: "5",
-    name: "Meiji Infant Formula 800g",
-    description: "Sữa công thức Nhật Bản cho trẻ 0-12 tháng",
-    price: 680000,
-    quantity: 18,
-    imageUrl: ["/placeholder.jpg"],
-    appropriateAge: "0-12 tháng",
-    weight: 800,
-    manufacturer: "Meiji Co., Ltd",
-    expiry: "2027-08-15",
-    manufacture: "2026-01-10",
-    instructionsForUse: "Pha 1 muỗng với 60ml nước ấm",
-    storageInstructions: "Nơi khô ráo thoáng mát",
-    warning: "Không dùng cho trẻ dị ứng đạm sữa bò",
-    category: { id: "1", name: "Sữa bột" },
-    brand: { id: "5", name: "Meiji" },
-  },
-];
-
 const fetchProducts = async () => {
   console.log("[fetchProducts] Fetching products from API...");
   try {
@@ -166,7 +70,7 @@ const fetchProducts = async () => {
       description: product.description || "",
       price: product.price,
       quantity: product.quantity || 0,
-      imageUrl: product.imageUrl || [],
+      imageUrl: product.imageUrl || "",
       category_id: product.category?._id || product.category || null,
       brand_id: product.brand?._id || product.brand || null,
       category: product.category || null,
@@ -343,7 +247,6 @@ export default function StaffProducts() {
     stockFilter,
     minPrice,
     maxPrice,
-    activeFilter,
     search,
   ]);
 
@@ -360,17 +263,6 @@ export default function StaffProducts() {
       ),
     );
     setEditProduct(null);
-  };
-
-  const toggleActive = (id, is_active) => {
-    // TODO: Implement API call to toggle product active status
-    setProducts((prevProducts) =>
-      prevProducts.map((product) =>
-        product.id === id ? { ...product, is_active } : product,
-      ),
-    );
-    console.log("Đã cập nhật trạng thái");
-    toast.success(`Đã ${is_active ? "đăng hiển thị" : "ẩn"} sản phẩm`);
   };
 
   const totalPages = Math.ceil(filteredProducts.length / pageSize);
@@ -459,7 +351,7 @@ export default function StaffProducts() {
         category: productValues.category,
         brand: productValues.brand,
         quantity: productValues.quantity,
-        imageUrl: [productValues.imageUrl], // Array of image URLs (ProductModel expects array)
+        imageUrl: productValues.imageUrl,
       };
 
       // Add optional fields only if they have values
@@ -521,7 +413,7 @@ export default function StaffProducts() {
         description: completeProduct.description || "",
         price: completeProduct.price,
         quantity: completeProduct.quantity || 0,
-        imageUrl: completeProduct.imageUrl || [],
+        imageUrl: completeProduct.imageUrl || "",
         category_id:
           completeProduct.category?._id || completeProduct.category || null,
         brand_id: completeProduct.brand?._id || completeProduct.brand || null,
@@ -662,8 +554,8 @@ export default function StaffProducts() {
                 <SelectContent>
                   <SelectGroup>
                     <SelectItem value="all">Tất cả</SelectItem>
-                    {(categories ?? []).map((cat, i) => (
-                      <SelectItem key={i} value={cat.id}>
+                    {(categories ?? []).map((cat) => (
+                      <SelectItem key={cat._id} value={cat._id}>
                         {cat.name}
                       </SelectItem>
                     ))}
@@ -682,8 +574,8 @@ export default function StaffProducts() {
                 <SelectContent>
                   <SelectGroup>
                     <SelectItem value="all">Tất cả</SelectItem>
-                    {(brands ?? []).map((brand, i) => (
-                      <SelectItem key={i} value={brand.id}>
+                    {(brands ?? []).map((brand) => (
+                      <SelectItem key={brand._id} value={brand._id}>
                         {brand.name}
                       </SelectItem>
                     ))}
@@ -914,10 +806,6 @@ export default function StaffProducts() {
                       )}
                     </div>
                     <div className="flex items-center gap-4">
-                      <p className="text-sm text-muted-foreground">
-                        Trang {page} / {totalPages} ({filteredProducts.length}{" "}
-                        sản phẩm)
-                      </p>
                       <div className="flex gap-2">
                         <Button
                           variant="outline"
@@ -961,9 +849,6 @@ export default function StaffProducts() {
                           <TableHead className="bg-white">Độ tuổi</TableHead>
                           <TableHead className="bg-white">Khối lượng</TableHead>
                           <TableHead className="bg-white">Tồn kho</TableHead>
-                          <TableHead className="w-10 bg-white">
-                            Hiển thị
-                          </TableHead>
                           <TableHead className="text-right bg-white"></TableHead>
                         </TableRow>
                       </TableHeader>
@@ -988,9 +873,9 @@ export default function StaffProducts() {
                               <div className="flex items-center gap-3">
                                 <img
                                   src={
-                                    (Array.isArray(product.imageUrl) &&
-                                      product.imageUrl[0]) ||
-                                    "/placeholder.svg"
+                                    (Array.isArray(product.imageUrl)
+                                      ? product.imageUrl[0]
+                                      : product.imageUrl) || "/placeholder.svg"
                                   }
                                   alt={product.name}
                                   className="w-12 h-12 rounded object-cover"
@@ -1033,14 +918,6 @@ export default function StaffProducts() {
                               >
                                 {product.quantity}
                               </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Switch
-                                checked={product.is_active !== false}
-                                onCheckedChange={(checked) =>
-                                  toggleActive(product.id, checked)
-                                }
-                              />
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">

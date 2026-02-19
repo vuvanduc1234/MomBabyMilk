@@ -21,6 +21,7 @@ import Login from "./pages/Auth/Login";
 import Register from "./pages/Auth/Register";
 import VerifyEmailOTP from "./pages/Auth/VerifyEmailOTP";
 import ForgotPassword from "./pages/Auth/ForgotPassword";
+import PaymentResult from "./pages/PaymentResult";
 import BlogList from "./pages/blog/BlogList";
 import BlogPost from "./pages/blog/BlogPost";
 
@@ -29,21 +30,16 @@ import AccountPage from "./pages/Account";
 import { StaffLayout } from "./components/layouts/StaffLayout";
 import StaffDashboard from "./pages/staff/Dashboard";
 import StaffOrders from "./pages/staff/Orders";
+import StaffVouchers from "./pages/staff/VoucherManagement";
 import StaffProducts from "./pages/staff/products/Products";
-import Articles from "./pages/staff/Articles";
-import Customers from "./pages/staff/Customers";
-import Vouchers from "./pages/staff/Vouchers";
-import Complaints from "./pages/staff/Complaints";
+import StaffBrands from "./pages/staff/brands/Brands";
+import StaffCategories from "./pages/staff/categories/Categories";
 import { AdminLayout } from "./components/layouts/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AccountManagement from "./pages/admin/AccountManagement";
-
 import RevenueStatistics from "./pages/admin/RevenueStatistics";
 import { ProtectedRoute } from "./components/layouts/ProtectedRoute";
 import OrderTracking from "./pages/Orders/OrderTracking";
-import VoucherManagement from "./pages/admin/Vouchermanagement";
-import Brands from "./pages/staff/brands/Brands";
-import Categories from "./pages/staff/categories/Categories";
 
 // Public Layout Component
 function PublicLayout() {
@@ -69,19 +65,17 @@ function App() {
             <Route
               path="/staff"
               element={
-                <ProtectedRoute allowedRoles={"Staff"}>
+                <ProtectedRoute allowedRoles={["Staff"]}>
                   <StaffLayout />
                 </ProtectedRoute>
               }
             >
               <Route index element={<StaffDashboard />} />
               <Route path="orders" element={<StaffOrders />} />
+              <Route path="vouchers" element={<StaffVouchers />} />
               <Route path="products" element={<StaffProducts />} />
-              <Route path="brands" element={<Brands />} />
-              <Route path="categories" element={<Categories />} />
-              <Route path="customers" element={<Customers />} />
-              <Route path="vouchers" element={<Vouchers />} />
-              <Route path="complaints" element={<Complaints />} />
+              <Route path="brands" element={<StaffBrands />} />
+              <Route path="categories" element={<StaffCategories />} />
             </Route>
 
             {/* Admin routes */}
@@ -95,10 +89,8 @@ function App() {
             >
               <Route index element={<AdminDashboard />} />
               <Route path="accounts" element={<AccountManagement />} />
-
               <Route path="revenue" element={<RevenueStatistics />} />
-              <Route path="protect" element={<ProtectedRoute />} />
-              <Route path="vouchers" element={<VoucherManagement />} />
+              <Route path="reports" element={<SystemReports />} />
             </Route>
 
             {/* Public routes - with Header/Footer */}
@@ -108,6 +100,7 @@ function App() {
               <Route path="/product/:slug" element={<ProductDetail />} />
               <Route path="/cart" element={<Cart />} />
               <Route path="/checkout" element={<Checkout />} />
+              <Route path="/payment-result" element={<PaymentResult />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/verify-email" element={<VerifyEmailOTP />} />
