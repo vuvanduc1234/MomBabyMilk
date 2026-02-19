@@ -56,101 +56,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-//Mock data
-const mockProducts = [
-  {
-    id: "1",
-    name: "Similac Gain Plus 900g",
-    description: "Sữa bột dành cho trẻ từ 1-3 tuổi",
-    price: 680000,
-    quantity: 45,
-    imageUrl: ["/placeholder.jpg"],
-    appropriateAge: "1-3 tuổi",
-    weight: 900,
-    manufacturer: "Abbott",
-    expiry: "2027-12-31",
-    manufacture: "2026-01-01",
-    instructionsForUse: "Pha 1 muỗng với 60ml nước ấm",
-    storageInstructions: "Nơi khô ráo thoáng mát",
-    warning: "Không dùng cho trẻ dị ứng đạm sữa bò",
-    category: { id: "1", name: "Sữa bột" },
-    brand: { id: "1", name: "Similac" },
-  },
-  {
-    id: "2",
-    name: "Enfamil A+ 400g",
-    description: "Sữa công thức cho trẻ sơ sinh",
-    price: 450000,
-    quantity: 5,
-    imageUrl: ["/placeholder.jpg"],
-    appropriateAge: "0-6 tháng",
-    weight: 400,
-    manufacturer: "Mead Johnson",
-    expiry: "2027-10-15",
-    manufacture: "2026-02-01",
-    instructionsForUse: "Pha 1 muỗng với 60ml nước ấm",
-    storageInstructions: "Nơi khô ráo thoáng mát",
-    warning: "Không dùng cho trẻ dị ứng đạm sữa bò",
-    category: { id: "1", name: "Sữa bột" },
-    brand: { id: "2", name: "Enfamil" },
-  },
-  {
-    id: "3",
-    name: "Abbott Grow Gold 1.7kg",
-    description: "Sữa bột dinh dưỡng cho trẻ 3-6 tuổi",
-    price: 850000,
-    quantity: 28,
-    imageUrl: ["/placeholder.jpg"],
-    appropriateAge: "3-6 tuổi",
-    weight: 1700,
-    manufacturer: "Abbott Laboratories",
-    expiry: "2027-11-20",
-    manufacture: "2026-01-15",
-    instructionsForUse: "Pha 2 muỗng với 120ml nước ấm",
-    storageInstructions: "Nơi khô ráo thoáng mát",
-    warning: "Không dùng cho trẻ dị ứng đạm sữa bò",
-    category: { id: "1", name: "Sữa bột" },
-    brand: { id: "3", name: "Abbott" },
-  },
-  {
-    id: "4",
-    name: "Aptamil Essensis 800g",
-    description: "Sữa công thức cao cấp từ Đức",
-    price: 520000,
-    sale_percentage: 10,
-    discount_end_datetime: "2026-02-14T23:59:59.000Z",
-    quantity: 4,
-    imageUrl: ["/placeholder.jpg"],
-    appropriateAge: "0-6 tháng",
-    weight: 800,
-    manufacturer: "Danone Nutricia",
-    expiry: "2027-09-30",
-    manufacture: "2026-01-20",
-    instructionsForUse: "Pha 1 muỗng với 60ml nước ấm",
-    storageInstructions: "Nơi khô ráo thoáng mát",
-    warning: "Không dùng cho trẻ dị ứng đạm sữa bò",
-    category: { id: "1", name: "Sữa bột" },
-    brand: { id: "4", name: "Aptamil" },
-  },
-  {
-    id: "5",
-    name: "Meiji Infant Formula 800g",
-    description: "Sữa công thức Nhật Bản cho trẻ 0-12 tháng",
-    price: 680000,
-    quantity: 18,
-    imageUrl: ["/placeholder.jpg"],
-    appropriateAge: "0-12 tháng",
-    weight: 800,
-    manufacturer: "Meiji Co., Ltd",
-    expiry: "2027-08-15",
-    manufacture: "2026-01-10",
-    instructionsForUse: "Pha 1 muỗng với 60ml nước ấm",
-    storageInstructions: "Nơi khô ráo thoáng mát",
-    warning: "Không dùng cho trẻ dị ứng đạm sữa bò",
-    category: { id: "1", name: "Sữa bột" },
-    brand: { id: "5", name: "Meiji" },
-  },
-];
+
 
 const fetchProducts = async () => {
   console.log("[fetchProducts] Fetching products from API...");
@@ -166,7 +72,7 @@ const fetchProducts = async () => {
       description: product.description || "",
       price: product.price,
       quantity: product.quantity || 0,
-      imageUrl: product.imageUrl || [],
+      imageUrl: product.imageUrl || "",
       category_id: product.category?._id || product.category || null,
       brand_id: product.brand?._id || product.brand || null,
       category: product.category || null,
@@ -459,7 +365,7 @@ export default function StaffProducts() {
         category: productValues.category,
         brand: productValues.brand,
         quantity: productValues.quantity,
-        imageUrl: [productValues.imageUrl], // Array of image URLs (ProductModel expects array)
+        imageUrl: productValues.imageUrl,
       };
 
       // Add optional fields only if they have values
@@ -521,7 +427,7 @@ export default function StaffProducts() {
         description: completeProduct.description || "",
         price: completeProduct.price,
         quantity: completeProduct.quantity || 0,
-        imageUrl: completeProduct.imageUrl || [],
+        imageUrl: completeProduct.imageUrl || "",
         category_id:
           completeProduct.category?._id || completeProduct.category || null,
         brand_id: completeProduct.brand?._id || completeProduct.brand || null,
@@ -988,9 +894,9 @@ export default function StaffProducts() {
                               <div className="flex items-center gap-3">
                                 <img
                                   src={
-                                    (Array.isArray(product.imageUrl) &&
-                                      product.imageUrl[0]) ||
-                                    "/placeholder.svg"
+                                    (Array.isArray(product.imageUrl)
+                                      ? product.imageUrl[0]
+                                      : product.imageUrl) || "/placeholder.svg"
                                   }
                                   alt={product.name}
                                   className="w-12 h-12 rounded object-cover"
