@@ -30,22 +30,17 @@ import AccountPage from "./pages/Account";
 import { StaffLayout } from "./components/layouts/StaffLayout";
 import StaffDashboard from "./pages/staff/Dashboard";
 import StaffOrders from "./pages/staff/Orders";
-import StaffProducts from "./pages/staff/products/Products";
-import Articles from "./pages/staff/Articles";
-import Customers from "./pages/staff/Customers";
-import Vouchers from "./pages/staff/Vouchers";
-import Complaints from "./pages/staff/Complaints";
+import StaffVouchers from "./pages/staff/VoucherManagement";
 import { AdminLayout } from "./components/layouts/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AccountManagement from "./pages/admin/AccountManagement";
-import RoleManagement from "./pages/admin/RoleManagement";
 import RevenueStatistics from "./pages/admin/RevenueStatistics";
 import SystemReports from "./pages/admin/SystemReports";
+import AdminProducts from "./pages/admin/products/Products";
+import AdminBrands from "./pages/admin/brands/Brands";
+import AdminCategories from "./pages/admin/categories/Categories";
 import { ProtectedRoute } from "./components/layouts/ProtectedRoute";
 import OrderTracking from "./pages/Orders/OrderTracking";
-import VoucherManagement from "./pages/admin/Vouchermanagement";
-import Brands from "./pages/staff/brands/Brands";
-import Categories from "./pages/staff/categories/Categories";
 
 // Public Layout Component
 function PublicLayout() {
@@ -72,19 +67,14 @@ function App() {
             <Route
               path="/staff"
               element={
-                <ProtectedRoute allowedRoles={"Staff"}>
+                <ProtectedRoute allowedRoles={["Staff"]}>
                   <StaffLayout />
                 </ProtectedRoute>
               }
             >
               <Route index element={<StaffDashboard />} />
               <Route path="orders" element={<StaffOrders />} />
-              <Route path="products" element={<StaffProducts />} />
-              <Route path="brands" element={<Brands />} />
-              <Route path="categories" element={<Categories />} />
-              <Route path="customers" element={<Customers />} />
-              <Route path="vouchers" element={<Vouchers />} />
-              <Route path="complaints" element={<Complaints />} />
+              <Route path="vouchers" element={<StaffVouchers />} />
             </Route>
 
             {/* Admin routes */}
@@ -98,11 +88,11 @@ function App() {
             >
               <Route index element={<AdminDashboard />} />
               <Route path="accounts" element={<AccountManagement />} />
-              <Route path="roles" element={<RoleManagement />} />
               <Route path="revenue" element={<RevenueStatistics />} />
+              <Route path="products" element={<AdminProducts />} />
+              <Route path="brands" element={<AdminBrands />} />
+              <Route path="categories" element={<AdminCategories />} />
               <Route path="reports" element={<SystemReports />} />
-              <Route path="protect" element={<ProtectedRoute />} />
-              <Route path="vouchers" element={<VoucherManagement />} />
             </Route>
 
             {/* Public routes - with Header/Footer */}

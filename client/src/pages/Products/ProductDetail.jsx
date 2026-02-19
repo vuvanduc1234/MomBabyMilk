@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useCallback } from "react";
+import { useParams, Link } from "react-router-dom";
 import {
   ShoppingCart,
   Heart,
@@ -27,7 +27,6 @@ export default function ProductDetail() {
   // Nên param này thực chất là MongoDB _id
   const { id, slug } = useParams();
   const productId = id || slug; // hỗ trợ cả route /product/:id và /product/:slug
-  const navigate = useNavigate();
   const { addToCart } = useCart();
   const { user: currentUser } = useAuth();
 
@@ -37,7 +36,6 @@ export default function ProductDetail() {
   const [error, setError] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [isWishlisted, setIsWishlisted] = useState(false);
   const [activeTab, setActiveTab] = useState("description");
 
   // Comment states
@@ -105,14 +103,7 @@ export default function ProductDetail() {
     }
   }, [productId]);
 
-  // Fetch comments khi chuyển sang tab reviews
-  useEffect(() => {
-    if (activeTab === "reviews" && productId) {
-      fetchComments();
-    }
-  }, [activeTab, productId]);
-
-  const fetchComments = async () => {
+  const fetchComments = useCallback(async () => {
     // Backend không có GET /comments riêng, fetch lại product để lấy comments mới nhất
     try {
       setCommentsLoading(true);
@@ -132,12 +123,19 @@ export default function ProductDetail() {
         console.log("[DEBUG] comment object:", fetchedComments[0]);
       }
       setComments(fetchedComments);
-    } catch (err) {
+    } catch {
       setCommentError("Không thể tải đánh giá. Vui lòng thử lại.");
     } finally {
       setCommentsLoading(false);
     }
-  };
+  }, [productId]);
+
+  // Fetch comments khi chuyển sang tab reviews
+  useEffect(() => {
+    if (activeTab === "reviews" && productId) {
+      fetchComments();
+    }
+  }, [activeTab, productId, fetchComments]);
 
   const handleSubmitComment = async () => {
     if (!newComment.content.trim()) return;
@@ -677,41 +675,19 @@ export default function ProductDetail() {
                       {comments.length} đánh giá
                     </p>
                     {comments.map((comment) => {
-                      // Debug: log comment để xem structure
-                      console.log("comment:", comment);
-
-                      // Handle nhiều format userId có thể có từ backend
+                      // Lấy ID của tác giả comment để xác định quyền sở hữu
                       const commentUserId =
-                        comment.userId?._id ||
-                        comment.userId ||
-                        comment.user?._id ||
-                        comment.user ||
-                        comment.author?._id ||
-                        comment.author;
+                        comment.author?._id || comment.author;
 
                       const isOwner =
                         currentUserId &&
                         commentUserId &&
                         String(commentUserId) === String(currentUserId);
 
-                      // Lấy tên người comment: ưu tiên data từ backend, fallback về currentUser nếu là comment của mình
+                      // Tên người comment: backend populate author.fullname, fallback về currentUser.name
                       const commenterName =
-                        comment.user?.fullname ||
-                        comment.user?.fullName ||
-                        comment.user?.name ||
-                        comment.user?.username ||
-                        comment.userId?.fullname ||
-                        comment.userId?.fullName ||
-                        comment.userId?.name ||
-                        comment.userName ||
                         comment.author?.fullname ||
-                        comment.author?.name ||
-                        (isOwner
-                          ? currentUser?.fullname ||
-                            currentUser?.fullName ||
-                            currentUser?.name ||
-                            currentUser?.username
-                          : null) ||
+                        currentUser?.name ||
                         "Người dùng";
 
                       const isEditing = editingId === comment._id;

@@ -98,11 +98,7 @@ export default function Brands() {
     fetchData();
   }, []);
 
-  // Calculate stats
-  const stats = useMemo(() => {
-    const totalBrands = brands.length;
-    return { totalBrands };
-  }, [brands]);
+
 
   // Filter brands
   const filteredBrands = useMemo(() => {
@@ -410,10 +406,6 @@ export default function Brands() {
                     )}
                   </div>
                   <div className="flex items-center gap-4">
-                    <p className="text-sm text-muted-foreground">
-                      Trang {page} / {totalPages} ({filteredBrands.length}{" "}
-                      thương hiệu)
-                    </p>
                     <div className="flex gap-2">
                       <Button
                         variant="outline"

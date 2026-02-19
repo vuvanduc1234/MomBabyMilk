@@ -11,6 +11,9 @@ import {
   LogOut,
   ChevronDown,
   Settings,
+  Package,
+  Tag,
+  List,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -35,14 +38,24 @@ const navigation = [
     icon: Users,
   },
   {
-    name: "Role Management",
-    href: "/admin/roles",
-    icon: ShieldCheck,
-  },
-  {
     name: "Revenue Statistics",
     href: "/admin/revenue",
     icon: TrendingUp,
+  },
+  {
+    name: "Products",
+    href: "/admin/products",
+    icon: Package,
+  },
+  {
+    name: "Brands",
+    href: "/admin/brands",
+    icon: Tag,
+  },
+  {
+    name: "Categories",
+    href: "/admin/categories",
+    icon: List,
   },
   {
     name: "System Reports",

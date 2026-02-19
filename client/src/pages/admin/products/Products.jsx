@@ -56,8 +56,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-
-
 const fetchProducts = async () => {
   console.log("[fetchProducts] Fetching products from API...");
   try {
@@ -568,8 +566,8 @@ export default function StaffProducts() {
                 <SelectContent>
                   <SelectGroup>
                     <SelectItem value="all">Tất cả</SelectItem>
-                    {(categories ?? []).map((cat, i) => (
-                      <SelectItem key={i} value={cat.id}>
+                    {(categories ?? []).map((cat) => (
+                      <SelectItem key={cat._id} value={cat._id}>
                         {cat.name}
                       </SelectItem>
                     ))}
@@ -588,8 +586,8 @@ export default function StaffProducts() {
                 <SelectContent>
                   <SelectGroup>
                     <SelectItem value="all">Tất cả</SelectItem>
-                    {(brands ?? []).map((brand, i) => (
-                      <SelectItem key={i} value={brand.id}>
+                    {(brands ?? []).map((brand) => (
+                      <SelectItem key={brand._id} value={brand._id}>
                         {brand.name}
                       </SelectItem>
                     ))}
@@ -820,10 +818,6 @@ export default function StaffProducts() {
                       )}
                     </div>
                     <div className="flex items-center gap-4">
-                      <p className="text-sm text-muted-foreground">
-                        Trang {page} / {totalPages} ({filteredProducts.length}{" "}
-                        sản phẩm)
-                      </p>
                       <div className="flex gap-2">
                         <Button
                           variant="outline"
