@@ -58,7 +58,6 @@ import {
 
 
 
-
 const fetchProducts = async () => {
   try {
     const response = await axiosInstance.get("/api/product");
@@ -70,7 +69,6 @@ const fetchProducts = async () => {
       description: product.description || "",
       price: product.price,
       quantity: product.quantity || 0,
-      imageUrl: product.imageUrl || "",
       imageUrl: product.imageUrl || "",
       imageUrl: product.imageUrl || "",
       category_id: product.category?._id || product.category || null,
@@ -310,7 +308,6 @@ export default function StaffProducts() {
         quantity: productValues.quantity,
         imageUrl: productValues.imageUrl,
         imageUrl: productValues.imageUrl,
-        imageUrl: productValues.imageUrl,
       };
 
       // Add optional fields only if they have values
@@ -370,7 +367,6 @@ export default function StaffProducts() {
         description: completeProduct.description || "",
         price: completeProduct.price,
         quantity: completeProduct.quantity || 0,
-        imageUrl: completeProduct.imageUrl || "",
         imageUrl: completeProduct.imageUrl || "",
         imageUrl: completeProduct.imageUrl || "",
         category_id:
@@ -826,9 +822,6 @@ export default function StaffProducts() {
                               <div className="flex items-center gap-3">
                                 <img
                                   src={
-                                    (Array.isArray(product.imageUrl)
-                                      ? product.imageUrl[0]
-                                      : product.imageUrl) || "/placeholder.svg"
                                     (Array.isArray(product.imageUrl)
                                       ? product.imageUrl[0]
                                       : product.imageUrl) || "/placeholder.svg"
