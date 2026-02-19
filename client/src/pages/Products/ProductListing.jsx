@@ -46,8 +46,7 @@ export default function ProductListing() {
           <div className="col-span-3 sticky top-48 self-start">
             <FilterBar
               onFilterChange={(filters) => {
-                // Nếu bạn vẫn muốn lưu filters ở parent để dùng sau (ví dụ: hiển thị ở header)
-                console.log("Current filters:", filters);
+                // Filters are processed internally by FilterBar
               }}
               onProductsUpdate={handleProductsUpdate} // <-- Quan trọng: nhận products đã lọc
             />

@@ -1,9 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import axiosInstance from "@/lib/axios";
 import {
   TrendingUp,
   DollarSign,
-  Download,
   ArrowUpRight,
   ArrowDownRight,
   ShoppingCart,
@@ -60,90 +59,87 @@ export default function RevenueStatistics() {
   const [ordersStats, setOrdersStats] = useState(null);
   const [customersStats, setCustomersStats] = useState(null);
 
-  const getDateRange = (range) => {
-    const end = new Date();
-    const start = new Date();
-    if (range === "week") start.setDate(end.getDate() - 7);
-    else if (range === "month") start.setDate(end.getDate() - 30);
-    else if (range === "quarter") start.setMonth(end.getMonth() - 3);
-    else start.setFullYear(end.getFullYear() - 1);
-    return {
-      startDate: start.toISOString().split("T")[0],
-      endDate: end.toISOString().split("T")[0],
-    };
-  };
-
-  const fetchAll = useCallback(async (range) => {
-    setLoading(true);
-    const { startDate, endDate } = getDateRange(range);
-    const period = periodMap[range] || "year";
-    const groupBy = groupByMap[range] || "month";
-
-    const [
-      summaryRes,
-      overviewRes,
-      chartRes,
-      topProductsRes,
-      categoriesRes,
-      ordersRes,
-      customersRes,
-    ] = await Promise.allSettled([
-      axiosInstance.get("/api/analytics/revenue-summary"),
-      axiosInstance.get("/api/analytics/revenue", {
-        params: { startDate, endDate, period },
-      }),
-      axiosInstance.get("/api/analytics/revenue/chart", {
-        params: { startDate, endDate, groupBy },
-      }),
-      axiosInstance.get("/api/analytics/top-products", {
-        params: { startDate, endDate, limit: 5 },
-      }),
-      axiosInstance.get("/api/analytics/revenue-by-category", {
-        params: { startDate, endDate },
-      }),
-      axiosInstance.get("/api/analytics/orders-stats", {
-        params: { startDate, endDate },
-      }),
-      axiosInstance.get("/api/analytics/customers-stats", {
-        params: { startDate, endDate },
-      }),
-    ]);
-
-    if (summaryRes.status === "fulfilled")
-      setSummary(summaryRes.value.data?.data || summaryRes.value.data);
-    if (overviewRes.status === "fulfilled")
-      setOverview(overviewRes.value.data?.data || overviewRes.value.data);
-    if (chartRes.status === "fulfilled") {
-      const raw = chartRes.value.data?.data || chartRes.value.data || [];
-      setChartData(Array.isArray(raw) ? raw : []);
-    }
-    if (topProductsRes.status === "fulfilled") {
-      const raw =
-        topProductsRes.value.data?.data || topProductsRes.value.data || [];
-      setTopProducts(Array.isArray(raw) ? raw : []);
-    }
-    if (categoriesRes.status === "fulfilled") {
-      const raw =
-        categoriesRes.value.data?.data || categoriesRes.value.data || [];
-      setCategories(Array.isArray(raw) ? raw : []);
-    }
-    if (ordersRes.status === "fulfilled")
-      setOrdersStats(ordersRes.value.data?.data || ordersRes.value.data);
-    if (customersRes.status === "fulfilled")
-      setCustomersStats(
-        customersRes.value.data?.data || customersRes.value.data,
-      );
-
-    setLoading(false);
-  }, []);
-
   useEffect(() => {
-    fetchAll(timeRange);
-  }, [timeRange, fetchAll]);
+    const fetchAll = async () => {
+      setLoading(true);
 
-  const handleExport = () => {
-    console.log("Exporting revenue report...");
-  };
+      const getDateRange = (range) => {
+        const end = new Date();
+        const start = new Date();
+        if (range === "week") start.setDate(end.getDate() - 7);
+        else if (range === "month") start.setDate(end.getDate() - 30);
+        else if (range === "quarter") start.setMonth(end.getMonth() - 3);
+        else start.setFullYear(end.getFullYear() - 1);
+        return {
+          startDate: start.toISOString().split("T")[0],
+          endDate: end.toISOString().split("T")[0],
+        };
+      };
+
+      const { startDate, endDate } = getDateRange(timeRange);
+      const period = periodMap[timeRange] || "year";
+      const groupBy = groupByMap[timeRange] || "month";
+
+      const [
+        summaryRes,
+        overviewRes,
+        chartRes,
+        topProductsRes,
+        categoriesRes,
+        ordersRes,
+        customersRes,
+      ] = await Promise.allSettled([
+        axiosInstance.get("/api/analytics/revenue-summary"),
+        axiosInstance.get("/api/analytics/revenue", {
+          params: { startDate, endDate, period },
+        }),
+        axiosInstance.get("/api/analytics/revenue/chart", {
+          params: { startDate, endDate, groupBy },
+        }),
+        axiosInstance.get("/api/analytics/top-products", {
+          params: { startDate, endDate, limit: 5 },
+        }),
+        axiosInstance.get("/api/analytics/revenue-by-category", {
+          params: { startDate, endDate },
+        }),
+        axiosInstance.get("/api/analytics/orders-stats", {
+          params: { startDate, endDate },
+        }),
+        axiosInstance.get("/api/analytics/customers-stats", {
+          params: { startDate, endDate },
+        }),
+      ]);
+
+      if (summaryRes.status === "fulfilled")
+        setSummary(summaryRes.value.data?.data || summaryRes.value.data);
+      if (overviewRes.status === "fulfilled")
+        setOverview(overviewRes.value.data?.data || overviewRes.value.data);
+      if (chartRes.status === "fulfilled") {
+        const raw = chartRes.value.data?.data || chartRes.value.data || [];
+        setChartData(Array.isArray(raw) ? raw : []);
+      }
+      if (topProductsRes.status === "fulfilled") {
+        const raw =
+          topProductsRes.value.data?.data || topProductsRes.value.data || [];
+        setTopProducts(Array.isArray(raw) ? raw : []);
+      }
+      if (categoriesRes.status === "fulfilled") {
+        const raw =
+          categoriesRes.value.data?.data || categoriesRes.value.data || [];
+        setCategories(Array.isArray(raw) ? raw : []);
+      }
+      if (ordersRes.status === "fulfilled")
+        setOrdersStats(ordersRes.value.data?.data || ordersRes.value.data);
+      if (customersRes.status === "fulfilled")
+        setCustomersStats(
+          customersRes.value.data?.data || customersRes.value.data,
+        );
+
+      setLoading(false);
+    };
+
+    fetchAll();
+  }, [timeRange]);
 
   const totalRevenue =
     overview?.totalRevenue ?? overview?.total ?? summary?.year?.revenue ?? 0;
@@ -178,23 +174,17 @@ export default function RevenueStatistics() {
             Thống kê doanh thu và hiệu suất kinh doanh
           </p>
         </div>
-        <div className="flex gap-2">
-          <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="week">7 ngày qua</SelectItem>
-              <SelectItem value="month">30 ngày qua</SelectItem>
-              <SelectItem value="quarter">Quý này</SelectItem>
-              <SelectItem value="year">Năm nay</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button onClick={handleExport}>
-            <Download className="mr-2 h-4 w-4" />
-            Xuất báo cáo
-          </Button>
-        </div>
+        <Select value={timeRange} onValueChange={setTimeRange}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="week">7 ngày qua</SelectItem>
+            <SelectItem value="month">30 ngày qua</SelectItem>
+            <SelectItem value="quarter">Quý này</SelectItem>
+            <SelectItem value="year">Năm nay</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {loading ? (

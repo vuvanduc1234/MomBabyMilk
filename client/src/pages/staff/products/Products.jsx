@@ -57,11 +57,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const fetchProducts = async () => {
-  console.log("[fetchProducts] Fetching products from API...");
   try {
     const response = await axiosInstance.get("/api/product");
-
-    console.log("[fetchProducts] Raw API response:", response.data);
     // Map API response to component's expected format
     const productsArray = response.data.data || response.data;
     const mappedProducts = productsArray.map((product) => ({
@@ -87,18 +84,9 @@ const fetchProducts = async () => {
       tags: product.tags,
     }));
 
-    console.log(
-      "[fetchProducts] Mapped products:",
-      mappedProducts.length,
-      "items",
-    );
     return mappedProducts;
   } catch (error) {
     console.error("[fetchProducts] Error fetching products:", error);
-    console.error(
-      "[fetchProducts] Error details:",
-      error.response?.data || error.message,
-    );
     throw error;
   }
 };
@@ -133,48 +121,21 @@ export default function StaffProducts() {
   // Fetch products, brands, and categories from API
   useEffect(() => {
     const loadData = async () => {
-      console.log("[Products] Starting data fetch...");
       setIsLoading(true);
       setError(null);
       try {
         const [productsData, brandsData, categoriesData] = await Promise.all([
           fetchProducts(),
-          axiosInstance.get("/api/brand").then((res) => {
-            console.log("[Products] Brands API Response:", res.data);
-            return res.data.data;
-          }),
-          axiosInstance.get("/api/category").then((res) => {
-            console.log("[Products] Categories API Response:", res.data);
-            return res.data.data;
-          }),
+          axiosInstance.get("/api/brand").then((res) => res.data.data),
+          axiosInstance.get("/api/category").then((res) => res.data.data),
         ]);
-        console.log(
-          "[Products] Products fetched:",
-          productsData.length,
-          "items",
-        );
-        console.log(
-          "[Products] Brands fetched:",
-          brandsData?.length || 0,
-          "items",
-        );
-        console.log(
-          "[Products] Categories fetched:",
-          categoriesData?.length || 0,
-          "items",
-        );
         setProducts(productsData);
         setBrands(brandsData);
         setCategories(categoriesData);
       } catch (err) {
         setError(err.message);
         console.error("[Products] Failed to load data:", err);
-        console.error(
-          "[Products] Error details:",
-          err.response?.data || err.message,
-        );
       } finally {
-        console.log("[Products] Data loading complete");
         setIsLoading(false);
       }
     };
@@ -284,10 +245,8 @@ export default function StaffProducts() {
   };
 
   const handleCreateBrand = async (brandData) => {
-    console.log("[handleCreateBrand] Creating brand:", brandData);
     try {
       const response = await axiosInstance.post("/api/brand", brandData);
-      console.log("[handleCreateBrand] Brand created:", response.data);
 
       // Add the new brand to the brands list
       const newBrand = response.data.data || response.data;
@@ -311,10 +270,8 @@ export default function StaffProducts() {
   };
 
   const handleCreateCategory = async (categoryData) => {
-    console.log("[handleCreateCategory] Creating category:", categoryData);
     try {
       const response = await axiosInstance.post("/api/category", categoryData);
-      console.log("[handleCreateCategory] Category created:", response.data);
 
       // Add the new category to the categories list
       const newCategory = response.data.data || response.data;
@@ -338,11 +295,6 @@ export default function StaffProducts() {
   };
 
   const handleCreateProduct = async (productValues) => {
-    console.log(
-      "[handleCreateProduct] Creating product with data:",
-      productValues,
-    );
-
     try {
       // Prepare JSON payload (backend expects JSON, not FormData)
       const productData = {
@@ -393,8 +345,6 @@ export default function StaffProducts() {
       }
 
       const response = await axiosInstance.post("/api/product", productData);
-
-      console.log("[handleCreateProduct] Product created:", response.data);
 
       // Add the new product to the products list
       const newProductData = response.data.data || response.data;
@@ -449,11 +399,9 @@ export default function StaffProducts() {
   };
 
   const handleDeleteProduct = async (productId) => {
-    console.log("[handleDeleteProduct] Deleting product:", productId);
     if (confirm("Bạn có chắc muốn xóa sản phẩm này?")) {
       try {
         await axiosInstance.delete(`/api/product/${productId}`);
-        console.log("[handleDeleteProduct] Product deleted successfully");
 
         // Remove the product from the products list
         setProducts((prev) => prev.filter((p) => p.id !== productId));
@@ -474,8 +422,6 @@ export default function StaffProducts() {
   };
 
   const handleBulkDelete = async () => {
-    console.log("[handleBulkDelete] Deleting products:", selectedProducts);
-
     if (selectedProducts.length === 0) {
       toast.error("Vui lòng chọn ít nhất một sản phẩm để xóa");
       return;
@@ -496,8 +442,6 @@ export default function StaffProducts() {
       );
 
       await Promise.all(deletePromises);
-
-      console.log("[handleBulkDelete] Successfully deleted products");
 
       // Remove deleted products from state
       setProducts((prev) =>

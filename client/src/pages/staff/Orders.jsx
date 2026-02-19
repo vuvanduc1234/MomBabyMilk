@@ -5,8 +5,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Flag,
-  Printer,
-  FileText,
   ClockIcon,
   CheckCircle,
   Truck,
@@ -45,10 +43,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Alert,
-  AlertTitle,
-} from "@/components/ui/alert";
+import { Alert, AlertTitle } from "@/components/ui/alert";
 
 // Mock data
 const mockOrders = [
@@ -747,7 +742,6 @@ export default function StaffOrders() {
 
   // Simulate loading data
   useEffect(() => {
-    setIsLoading(true);
     // Simulate API call delay
     const timer = setTimeout(() => {
       setOrders(mockOrders);
@@ -838,19 +832,9 @@ export default function StaffOrders() {
         order.id === orderId ? { ...order, status: newStatus } : order,
       ),
     );
-    // Simulate toast
-    console.log("Đã cập nhật trạng thái đơn hàng");
   };
 
   const totalPages = Math.ceil(filteredOrders.length / pageSize);
-
-  const handlePrintInvoice = (order) => {
-    console.log("In hóa đơn cho đơn hàng:", order.order_number);
-  };
-
-  const handlePrintPackingSlip = (order) => {
-    console.log("In phiếu đóng gói cho đơn hàng:", order.order_number);
-  };
 
   return (
     <>
@@ -996,7 +980,7 @@ export default function StaffOrders() {
               </Button>
             </div>
           </div>
-          
+
           {/* {CHƯA CÓ API} */}
           <Alert variant="destructive" className="mt-6">
             <InfoIcon />
@@ -1006,7 +990,6 @@ export default function StaffOrders() {
 
         {/* Main Content */}
         <div className="pt-2 flex-1 space-y-5">
-
           {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1 max-w-md">
@@ -1161,22 +1144,13 @@ export default function StaffOrders() {
                               {formatDateTime(order.created_at)}
                             </TableCell>
                             <TableCell className="text-right">
-                              <div className="flex items-center justify-end gap-1">
-                                <Button
-                                  variant="ghost"
-                                  onClick={() => setSelectedOrder(order)}
-                                >
-                                  <Eye className="h-4 w-4" />
-                                  Xem chi tiết
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  onClick={() => handlePrintInvoice(order)}
-                                >
-                                  <Printer className="h-4 w-4" />
-                                  In
-                                </Button>
-                              </div>
+                              <Button
+                                variant="ghost"
+                                onClick={() => setSelectedOrder(order)}
+                              >
+                                <Eye className="h-4 w-4" />
+                                Xem chi tiết
+                              </Button>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -1266,23 +1240,7 @@ export default function StaffOrders() {
                         </div>
                       </div>
 
-                      <div className="flex gap-2 lg:flex-row flex-col">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handlePrintInvoice(selectedOrder)}
-                        >
-                          <Printer className="h-4 w-4 mr-2" />
-                          In hóa đơn
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handlePrintPackingSlip(selectedOrder)}
-                        >
-                          <FileText className="h-4 w-4 mr-2" />
-                          In phiếu đóng gói
-                        </Button>
+                      <div className="flex gap-2">
                         <Button
                           variant="outline"
                           size="sm"

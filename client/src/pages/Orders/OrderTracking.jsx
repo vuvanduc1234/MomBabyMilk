@@ -25,9 +25,7 @@ export default function OrderTracking() {
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
-      console.log("Fetching orders for user:", user);
       const data = await getMyOrders();
-      console.log("Orders received:", data);
       setOrders(data.orders || []);
     } catch (error) {
       console.error("Error fetching orders:", error);
@@ -40,7 +38,7 @@ export default function OrderTracking() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, []);
 
   // Fetch orders khi component mount
   useEffect(() => {

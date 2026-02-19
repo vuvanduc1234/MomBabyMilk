@@ -119,9 +119,6 @@ export default function ProductDetail() {
       const json = await response.json();
       const productData = json.data || json;
       const fetchedComments = productData.comments || [];
-      if (fetchedComments.length > 0) {
-        console.log("[DEBUG] comment object:", fetchedComments[0]);
-      }
       setComments(fetchedComments);
     } catch {
       setCommentError("Không thể tải đánh giá. Vui lòng thử lại.");

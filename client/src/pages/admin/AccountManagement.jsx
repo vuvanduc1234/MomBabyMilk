@@ -10,7 +10,6 @@ import {
   Phone,
   Calendar,
   Filter,
-  Download,
   UserPlus,
   ChevronLeft,
   ChevronRight,
@@ -58,12 +57,6 @@ const roleColors = {
   admin: "bg-purple-100 text-purple-800",
   staff: "bg-blue-100 text-blue-800",
   customer: "bg-green-100 text-green-800",
-};
-
-const statusColors = {
-  active: "bg-green-100 text-green-800",
-  inactive: "bg-gray-100 text-gray-800",
-  suspended: "bg-red-100 text-red-800",
 };
 
 const formatDate = (dateString) => {
@@ -164,26 +157,11 @@ export default function AccountManagement() {
     setDialogOpen(true);
   };
 
-  const handleToggleStatus = async (user) => {
-    const userId = user._id || user.id;
-    const newStatus = user.status === "active" ? "inactive" : "active";
-    try {
-      await axiosInstance.put(`/api/users/${userId}`, { status: newStatus });
-      setUsers((prev) =>
-        prev.map((u) =>
-          (u._id || u.id) === userId ? { ...u, status: newStatus } : u,
-        ),
-      );
-    } catch (err) {
-      alert(err.response?.data?.message || "Không thể cập nhật trạng thái.");
-    }
-  };
-
   const handleSaveUser = async () => {
     try {
       setSaving(true);
       if (dialogMode === "create") {
-        const res = await axiosInstance.post("/api/auth/register", {
+        await axiosInstance.post("/api/auth/register", {
           fullname: selectedUser.fullname || selectedUser.fullName,
           email: selectedUser.email,
           phone: selectedUser.phone,
@@ -213,10 +191,6 @@ export default function AccountManagement() {
     }
   };
 
-  const handleExport = () => {
-    console.log("Exporting users...");
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -228,16 +202,10 @@ export default function AccountManagement() {
             Quản lý tài khoản người dùng hệ thống
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="mr-2 h-4 w-4" />
-            Export
-          </Button>
-          <Button onClick={handleCreateUser}>
-            <Plus className="mr-2 h-4 w-4" />
-            Thêm người dùng
-          </Button>
-        </div>
+        <Button onClick={handleCreateUser}>
+          <Plus className="mr-2 h-4 w-4" />
+          Thêm người dùng
+        </Button>
       </div>
 
       {/* Stats Cards */}
@@ -391,10 +359,7 @@ export default function AccountManagement() {
                     user.fullname || user.fullName || user.name || "—";
                   const userPhone = user.phone || user.phoneNumber || "—";
                   const userRole = user.role || "customer";
-                  const userStatus =
-                    user.status || (user.isActive ? "active" : "inactive");
                   const createdAt = user.createdAt || user.created_at;
-                  const lastLogin = user.lastLogin || user.last_login;
                   return (
                     <TableRow key={userId}>
                       <TableCell>

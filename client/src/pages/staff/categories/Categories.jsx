@@ -66,11 +66,11 @@ export default function Categories() {
 
   // Check for openDialog query parameter
   useEffect(() => {
-    const openDialog = searchParams.get('openDialog');
-    if (openDialog === '1') {
+    const openDialog = searchParams.get("openDialog");
+    if (openDialog === "1") {
       setIsNewCategoryDialogOpen(true);
       // Remove the query parameter after opening the dialog
-      searchParams.delete('openDialog');
+      searchParams.delete("openDialog");
       setSearchParams(searchParams, { replace: true });
     }
   }, [searchParams, setSearchParams]);
@@ -172,7 +172,6 @@ export default function Categories() {
       toast.success("Tạo danh mục thành công");
       await fetchData();
       setIsNewCategoryDialogOpen(false);
-      console.log(response)
     } catch (error) {
       console.error("Error creating category:", error);
       toast.error(error.message || "Không thể tạo danh mục");
