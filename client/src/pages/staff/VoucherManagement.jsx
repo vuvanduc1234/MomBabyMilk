@@ -174,7 +174,6 @@ export default function VoucherManagement() {
     minOrderValue: v.minOrderValue ?? v.min_order_value ?? 0,
     isActive: v.isActive,
     status: v.status || (v.isActive ? "active" : "inactive"),
-    usageCount: v.usageCount ?? v.usage_count ?? 0,
     createdAt: v.createdAt || v.created_at || "",
   });
 
@@ -221,7 +220,6 @@ export default function VoucherManagement() {
     total: vouchers.length,
     active: vouchers.filter((v) => getVoucherStatus(v) === "active").length,
     expired: vouchers.filter((v) => getVoucherStatus(v) === "expired").length,
-    totalUsage: vouchers.reduce((s, v) => s + (v.usageCount || 0), 0),
   };
 
   // ── Handlers ───────────────────────────────────────────────────────────────
@@ -465,12 +463,6 @@ export default function VoucherManagement() {
             icon: <XCircle className="h-4 w-4 text-red-600" />,
             color: "text-red-600",
           },
-          {
-            label: "Tổng lượt dùng",
-            value: stats.totalUsage,
-            icon: <ShoppingBag className="h-4 w-4" />,
-            color: "",
-          },
         ].map((s) => (
           <Card key={s.label}>
             <CardHeader className="pb-2">
@@ -553,7 +545,6 @@ export default function VoucherManagement() {
                   <TableHead>Giảm giá</TableHead>
                   <TableHead>Đơn tối thiểu</TableHead>
                   <TableHead>Hết hạn</TableHead>
-                  <TableHead>Lượt dùng</TableHead>
                   <TableHead>Trạng thái</TableHead>
                   <TableHead className="text-right">Thao tác</TableHead>
                 </TableRow>
@@ -562,7 +553,7 @@ export default function VoucherManagement() {
                 {paginatedVouchers.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={8}
+                      colSpan={7}
                       className="text-center py-10 text-muted-foreground"
                     >
                       Không tìm thấy voucher nào.
@@ -594,11 +585,6 @@ export default function VoucherManagement() {
                       <TableCell>
                         <span className="text-sm">
                           {formatDate(voucher.expiryDate)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm">
-                          {voucher.usageCount || 0}
                         </span>
                       </TableCell>
                       <TableCell>{getStatusBadge(voucher)}</TableCell>

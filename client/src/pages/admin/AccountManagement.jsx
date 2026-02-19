@@ -76,7 +76,6 @@ export default function AccountManagement() {
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
   const [selectedUser, setSelectedUser] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState("create");
@@ -111,7 +110,6 @@ export default function AccountManagement() {
       const email = user.email || "";
       const phone = user.phone || user.phoneNumber || "";
       const role = (user.role || "").toLowerCase();
-      const status = user.status || (user.isActive ? "active" : "inactive");
 
       const matchesSearch =
         name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -120,11 +118,10 @@ export default function AccountManagement() {
 
       const matchesRole =
         roleFilter === "all" || role === roleFilter.toLowerCase();
-      const matchesStatus = statusFilter === "all" || status === statusFilter;
 
-      return matchesSearch && matchesRole && matchesStatus;
+      return matchesSearch && matchesRole;
     });
-  }, [users, searchQuery, roleFilter, statusFilter]);
+  }, [users, searchQuery, roleFilter]);
 
   // Pagination
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
@@ -140,7 +137,6 @@ export default function AccountManagement() {
       email: "",
       phone: "",
       role: "Customer",
-      status: "active",
     });
     setDialogOpen(true);
   };
@@ -175,7 +171,6 @@ export default function AccountManagement() {
           fullname: selectedUser.fullname || selectedUser.fullName,
           phone: selectedUser.phone,
           role: selectedUser.role,
-          status: selectedUser.status,
         });
         await fetchUsers();
       } else if (dialogMode === "delete") {
@@ -223,16 +218,12 @@ export default function AccountManagement() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Đang hoạt động
+              Đã xác thực email
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {
-                users.filter(
-                  (u) => u.status === "active" || u.isActive === true,
-                ).length
-              }
+              {users.filter((u) => u.isVerified === true).length}
             </div>
           </CardContent>
         </Card>
@@ -294,17 +285,6 @@ export default function AccountManagement() {
                 <SelectItem value="admin">Admin</SelectItem>
                 <SelectItem value="staff">Staff</SelectItem>
                 <SelectItem value="customer">Customer</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full md:w-[180px]">
-                <SelectValue placeholder="Lọc theo trạng thái" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tất cả trạng thái</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-                <SelectItem value="suspended">Suspended</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -527,24 +507,6 @@ export default function AccountManagement() {
                       <SelectItem value="Customer">Customer</SelectItem>
                       <SelectItem value="Staff">Staff</SelectItem>
                       <SelectItem value="Admin">Admin</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Trạng thái</Label>
-                  <Select
-                    value={selectedUser.status}
-                    onValueChange={(value) =>
-                      setSelectedUser({ ...selectedUser, status: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
-                      <SelectItem value="suspended">Suspended</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
