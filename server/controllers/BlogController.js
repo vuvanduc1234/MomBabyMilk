@@ -1,13 +1,35 @@
 const Blog = require("../models/BlogModel");
+const sanitizeHtml = require("sanitize-html");
+
+// Sanitization options
+const sanitizeOptions = {
+  allowedTags: [
+    "h1", "h2", "h3", "h4", "h5", "h6",
+    "p", "br", "strong", "em", "u", "s",
+    "ul", "ol", "li",
+    "blockquote", "code", "pre",
+    "a", "img",
+  ],
+  allowedAttributes: {
+    a: ["href", "title", "target", "rel"],
+    img: ["src", "alt", "title", "width", "height", "class"],
+  },
+  allowedClasses: {
+    img: ["max-w-full", "h-auto", "rounded-lg"],
+  },
+};
 
 const createBlog = async (req, res) => {
   try {
     const { title, content, author, tags, recommended_products, image } =
       req.body;
 
+    // Sanitize HTML content to prevent XSS attacks
+    const sanitizedContent = sanitizeHtml(content, sanitizeOptions);
+
     const blog = new Blog({
       title,
-      content,
+      content: sanitizedContent,
       author,
       tags,
       recommended_products,
@@ -82,6 +104,11 @@ const updateBlog = async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
+
+    // Sanitize HTML content if it exists in the update
+    if (updateData.content) {
+      updateData.content = sanitizeHtml(updateData.content, sanitizeOptions);
+    }
 
     const blog = await Blog.findByIdAndUpdate(id, updateData, {
       new: true,

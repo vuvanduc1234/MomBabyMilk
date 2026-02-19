@@ -1,4 +1,4 @@
-import { Flag, Printer, FileText, Gift, Save, Loader2 } from "lucide-react";
+import { Gift, Save, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,12 +38,8 @@ const formatDateTime = (dateString) => {
 export default function OrderDetailDialog({
   selectedOrder,
   onClose,
-  trackingNumber,
-  setTrackingNumber,
   internalNote,
   setInternalNote,
-  onPrintInvoice,
-  onPrintPackingSlip,
   onOrderUpdated,
 }) {
   const [isSaving, setIsSaving] = React.useState(false);
@@ -54,7 +50,6 @@ export default function OrderDetailDialog({
     setIsSaving(true);
     try {
       await updateOrderMetadata(selectedOrder._id, {
-        trackingNumber,
         note: internalNote,
       });
       toast.success('Đã lưu thông tin đơn hàng');
@@ -161,26 +156,15 @@ export default function OrderDetailDialog({
               <div className="border-t pt-4 space-y-4">
                 <h4 className="font-medium">Thao tác nhân viên</h4>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="tracking">Mã vận đơn</Label>
-                    <Input
-                      id="tracking"
-                      placeholder="Nhập mã vận đơn..."
-                      value={trackingNumber}
-                      onChange={(e) => setTrackingNumber(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="note">Ghi chú nội bộ</Label>
-                    <Textarea
-                      id="note"
-                      placeholder="Ghi chú nội bộ..."
-                      value={internalNote}
-                      onChange={(e) => setInternalNote(e.target.value)}
-                      rows={2}
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="note">Ghi chú nội bộ</Label>
+                  <Textarea
+                    id="note"
+                    placeholder="Ghi chú nội bộ..."
+                    value={internalNote}
+                    onChange={(e) => setInternalNote(e.target.value)}
+                    rows={3}
+                  />
                 </div>
 
                 <div className="flex gap-2 lg:flex-row flex-col">
@@ -201,34 +185,6 @@ export default function OrderDetailDialog({
                         Lưu thông tin
                       </>
                     )}
-                  </Button>
-                </div>
-
-                <div className="flex gap-2 lg:flex-row flex-col">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onPrintInvoice(selectedOrder)}
-                  >
-                    <Printer className="h-4 w-4 mr-2" />
-                    In hóa đơn
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onPrintPackingSlip(selectedOrder)}
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    In phiếu đóng gói
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-amber-600 border-amber-300"
-                    disabled
-                  >
-                    <Flag className="h-4 w-4 mr-2" />
-                    Đánh dấu có vấn đề
                   </Button>
                 </div>
 

@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { upload, uploadAvatar, uploadProductImage, uploadBrandLogo } = require("../controllers/UploadController");
+const { upload, uploadBlogImageMulter, uploadAvatar, uploadProductImage, uploadBrandLogo, uploadBlogImage } = require("../controllers/UploadController");
 const { authenticateToken } = require("../middleware/auth");
 
 /**
@@ -92,5 +92,47 @@ router.post("/product-image", authenticateToken, upload.single("productImage"), 
  *         description: Server error
  */
 router.post("/brand-logo", authenticateToken, upload.single("brandLogo"), uploadBrandLogo);
+
+/**
+ * @swagger
+ * /api/upload/blog-image:
+ *   post:
+ *     summary: Upload blog article image
+ *     tags: [Upload]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: Image file (JPG, PNG, GIF, WebP - max 5MB)
+ *     responses:
+ *       200:
+ *         description: Blog image uploaded successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 url:
+ *                   type: string
+ *       400:
+ *         description: No file selected
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
+router.post("/blog-image", authenticateToken, uploadBlogImageMulter.single("file"), uploadBlogImage);
 
 module.exports = router;
