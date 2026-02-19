@@ -5,7 +5,6 @@ import {
   Truck,
   CreditCard,
   Smartphone,
-  Building2,
   Package,
   Tag,
   X,
@@ -196,11 +195,31 @@ export default function Checkout() {
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
+      // Deduplicate cart items by productId (_id), summing quantity if same product appears twice
+      const deduped = Object.values(
+        cartItems.reduce((acc, item) => {
+          const pid = item._id || item.id;
+          if (!pid) return acc;
+          if (acc[pid]) {
+            acc[pid] = {
+              ...acc[pid],
+              quantity: acc[pid].quantity + item.quantity,
+            };
+          } else {
+            acc[pid] = { productId: pid, quantity: item.quantity };
+          }
+          return acc;
+        }, {}),
+      );
+
+      if (deduped.length === 0) {
+        toast.error("Giỏ hàng không có sản phẩm hợp lệ");
+        setIsSubmitting(false);
+        return;
+      }
+
       const orderData = {
-        cartItems: cartItems.map((item) => ({
-          productId: item.id,
-          quantity: item.quantity,
-        })),
+        cartItems: deduped,
         shippingAddress: formData.address,
         phone: formData.phone,
         note: formData.note || "",
@@ -396,12 +415,6 @@ export default function Checkout() {
                       icon: <Smartphone className="h-5 w-5 text-pink-500" />,
                       label: "Ví MoMo",
                       desc: "Thanh toán qua ví điện tử MoMo",
-                    },
-                    {
-                      value: "bank",
-                      icon: <Building2 className="h-5 w-5 text-pink-500" />,
-                      label: "Chuyển khoản ngân hàng",
-                      desc: "Chuyển khoản trực tiếp",
                     },
                   ].map((method) => (
                     <label

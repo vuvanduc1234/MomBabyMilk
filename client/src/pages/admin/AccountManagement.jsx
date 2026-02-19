@@ -6,8 +6,6 @@ import {
   MoreVertical,
   Edit,
   Trash2,
-  Lock,
-  Unlock,
   Mail,
   Phone,
   Calendar,
@@ -354,16 +352,14 @@ export default function AccountManagement() {
                 <TableHead>Người dùng</TableHead>
                 <TableHead>Liên hệ</TableHead>
                 <TableHead>Vai trò</TableHead>
-                <TableHead>Trạng thái</TableHead>
                 <TableHead>Ngày tạo</TableHead>
-                <TableHead>Đăng nhập gần nhất</TableHead>
                 <TableHead className="text-right">Thao tác</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-10">
+                  <TableCell colSpan={5} className="text-center py-10">
                     <div className="flex justify-center items-center gap-2 text-muted-foreground">
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-pink-600" />
                       Đang tải...
@@ -373,7 +369,7 @@ export default function AccountManagement() {
               ) : error ? (
                 <TableRow>
                   <TableCell
-                    colSpan={7}
+                    colSpan={5}
                     className="text-center py-10 text-red-600"
                   >
                     {error}
@@ -382,7 +378,7 @@ export default function AccountManagement() {
               ) : paginatedUsers.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={7}
+                    colSpan={5}
                     className="text-center py-10 text-muted-foreground"
                   >
                     Không tìm thấy người dùng nào.
@@ -425,22 +421,7 @@ export default function AccountManagement() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          className={
-                            statusColors[userStatus] ||
-                            "bg-gray-100 text-gray-800"
-                          }
-                        >
-                          {userStatus}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
                         <div className="text-sm">{formatDate(createdAt)}</div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          {lastLogin ? formatDate(lastLogin) : "Chưa đăng nhập"}
-                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
@@ -455,21 +436,6 @@ export default function AccountManagement() {
                             >
                               <Edit className="mr-2 h-4 w-4" />
                               Chỉnh sửa
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleToggleStatus(user)}
-                            >
-                              {user.status === "active" ? (
-                                <>
-                                  <Lock className="mr-2 h-4 w-4" />
-                                  Vô hiệu hóa
-                                </>
-                              ) : (
-                                <>
-                                  <Unlock className="mr-2 h-4 w-4" />
-                                  Kích hoạt
-                                </>
-                              )}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem

@@ -38,7 +38,6 @@ import { AdminLayout } from "./components/layouts/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AccountManagement from "./pages/admin/AccountManagement";
 import RevenueStatistics from "./pages/admin/RevenueStatistics";
-import SystemReports from "./pages/admin/SystemReports";
 import { ProtectedRoute } from "./components/layouts/ProtectedRoute";
 import OrderTracking from "./pages/Orders/OrderTracking";
 
@@ -60,7 +59,6 @@ function App() {
   return (
     <AuthProvider>
       <CartProvider>
-        {/* ❌ ĐÃ XÓA: <PreOrderProvider> */}
         <Router>
           <Routes>
             {/* Staff routes - separate layout */}
@@ -116,7 +114,6 @@ function App() {
           </Routes>
           <Toaster position="bottom-right" richColors />
         </Router>
-        {/* ❌ ĐÃ XÓA: </PreOrderProvider> */}
       </CartProvider>
     </AuthProvider>
   );

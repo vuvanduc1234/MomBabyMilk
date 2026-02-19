@@ -33,15 +33,11 @@ const navigation = [
     href: "/admin/accounts",
     icon: Users,
   },
+
   {
     name: "Revenue Statistics",
     href: "/admin/revenue",
     icon: TrendingUp,
-  },
-  {
-    name: "System Reports",
-    href: "/admin/reports",
-    icon: FileBarChart,
   },
 ];
 
