@@ -112,8 +112,10 @@ export default function RevenueStatistics() {
 
       if (summaryRes.status === "fulfilled")
         setSummary(summaryRes.value.data?.data || summaryRes.value.data);
-      if (overviewRes.status === "fulfilled")
-        setOverview(overviewRes.value.data?.data || overviewRes.value.data);
+      if (overviewRes.status === "fulfilled") {
+        const data = overviewRes.value.data?.data || overviewRes.value.data;
+        setOverview(data?.overview || data);
+      }
       if (chartRes.status === "fulfilled") {
         const raw = chartRes.value.data?.data || chartRes.value.data || [];
         setChartData(Array.isArray(raw) ? raw : []);
@@ -141,8 +143,8 @@ export default function RevenueStatistics() {
     fetchAll();
   }, [timeRange]);
 
-  const totalRevenue =
-    overview?.totalRevenue ?? overview?.total ?? summary?.year?.revenue ?? 0;
+  // Calculate totals based on selected time range
+  const totalRevenue = overview?.totalRevenue ?? overview?.total ?? 0;
   const growthRate =
     overview?.growthRate ?? overview?.growth ?? overview?.revenueGrowth ?? null;
   const totalOrders =
@@ -198,9 +200,9 @@ export default function RevenueStatistics() {
             <div className="grid gap-4 md:grid-cols-4">
               {[
                 { label: "Hôm nay", value: summary.today?.revenue },
-                { label: "Tuần này", value: summary.week?.revenue },
-                { label: "Tháng này", value: summary.month?.revenue },
-                { label: "Năm nay", value: summary.year?.revenue },
+                { label: "Tuần này", value: summary.thisWeek?.revenue },
+                { label: "Tháng này", value: summary.thisMonth?.revenue },
+                { label: "Năm nay", value: summary.thisYear?.revenue },
               ].map((item, i) => (
                 <Card key={i}>
                   <CardHeader className="pb-2">
