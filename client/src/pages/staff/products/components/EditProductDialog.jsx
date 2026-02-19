@@ -138,7 +138,6 @@ export default function EditProductDialog({
     enableReinitialize: true,
     validationSchema: productValidationSchema,
     onSubmit: async (values) => {
-      console.log("[EditProductDialog] Submitting form with values:", values);
       await handleUpdateProduct(values);
     },
   });
@@ -226,7 +225,6 @@ export default function EditProductDialog({
   };
 
   const handleUpdateProduct = async (values) => {
-    console.log("[EditProductDialog] Updating product:", product.id, values);
     try {
       // Prepare update payload
       const updateData = {
@@ -278,18 +276,12 @@ export default function EditProductDialog({
         updateData.tags = values.tags;
       }
 
-      const response = await axios.patch(
-        `${API_URL}/api/product/${product.id}`,
-        updateData,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            ...(token && { Authorization: `Bearer ${token}` }),
-          },
+      await axios.patch(`${API_URL}/api/product/${product.id}`, updateData, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
-      );
-
-      console.log("[EditProductDialog] Product updated:", response.data);
+      });
 
       // Fetch the complete updated product details
       const productResponse = await axios.get(

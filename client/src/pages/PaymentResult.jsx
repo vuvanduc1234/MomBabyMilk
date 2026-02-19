@@ -46,20 +46,6 @@ export default function PaymentResult() {
   const finalAmount =
     amount || momoAmount || (vnpAmount ? parseInt(vnpAmount) / 100 : null);
 
-  // Debug log
-  useEffect(() => {
-    console.log("Payment Result Page - Params:", {
-      status,
-      orderId,
-      momoResultCode,
-      vnpResponseCode,
-      finalOrderId,
-      finalAmount,
-      allParams: Object.fromEntries(searchParams.entries()),
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // Clear cart khi thanh toán thành công
   useEffect(() => {
     if (status === "success" && !hasCleared) {
@@ -67,12 +53,9 @@ export default function PaymentResult() {
       const timer = setTimeout(() => {
         clearCart();
         toast.success("Đặt hàng thành công!");
-        console.log("Cart cleared after successful payment");
       }, 0);
       setHasCleared(true);
       return () => clearTimeout(timer);
-    } else if (status === "error") {
-      console.log("Payment failed - cart NOT cleared");
     }
   }, [status, clearCart, hasCleared]);
 

@@ -141,18 +141,15 @@ export function FilterBar({ onFilterChange, onProductsUpdate }) {
       }
 
       const data = await response.json();
-      console.log("[FilterBar] Raw API response:", data);
 
       // Handle different response formats
       const productsArray = Array.isArray(data) ? data : data.data || [];
-      console.log("[FilterBar] Products array:", productsArray);
 
       // Map products to expected format
       const mappedProducts = productsArray
         .filter((product) => product.is_active !== false) // Only show active products
         .map(mapProductData);
 
-      console.log("[FilterBar] Mapped products:", mappedProducts);
       onProductsUpdate?.(mappedProducts, null);
       return mappedProducts;
     } catch (error) {
@@ -298,7 +295,6 @@ export function FilterBar({ onFilterChange, onProductsUpdate }) {
         });
       }
 
-      console.log("[FilterBar] Final filtered products:", allProducts);
       onProductsUpdate?.(allProducts);
     } catch (error) {
       console.error("Error applying filters:", error);

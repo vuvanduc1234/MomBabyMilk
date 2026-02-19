@@ -66,11 +66,11 @@ export default function Brands() {
 
   // Check for openDialog query parameter
   useEffect(() => {
-    const openDialog = searchParams.get('openDialog');
-    if (openDialog === '1') {
+    const openDialog = searchParams.get("openDialog");
+    if (openDialog === "1") {
       setIsNewBrandDialogOpen(true);
       // Remove the query parameter after opening the dialog
-      searchParams.delete('openDialog');
+      searchParams.delete("openDialog");
       setSearchParams(searchParams, { replace: true });
     }
   }, [searchParams, setSearchParams]);
@@ -97,8 +97,6 @@ export default function Brands() {
 
     fetchData();
   }, []);
-
-
 
   // Filter brands
   const filteredBrands = useMemo(() => {
@@ -148,8 +146,6 @@ export default function Brands() {
   };
 
   const handleBulkDelete = async () => {
-    console.log("[handleBulkDelete] Deleting brands:", selectedProducts);
-
     if (selectedProducts.length === 0) {
       toast.error("Vui lòng chọn ít nhất một thương hiệu để xóa");
       return;
@@ -166,8 +162,6 @@ export default function Brands() {
     try {
       const deletePromises = selectedProducts.map((id) => deleteBrand(id));
       await Promise.all(deletePromises);
-
-      console.log("[handleBulkDelete] Successfully deleted brands");
 
       setBrands((prev) =>
         prev.filter((b) => !selectedProducts.includes(b._id)),
