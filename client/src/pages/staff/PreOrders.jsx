@@ -1,24 +1,31 @@
-import { useState, useEffect } from 'react';
-import { Package, Clock, CheckCircle, Bell, ChevronDown, ChevronUp } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Skeleton } from '@/components/ui/skeleton';
-import { toast } from 'sonner';
+import { useState, useEffect } from "react";
+import {
+  Package,
+  Clock,
+  CheckCircle,
+  Bell,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 import {
   getPreOrderOrders,
   updateItemStatus,
   notifyPreOrderReady,
-} from './orders/services/orderService';
+} from "./orders/services/orderService";
 
 const PreOrders = () => {
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState("all");
   const [expandedOrders, setExpandedOrders] = useState(new Set());
   const [updatingItems, setUpdatingItems] = useState(new Set());
 
@@ -37,27 +44,29 @@ const PreOrders = () => {
       const response = await getPreOrderOrders();
       setOrders(response.orders || []);
     } catch (err) {
-      setError(err.message || 'Không thể tải danh sách pre-order');
-      toast.error('Không thể tải danh sách pre-order');
+      setError(err.message || "Không thể tải danh sách pre-order");
+      toast.error("Không thể tải danh sách pre-order");
     } finally {
       setLoading(false);
     }
   };
 
   const filterOrders = () => {
-    if (activeTab === 'all') {
+    if (activeTab === "all") {
       setFilteredOrders(orders);
-    } else if (activeTab === 'pending') {
+    } else if (activeTab === "pending") {
       setFilteredOrders(
         orders.filter((order) =>
-          order.cartItems.some((item) => item.itemStatus === 'preorder_pending')
-        )
+          order.cartItems.some(
+            (item) => item.itemStatus === "preorder_pending",
+          ),
+        ),
       );
-    } else if (activeTab === 'ready') {
+    } else if (activeTab === "ready") {
       setFilteredOrders(
         orders.filter((order) =>
-          order.cartItems.some((item) => item.itemStatus === 'preorder_ready')
-        )
+          order.cartItems.some((item) => item.itemStatus === "preorder_ready"),
+        ),
       );
     }
   };
@@ -77,10 +86,10 @@ const PreOrders = () => {
     try {
       setUpdatingItems((prev) => new Set(prev).add(itemKey));
       await updateItemStatus(orderId, itemIndex, newStatus);
-      toast.success('Cập nhật trạng thái thành công');
+      toast.success("Cập nhật trạng thái thành công");
       await fetchPreOrders();
     } catch (err) {
-      toast.error(err.message || 'Không thể cập nhật trạng thái');
+      toast.error(err.message || "Không thể cập nhật trạng thái");
     } finally {
       setUpdatingItems((prev) => {
         const newSet = new Set(prev);
@@ -93,35 +102,39 @@ const PreOrders = () => {
   const handleNotifyCustomer = async (orderId) => {
     try {
       await notifyPreOrderReady(orderId);
-      toast.success('Đã gửi thông báo cho khách hàng');
+      toast.success("Đã gửi thông báo cho khách hàng");
     } catch (err) {
-      toast.error(err.message || 'Không thể gửi thông báo');
+      toast.error(err.message || "Không thể gửi thông báo");
     }
   };
 
   const formatPrice = (price) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
     }).format(price);
   };
 
   const formatDate = (dateString) => {
-    return new Intl.DateTimeFormat('vi-VN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
+    return new Intl.DateTimeFormat("vi-VN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
     }).format(new Date(dateString));
   };
 
   const getItemStatusBadge = (status) => {
     const statusConfig = {
-      preorder_pending: { label: 'Đang chờ', variant: 'secondary', icon: Clock },
-      preorder_ready: { label: 'Đã về', variant: 'success', icon: CheckCircle },
-      available: { label: 'Có sẵn', variant: 'default', icon: Package },
-      shipped: { label: 'Đã gửi', variant: 'default', icon: Package },
+      preorder_pending: {
+        label: "Đang chờ",
+        variant: "secondary",
+        icon: Clock,
+      },
+      preorder_ready: { label: "Đã về", variant: "success", icon: CheckCircle },
+      available: { label: "Có sẵn", variant: "default", icon: Package },
+      shipped: { label: "Đã gửi", variant: "default", icon: Package },
     };
 
     const config = statusConfig[status] || statusConfig.available;
@@ -136,9 +149,9 @@ const PreOrders = () => {
   };
 
   const countItemsByStatus = (status) => {
-    if (status === 'all') return orders.length;
+    if (status === "all") return orders.length;
     return orders.filter((order) =>
-      order.cartItems.some((item) => item.itemStatus === status)
+      order.cartItems.some((item) => item.itemStatus === status),
     ).length;
   };
 
@@ -173,13 +186,13 @@ const PreOrders = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="all">
-            Tất cả ({countItemsByStatus('all')})
+            Tất cả ({countItemsByStatus("all")})
           </TabsTrigger>
           <TabsTrigger value="pending">
-            Đang chờ ({countItemsByStatus('preorder_pending')})
+            Đang chờ ({countItemsByStatus("preorder_pending")})
           </TabsTrigger>
           <TabsTrigger value="ready">
-            Đã về ({countItemsByStatus('preorder_ready')})
+            Đã về ({countItemsByStatus("preorder_ready")})
           </TabsTrigger>
         </TabsList>
 
@@ -197,15 +210,18 @@ const PreOrders = () => {
             filteredOrders.map((order) => {
               const isExpanded = expandedOrders.has(order._id);
               const preOrderItems = order.cartItems.filter(
-                (item) => item.isPreOrder
+                (item) => item.isPreOrder,
               );
               const hasReadyItems = preOrderItems.some(
-                (item) => item.itemStatus === 'preorder_ready'
+                (item) => item.itemStatus === "preorder_ready",
               );
 
               return (
                 <Card key={order._id}>
-                  <CardHeader className="cursor-pointer" onClick={() => toggleOrderExpansion(order._id)}>
+                  <CardHeader
+                    className="cursor-pointer"
+                    onClick={() => toggleOrderExpansion(order._id)}
+                  >
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <CardTitle className="text-lg flex items-center gap-2">
@@ -217,8 +233,8 @@ const PreOrders = () => {
                           <p>Ngày đặt: {formatDate(order.createdAt)}</p>
                           <p>Tổng tiền: {formatPrice(order.total)}</p>
                           <p>
-                            Số sản phẩm pre-order:{' '}
-                            {preOrderItems.length} / {order.cartItems.length}
+                            Số sản phẩm pre-order: {preOrderItems.length} /{" "}
+                            {order.cartItems.length}
                           </p>
                         </div>
                       </div>
@@ -251,7 +267,7 @@ const PreOrders = () => {
                         <h4 className="font-semibold">Sản phẩm Pre-Order:</h4>
                         {preOrderItems.map((item, index) => {
                           const originalIndex = order.cartItems.findIndex(
-                            (ci) => ci._id === item._id
+                            (ci) => ci._id === item._id,
                           );
                           const itemKey = `${order._id}-${originalIndex}`;
                           const isUpdating = updatingItems.has(itemKey);
@@ -262,34 +278,45 @@ const PreOrders = () => {
                               className="flex items-center gap-4 p-4 border rounded-lg"
                             >
                               <img
-                                src={item.product?.images?.[0] || '/placeholder.jpg'}
+                                src={
+                                  item.imageUrl
+                                    ? Array.isArray(item.imageUrl)
+                                      ? item.imageUrl[0]
+                                      : item.imageUrl
+                                    : item.product?.imageUrl
+                                      ? Array.isArray(item.product.imageUrl)
+                                        ? item.product.imageUrl[0]
+                                        : item.product.imageUrl
+                                      : "/placeholder.jpg"
+                                }
                                 alt={item.name}
                                 className="w-20 h-20 object-cover rounded"
                               />
                               <div className="flex-1">
                                 <h5 className="font-medium">{item.name}</h5>
                                 <p className="text-sm text-muted-foreground">
-                                  Số lượng: {item.quantity} x {formatPrice(item.price)}
+                                  Số lượng: {item.quantity} x{" "}
+                                  {formatPrice(item.price)}
                                 </p>
                                 <div className="mt-2">
                                   {getItemStatusBadge(item.itemStatus)}
                                 </div>
                               </div>
                               <div className="flex gap-2">
-                                {item.itemStatus === 'preorder_pending' && (
+                                {item.itemStatus === "preorder_pending" && (
                                   <Button
                                     size="sm"
                                     onClick={() =>
                                       handleUpdateItemStatus(
                                         order._id,
                                         originalIndex,
-                                        'preorder_ready'
+                                        "preorder_ready",
                                       )
                                     }
                                     disabled={isUpdating}
                                   >
                                     {isUpdating ? (
-                                      'Đang xử lý...'
+                                      "Đang xử lý..."
                                     ) : (
                                       <>
                                         <CheckCircle className="h-4 w-4 mr-2" />
@@ -298,7 +325,7 @@ const PreOrders = () => {
                                     )}
                                   </Button>
                                 )}
-                                {item.itemStatus === 'preorder_ready' && (
+                                {item.itemStatus === "preorder_ready" && (
                                   <Badge variant="success" className="gap-1">
                                     <CheckCircle className="h-4 w-4" />
                                     Sẵn sàng giao
