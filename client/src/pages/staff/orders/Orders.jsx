@@ -4,7 +4,6 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
-  Printer,
   ClockIcon,
   Truck,
   Package,
@@ -92,7 +91,6 @@ export default function StaffOrders() {
   const [maxPrice, setMaxPrice] = useState("");
   const [page, setPage] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [trackingNumber, setTrackingNumber] = useState("");
   const [internalNote, setInternalNote] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -125,7 +123,7 @@ export default function StaffOrders() {
     setError(null);
     try {
       const filters = {};
-      if (statusFilter !== "all") filters.status = statusFilter;
+      // Don't send statusFilter to API - we'll filter client-side
       if (paymentStatusFilter !== "all")
         filters.paymentStatus = paymentStatusFilter;
       if (paymentFilter !== "all") filters.paymentMethod = paymentFilter;
@@ -146,7 +144,7 @@ export default function StaffOrders() {
   // Load orders on mount and when filters change
   useEffect(() => {
     fetchOrders();
-  }, [statusFilter, paymentStatusFilter, paymentFilter, hasPreOrderFilter]);
+  }, [paymentStatusFilter, paymentFilter, hasPreOrderFilter]);
 
   // Debounced search
   useEffect(() => {
@@ -158,9 +156,14 @@ export default function StaffOrders() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Filter and paginate orders (client-side filtering for date/price)
+  // Filter and paginate orders (client-side filtering for date/price/status)
   const filteredOrders = useMemo(() => {
     let filtered = orders;
+
+    // Status filter (client-side)
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((order) => order.orderStatus === statusFilter);
+    }
 
     // Date range filter (client-side)
     if (dateRangeType === "custom" && startDate) {
@@ -192,13 +195,25 @@ export default function StaffOrders() {
     }
 
     return filtered;
-  }, [orders, dateRangeType, startDate, endDate, minPrice, maxPrice]);
+  }, [orders, statusFilter, dateRangeType, startDate, endDate, minPrice, maxPrice]);
 
   const paginatedOrders = useMemo(() => {
     const start = (page - 1) * pageSize;
     const end = start + pageSize;
     return filteredOrders.slice(start, end);
   }, [filteredOrders, page]);
+
+  // Calculate order counts for each tab
+  const orderCounts = useMemo(() => {
+    return {
+      all: orders.length,
+      pending: orders.filter(o => o.orderStatus === 'pending_payment').length,
+      processing: orders.filter(o => o.orderStatus === 'processing').length,
+      shipping: orders.filter(o => o.orderStatus === 'shipped').length,
+      delivered: orders.filter(o => o.orderStatus === 'delivered').length,
+      cancelled: orders.filter(o => o.orderStatus === 'cancelled').length,
+    };
+  }, [orders]);
 
   const handleUpdateStatus = async (orderId, newStatus) => {
     try {
@@ -214,70 +229,6 @@ export default function StaffOrders() {
       console.error("Failed to update order status:", err);
       toast.error(err.message || 'Không thể cập nhật trạng thái đơn hàng');
     }
-  };
-
-  const handlePrintInvoice = (order) => {
-    // Open print preview in new window
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      toast.error('Không thể mở cửa sổ in. Vui lòng kiểm tra trình chặn popup.');
-      return;
-    }
-
-    // Import React and ReactDOM for rendering
-    import('react-dom/client').then(({ createRoot }) => {
-      import('./components/PrintInvoice').then(({ default: PrintInvoice }) => {
-        printWindow.document.write(`
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <meta charset="utf-8">
-              <title>Hóa đơn - ${order.orderNumber}</title>
-            </head>
-            <body>
-              <div id="print-root"></div>
-            </body>
-          </html>
-        `);
-        printWindow.document.close();
-
-        const React = require('react');
-        const root = createRoot(printWindow.document.getElementById('print-root'));
-        root.render(React.createElement(PrintInvoice, { order }));
-      });
-    });
-  };
-
-  const handlePrintPackingSlip = (order) => {
-    // Open print preview in new window
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      toast.error('Không thể mở cửa sổ in. Vui lòng kiểm tra trình chặn popup.');
-      return;
-    }
-
-    // Import React and ReactDOM for rendering
-    import('react-dom/client').then(({ createRoot }) => {
-      import('./components/PrintPackingSlip').then(({ default: PrintPackingSlip }) => {
-        printWindow.document.write(`
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <meta charset="utf-8">
-              <title>Phiếu đóng gói - ${order.orderNumber}</title>
-            </head>
-            <body>
-              <div id="print-root"></div>
-            </body>
-          </html>
-        `);
-        printWindow.document.close();
-
-        const React = require('react');
-        const root = createRoot(printWindow.document.getElementById('print-root'));
-        root.render(React.createElement(PrintPackingSlip, { order }));
-      });
-    });
   };
 
   const handleResetFilters = () => {
@@ -309,31 +260,6 @@ export default function StaffOrders() {
           <div className="sticky top-20 bg-white border rounded-lg shadow-xs p-4 space-y-6 max-h-[calc(100vh-6rem)] overflow-y-auto">
             <div>
               <h3 className="font-semibold text-sm mb-3">Bộ lọc</h3>
-            </div>
-
-            {/* Status Filter */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Trạng thái đơn hàng</Label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="all">Tất cả</SelectItem>
-                    <SelectItem value="pending_payment">
-                      Chờ thanh toán
-                    </SelectItem>
-                    <SelectItem value="processing">Đang xử lý</SelectItem>
-                    <SelectItem value="shipped">Đang giao</SelectItem>
-                    <SelectItem value="delivered">Đã giao</SelectItem>
-                    <SelectItem value="cancelled">Đã hủy</SelectItem>
-                    <SelectItem value="partially_shipped">
-                      Giao một phần
-                    </SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
             </div>
 
             {/* Payment Status Filter */}
@@ -485,12 +411,30 @@ export default function StaffOrders() {
         <div className="pt-2 flex-1 space-y-5">
           <Tabs value={activeTab} onValueChange={handleTabChange}>
             <TabsList>
-              <TabsTrigger value="all">Tất cả</TabsTrigger>
-              <TabsTrigger value="pending">Chờ thanh toán</TabsTrigger>
-              <TabsTrigger value="processing">Đang xử lý</TabsTrigger>
-              <TabsTrigger value="shipping">Đang giao</TabsTrigger>
-              <TabsTrigger value="delivered">Đã giao</TabsTrigger>
-              <TabsTrigger value="cancelled">Đã hủy</TabsTrigger>
+              <TabsTrigger value="all">
+                Tất cả
+                <Badge variant="secondary">{orderCounts.all}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="pending">
+                Chờ thanh toán
+                <Badge variant="secondary">{orderCounts.pending}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="processing">
+                Đang xử lý
+                <Badge variant="secondary">{orderCounts.processing}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="shipping">
+                Đang giao
+                <Badge variant="secondary">{orderCounts.shipping}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="delivered">
+                Đã giao
+                <Badge variant="secondary">{orderCounts.delivered}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="cancelled">
+                Đã hủy
+                <Badge variant="secondary">{orderCounts.cancelled}</Badge>
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="all" className="mt-0">
               {/* Content will be shown below */}
@@ -698,23 +642,14 @@ export default function StaffOrders() {
                                 {formatDateTime(order.createdAt)}
                               </TableCell>
                               <TableCell className="text-right">
-                                <div className="flex items-center justify-end gap-1">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setSelectedOrder(order)}
-                                  >
-                                    <Eye className="h-4 w-4 mr-1" />
-                                    Xem
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handlePrintInvoice(order)}
-                                  >
-                                    <Printer className="h-4 w-4" />
-                                  </Button>
-                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setSelectedOrder(order)}
+                                >
+                                  <Eye className="h-4 w-4 mr-1" />
+                                  Xem
+                                </Button>
                               </TableCell>
                             </TableRow>
                           ))
@@ -731,12 +666,8 @@ export default function StaffOrders() {
           <OrderDetailDialog
             selectedOrder={selectedOrder}
             onClose={() => setSelectedOrder(null)}
-            trackingNumber={trackingNumber}
-            setTrackingNumber={setTrackingNumber}
             internalNote={internalNote}
             setInternalNote={setInternalNote}
-            onPrintInvoice={handlePrintInvoice}
-            onPrintPackingSlip={handlePrintPackingSlip}
             onOrderUpdated={fetchOrders}
           />
         </div>

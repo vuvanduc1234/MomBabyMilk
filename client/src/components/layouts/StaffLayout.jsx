@@ -13,6 +13,7 @@ import {
   Tag,
   List,
   Clock,
+  Newspaper,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ const menuItems = [
   { icon: Package, label: "Sản phẩm", href: "/staff/products" },
   { icon: Tag, label: "Thương hiệu", href: "/staff/brands" },
   { icon: List, label: "Danh mục", href: "/staff/categories" },
+  { icon: Newspaper, label: "Bài viết", href: "/staff/articles" },
 ];
 
 // MobileSidebar component extracted to avoid re-creation on each render

@@ -43,6 +43,7 @@ import AccountManagement from "./pages/admin/AccountManagement";
 import RevenueStatistics from "./pages/admin/RevenueStatistics";
 import { ProtectedRoute } from "./components/layouts/ProtectedRoute";
 import OrderTracking from "./pages/Orders/OrderTracking";
+import StaffArticles from "./pages/staff/articles/Articles";
 
 // Public Layout Component
 function PublicLayout() {
@@ -82,6 +83,7 @@ function App() {
               <Route path="products" element={<StaffProducts />} />
               <Route path="brands" element={<StaffBrands />} />
               <Route path="categories" element={<StaffCategories />} />
+              <Route path="articles" element={<StaffArticles />} />
             </Route>
 
             {/* Admin routes */}
