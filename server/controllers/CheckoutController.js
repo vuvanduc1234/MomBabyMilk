@@ -204,6 +204,7 @@ const checkout = async (req, res) => {
           name: product.name,
           price: product.price,
           quantity,
+          imageUrl: product.imageUrl,
           isPreOrder: false,
           itemStatus: "available",
         });
@@ -240,6 +241,7 @@ const checkout = async (req, res) => {
             name: product.name,
             price: product.price,
             quantity: availableStock,
+            imageUrl: product.imageUrl,
             isPreOrder: false,
             itemStatus: "available",
           });
@@ -252,6 +254,7 @@ const checkout = async (req, res) => {
             name: productFromDB.name,
             price: productFromDB.price,
             quantity: preOrderQuantity,
+            imageUrl: productFromDB.imageUrl,
             isPreOrder: true,
             expectedAvailableDate:
               productFromDB.expectedRestockDate ||

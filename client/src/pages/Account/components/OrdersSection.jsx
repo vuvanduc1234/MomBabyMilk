@@ -162,7 +162,24 @@ export default function OrdersSection() {
                       .slice(0, isExpanded ? undefined : 2)
                       .map((item, idx) => (
                         <div key={idx} className="flex gap-3">
-                          <div className="w-16 h-16 bg-gray-100 rounded-lg flex-shrink-0"></div>
+                          <div className="w-16 h-16 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
+                            {item.imageUrl || item.product?.imageUrl ? (
+                              <img
+                                src={
+                                  Array.isArray(item.imageUrl)
+                                    ? item.imageUrl[0]
+                                    : item.imageUrl ||
+                                      (Array.isArray(item.product?.imageUrl)
+                                        ? item.product.imageUrl[0]
+                                        : item.product?.imageUrl)
+                                }
+                                alt={item.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <Package className="w-full h-full p-4 text-gray-400" />
+                            )}
+                          </div>
                           <div className="flex-1 min-w-0">
                             <h4 className="text-sm font-medium text-gray-800 truncate">
                               {item.name}

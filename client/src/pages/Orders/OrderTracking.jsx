@@ -215,13 +215,15 @@ export default function OrderTracking() {
                         {order.cartItems?.map((item, idx) => (
                           <div key={idx} className="flex items-center gap-4">
                             <div className="w-16 h-16 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
-                              {item.product?.imageUrl &&
-                              item.product.imageUrl.length > 0 ? (
+                              {item.imageUrl || item.product?.imageUrl ? (
                                 <img
                                   src={
-                                    Array.isArray(item.product.imageUrl)
-                                      ? item.product.imageUrl[0]
-                                      : item.product.imageUrl
+                                    Array.isArray(item.imageUrl)
+                                      ? item.imageUrl[0]
+                                      : item.imageUrl ||
+                                        (Array.isArray(item.product?.imageUrl)
+                                          ? item.product.imageUrl[0]
+                                          : item.product?.imageUrl)
                                   }
                                   alt={item.name}
                                   className="w-full h-full object-cover"

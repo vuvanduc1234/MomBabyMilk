@@ -1,4 +1,4 @@
-import { Gift, Save, Loader2 } from "lucide-react";
+import { Gift, Save, Loader2, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -46,19 +46,19 @@ export default function OrderDetailDialog({
 
   const handleSaveMetadata = async () => {
     if (!selectedOrder) return;
-    
+
     setIsSaving(true);
     try {
       await updateOrderMetadata(selectedOrder._id, {
         note: internalNote,
       });
-      toast.success('Đã lưu thông tin đơn hàng');
+      toast.success("Đã lưu thông tin đơn hàng");
       if (onOrderUpdated) {
         onOrderUpdated();
       }
     } catch (error) {
-      console.error('Failed to save order metadata:', error);
-      toast.error(error.message || 'Không thể lưu thông tin đơn hàng');
+      console.error("Failed to save order metadata:", error);
+      toast.error(error.message || "Không thể lưu thông tin đơn hàng");
     } finally {
       setIsSaving(false);
     }
@@ -66,33 +66,43 @@ export default function OrderDetailDialog({
 
   // Calculate order breakdown
   const calculateOrderBreakdown = () => {
-    if (!selectedOrder?.cartItems) return { subtotal: 0, discount: 0, shippingFee: 0 };
-    
+    if (!selectedOrder?.cartItems)
+      return { subtotal: 0, discount: 0, shippingFee: 0 };
+
     const subtotal = selectedOrder.cartItems.reduce(
-      (sum, item) => sum + (item.price * item.quantity), 
-      0
+      (sum, item) => sum + item.price * item.quantity,
+      0,
     );
-    
+
     // Calculate discount from rewards
     const rewardDiscount = selectedOrder.rewardPointsUsed || 0;
-    
+
     // If there's a voucher, calculate its discount
     let voucherDiscount = 0;
     if (selectedOrder.voucherUsed?.discountPercentage) {
-      voucherDiscount = subtotal * (selectedOrder.voucherUsed.discountPercentage / 100);
+      voucherDiscount =
+        subtotal * (selectedOrder.voucherUsed.discountPercentage / 100);
     }
-    
+
     const totalDiscount = rewardDiscount + voucherDiscount;
-    const shippingFee = Math.max(0, selectedOrder.totalAmount - (subtotal - totalDiscount));
-    
+    const shippingFee = Math.max(
+      0,
+      selectedOrder.totalAmount - (subtotal - totalDiscount),
+    );
+
     return {
       subtotal,
       discount: totalDiscount,
-      shippingFee: subtotal - totalDiscount + shippingFee === selectedOrder.totalAmount ? shippingFee : 0,
+      shippingFee:
+        subtotal - totalDiscount + shippingFee === selectedOrder.totalAmount
+          ? shippingFee
+          : 0,
     };
   };
 
-  const orderBreakdown = selectedOrder ? calculateOrderBreakdown() : { subtotal: 0, discount: 0, shippingFee: 0 };
+  const orderBreakdown = selectedOrder
+    ? calculateOrderBreakdown()
+    : { subtotal: 0, discount: 0, shippingFee: 0 };
 
   return (
     <Dialog open={!!selectedOrder} onOpenChange={onClose}>
@@ -111,9 +121,15 @@ export default function OrderDetailDialog({
                 <div className="grid sm:grid-cols-2 gap-4 border-b pb-6">
                   <div>
                     <h4 className="font-medium mb-2">Thông tin khách hàng</h4>
-                    <p><strong>{selectedOrder.customer?.fullname || "N/A"}</strong></p>
+                    <p>
+                      <strong>
+                        {selectedOrder.customer?.fullname || "N/A"}
+                      </strong>
+                    </p>
                     <p className="text-muted-foreground">
-                      {selectedOrder.phone || selectedOrder.customer?.phone || "N/A"}
+                      {selectedOrder.phone ||
+                        selectedOrder.customer?.phone ||
+                        "N/A"}
                     </p>
                     {selectedOrder.customer?.email && (
                       <p className="text-muted-foreground">
@@ -201,10 +217,25 @@ export default function OrderDetailDialog({
                 <h4 className="font-medium lg:mb-2">Sản phẩm</h4>
                 <div className="space-y-2 overflow-y-auto lg:max-h-110 scrollbar-thin -mr-2 pr-2">
                   {selectedOrder.cartItems?.map((item, index) => (
-                    <div
-                      key={index}
-                      className="flex justify-between py-2 border-b"
-                    >
+                    <div key={index} className="flex gap-3 py-2 border-b">
+                      <div className="w-16 h-16 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
+                        {item.imageUrl || item.product?.imageUrl ? (
+                          <img
+                            src={
+                              Array.isArray(item.imageUrl)
+                                ? item.imageUrl[0]
+                                : item.imageUrl ||
+                                  (Array.isArray(item.product?.imageUrl)
+                                    ? item.product.imageUrl[0]
+                                    : item.product?.imageUrl)
+                            }
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Package className="w-full h-full p-4 text-gray-400" />
+                        )}
+                      </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <span>
@@ -257,7 +288,9 @@ export default function OrderDetailDialog({
                 {selectedOrder.voucherUsed && (
                   <div className="flex justify-between text-purple-600">
                     <span>Voucher ({selectedOrder.voucherUsed.code})</span>
-                    <span>-{selectedOrder.voucherUsed.discountPercentage}%</span>
+                    <span>
+                      -{selectedOrder.voucherUsed.discountPercentage}%
+                    </span>
                   </div>
                 )}
                 <div className="flex justify-between text-lg font-bold pt-2 border-t">
@@ -268,9 +301,7 @@ export default function OrderDetailDialog({
                 </div>
                 <div className="flex items-end flex-col text-sm mt-2">
                   <div>
-                    <span className="text-muted-foreground">
-                      Thanh toán:{" "}
-                    </span>
+                    <span className="text-muted-foreground">Thanh toán: </span>
                     <span>
                       {getPaymentMethodLabel(selectedOrder.paymentMethod)}
                     </span>
@@ -281,7 +312,7 @@ export default function OrderDetailDialog({
                     </span>
                     <span
                       className={getPaymentStatusColor(
-                        selectedOrder.paymentStatus
+                        selectedOrder.paymentStatus,
                       )}
                     >
                       {getPaymentStatusLabel(selectedOrder.paymentStatus)}
