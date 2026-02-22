@@ -2,18 +2,12 @@ const Product = require("../models/ProductModel");
 const Voucher = require("../models/VoucherModel");
 const Order = require("../models/OrderModel");
 const User = require("../models/UserModel");
-const Reward = require("../models/RewardModel");
 const axios = require("axios");
 const crypto = require("crypto");
 const qs = require("qs");
 const moment = require("moment");
 const mongoose = require("mongoose");
-const {
-  redeemRewardPoints,
-  calculateRewardPoints,
-  addRewardPoints,
-  getRewardBalance,
-} = require("../services/rewardService");
+const { addPendingPoints } = require("../services/pointService");
 
 function sortObject(obj) {
   let sorted = {};
@@ -117,7 +111,6 @@ const checkout = async (req, res) => {
       cartItems,
       paymentMethod = "cod",
       voucherUsed,
-      rewardPointsUsed = 0,
       shippingAddress: bodyShippingAddress,
       phone: bodyPhone,
       note,
@@ -358,58 +351,10 @@ const checkout = async (req, res) => {
       }
     }
 
-    // ✅ FIX 5 & 7: Validate points với giới hạn 50% (không trừ nếu online payment)
-    let rewardDiscount = 0;
-    if (rewardPointsUsed > 0) {
-      const afterVoucher = subTotal - discount;
-      const maxPointsUsable = Math.floor(afterVoucher * 0.5); // 50% max
-
-      if (rewardPointsUsed > maxPointsUsable) {
-        await session.abortTransaction();
-        return res.status(400).json({
-          message: `Bạn chỉ có thể sử dụng tối đa ${maxPointsUsable} xu (50% giá trị đơn hàng sau giảm giá)`,
-        });
-      }
-
-      const userBalance = await getRewardBalance(userId);
-      if (rewardPointsUsed > userBalance) {
-        await session.abortTransaction();
-        return res.status(400).json({
-          message: `Bạn chỉ có ${userBalance} xu, không đủ để sử dụng ${rewardPointsUsed} xu`,
-        });
-      }
-
-      rewardDiscount = rewardPointsUsed;
-
-      if (paymentMethod === "cod") {
-        const reward = await Reward.findOneAndUpdate(
-          { user: userId, balance: { $gte: rewardPointsUsed } },
-          {
-            $inc: { balance: -rewardPointsUsed },
-            $push: {
-              transactions: {
-                type: "redeem",
-                amount: rewardPointsUsed,
-                reason: "Sử dụng xu thanh toán đơn hàng (COD)",
-                meta: { orderTemp: "pending" },
-              },
-            },
-          },
-          { new: true, session },
-        );
-
-        if (!reward) {
-          await session.abortTransaction();
-          return res.status(400).json({ message: "Không thể sử dụng xu" });
-        }
-      }
-    }
-
     const total = Math.max(
       10000,
-      subTotal + shippingFee - discount - rewardDiscount,
+      subTotal + shippingFee - discount,
     );
-    const rewardPointsEarned = calculateRewardPoints(total);
 
     const allPreOrder = orderItems.every((item) => item.isPreOrder);
     if (allPreOrder && paymentMethod === "cod") {
@@ -431,8 +376,6 @@ const checkout = async (req, res) => {
           note: note || "",
           totalAmount: total,
           voucherUsed: voucher ? voucher._id : null,
-          rewardPointsUsed: rewardPointsUsed || 0,
-          rewardPointsEarned,
           paymentMethod,
           paymentStatus: "pending",
           hasPreOrderItems: hasPreOrder,
@@ -452,15 +395,13 @@ const checkout = async (req, res) => {
     // ✅ FIX 4: Commit transaction trước khi return
     await session.commitTransaction();
 
-    // COD: cộng xu ngay
+    // Thêm pending points cho COD orders
     if (paymentMethod === "cod") {
-      if (order.rewardPointsEarned > 0) {
-        await addRewardPoints(
-          userId,
-          order.rewardPointsEarned,
-          "Mua hàng thành công (COD)",
-          { orderId: order._id },
-        );
+      try {
+        await addPendingPoints(userId, order._id, total);
+      } catch (pointError) {
+        console.error("Error adding pending points:", pointError);
+        // Không fail order nếu point service lỗi
       }
 
       return res.status(201).json({
@@ -583,7 +524,7 @@ const momoNotify = async (req, res) => {
       order.orderStatus = "processing";
       await order.save({ session });
 
-      // ✅ FIX 7: Trừ voucher & points sau khi payment success
+      // ✅ FIX 7: Trừ voucher sau khi payment success
       const userId = order.customer._id || order.customer;
 
       // Trừ voucher atomic
@@ -608,37 +549,15 @@ const momoNotify = async (req, res) => {
         );
       }
 
-      // Trừ points atomic
-      if (order.rewardPointsUsed > 0) {
-        await Reward.findOneAndUpdate(
-          { user: userId, balance: { $gte: order.rewardPointsUsed } },
-          {
-            $inc: { balance: -order.rewardPointsUsed },
-            $push: {
-              transactions: {
-                type: "redeem",
-                amount: order.rewardPointsUsed,
-                reason: "Sử dụng xu thanh toán đơn hàng (MoMo)",
-                meta: { orderId: order._id, transId },
-              },
-            },
-          },
-          { new: true, session },
-        );
-      }
-
-      // Cộng earned points
-      if (order.rewardPointsEarned > 0) {
-        await addRewardPoints(
-          userId,
-          order.rewardPointsEarned,
-          "Mua hàng thành công (MoMo)",
-          { orderId: order._id, transId },
-        );
-      }
-
       await session.commitTransaction();
       session.endSession();
+
+      // Thêm pending points cho online payment
+      try {
+        await addPendingPoints(userId, order._id, order.totalAmount);
+      } catch (pointError) {
+        console.error("Error adding pending points:", pointError);
+      }
 
       console.log("Order paid successfully:", orderId);
       return res.status(200).json({ message: "Payment successful" });
@@ -664,7 +583,7 @@ const momoNotify = async (req, res) => {
       await session.commitTransaction();
       session.endSession();
 
-      // Không cần hoàn voucher/points vì chưa trừ
+      // Không cần hoàn voucher vì chưa trừ
       return res.status(200).json({ message: "Payment failed" });
     }
   } catch (e) {
@@ -748,7 +667,7 @@ const vnpayReturn = async (req, res) => {
       order.orderStatus = "processing";
       await order.save({ session });
 
-      // ✅ FIX 7: Trừ voucher & points sau khi payment success
+      // ✅ FIX 7: Trừ voucher sau khi payment success
       const userId = order.customer._id || order.customer;
 
       // Trừ voucher atomic
@@ -773,37 +692,15 @@ const vnpayReturn = async (req, res) => {
         );
       }
 
-      // Trừ points atomic
-      if (order.rewardPointsUsed > 0) {
-        await Reward.findOneAndUpdate(
-          { user: userId, balance: { $gte: order.rewardPointsUsed } },
-          {
-            $inc: { balance: -order.rewardPointsUsed },
-            $push: {
-              transactions: {
-                type: "redeem",
-                amount: order.rewardPointsUsed,
-                reason: "Sử dụng xu thanh toán đơn hàng (VNPay)",
-                meta: { orderId: order._id, transactionNo },
-              },
-            },
-          },
-          { new: true, session },
-        );
-      }
-
-      // Cộng earned points
-      if (order.rewardPointsEarned > 0) {
-        await addRewardPoints(
-          userId,
-          order.rewardPointsEarned,
-          "Mua hàng thành công (VNPay)",
-          { orderId: order._id, transactionNo },
-        );
-      }
-
       await session.commitTransaction();
       session.endSession();
+
+      // Thêm pending points cho online payment
+      try {
+        await addPendingPoints(userId, order._id, order.totalAmount);
+      } catch (pointError) {
+        console.error("Error adding pending points:", pointError);
+      }
 
       console.log("VNPAY: Order paid successfully:", orderId);
       return res.redirect(
@@ -832,7 +729,7 @@ const vnpayReturn = async (req, res) => {
     await session.commitTransaction();
     session.endSession();
 
-    // Không cần hoàn voucher/points vì chưa trừ
+    // Không cần hoàn voucher vì chưa trừ
 
     const errorMessages = {
       "07": "Giao dịch bị nghi ngờ",

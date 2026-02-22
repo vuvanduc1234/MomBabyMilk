@@ -29,7 +29,6 @@ const getRevenueOverview = async (req, res) => {
     const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
     const totalWithVoucher = orders.filter((o) => o.voucherUsed).length;
-    const totalWithRewardPoints = orders.filter((o) => o.rewardPointsUsed > 0).length;
 
     const paymentMethodBreakdown = {
       cod: orders.filter((o) => o.paymentMethod === "cod").length,
@@ -100,7 +99,6 @@ const getRevenueOverview = async (req, res) => {
         orderStatus: orderStatusBreakdown,
         promotions: {
           ordersWithVoucher: totalWithVoucher,
-          ordersWithRewardPoints: totalWithRewardPoints,
         },
         preOrder: preOrderStats,
         period: {

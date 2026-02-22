@@ -59,11 +59,6 @@ const {
  *                 type: string
  *                 description: Optional voucher ID from user's vouchers (get list from /api/users/my-vouchers)
  *                 example: "6979fd9eebd101f6355d5b97"
- *               rewardPointsUsed:
- *                 type: number
- *                 description: Optional reward points to use (1 xu = 1 VND). Get balance from /api/rewards/balance
- *                 example: 50
- *                 default: 0
  *               note:
  *                 type: string
  *                 description: Optional order note
