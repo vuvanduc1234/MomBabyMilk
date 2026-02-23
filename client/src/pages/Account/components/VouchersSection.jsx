@@ -1,102 +1,22 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Ticket, Copy, Clock, CheckCircle, XCircle, Gift } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Ticket,
+  Copy,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Gift,
+  AlertCircle,
+} from "lucide-react";
 import { toast } from "sonner";
-
-function formatPrice(price) {
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-  }).format(price);
-}
-
-export function formatDate(date) {
-  return new Intl.DateTimeFormat("vi-VN", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  }).format(new Date(date));
-}
-
-// Mock data for user vouchers
-const mockUserVouchers = [
-  {
-    id: "1",
-    code: "WELCOME20",
-    description: "Giảm 20% cho đơn hàng đầu tiên",
-    discount_type: "percentage",
-    discount_value: 20,
-    min_order_value: 200000,
-    max_discount: 100000,
-    expires_at: "2025-03-31T23:59:59Z",
-    status: "active",
-    source: "Chào mừng thành viên mới",
-  },
-  {
-    id: "2",
-    code: "FREESHIP50",
-    description: "Miễn phí vận chuyển cho đơn từ 300K",
-    discount_type: "fixed",
-    discount_value: 50000,
-    min_order_value: 300000,
-    max_discount: null,
-    expires_at: "2025-02-28T23:59:59Z",
-    status: "active",
-    source: "Khuyến mãi tháng 2",
-  },
-  {
-    id: "3",
-    code: "BIRTHDAY100",
-    description: "Quà sinh nhật - Giảm 100K",
-    discount_type: "fixed",
-    discount_value: 100000,
-    min_order_value: 500000,
-    max_discount: null,
-    expires_at: "2025-02-10T23:59:59Z",
-    status: "active",
-    source: "Ưu đãi sinh nhật",
-  },
-  {
-    id: "4",
-    code: "GOLD15",
-    description: "Ưu đãi thành viên Gold - Giảm 15%",
-    discount_type: "percentage",
-    discount_value: 15,
-    min_order_value: 0,
-    max_discount: 200000,
-    expires_at: "2025-12-31T23:59:59Z",
-    status: "active",
-    source: "Đặc quyền hạng Gold",
-  },
-  {
-    id: "5",
-    code: "SALE10",
-    description: "Giảm 10% toàn bộ đơn hàng",
-    discount_type: "percentage",
-    discount_value: 10,
-    min_order_value: 100000,
-    max_discount: 50000,
-    expires_at: "2025-01-15T23:59:59Z",
-    status: "expired",
-    source: "Flash sale",
-  },
-  {
-    id: "6",
-    code: "SUMMER30",
-    description: "Khuyến mãi mùa hè - Giảm 30%",
-    discount_type: "percentage",
-    discount_value: 30,
-    min_order_value: 400000,
-    max_discount: 150000,
-    expires_at: "2024-08-31T23:59:59Z",
-    status: "used",
-    used_at: "2024-08-20T14:30:00Z",
-    source: "Chương trình mùa hè",
-  },
-];
+import { getUserVouchers } from "../services/accountApi";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { formatPrice, formatDate } from "@/lib/formatters";
 
 const getStatusBadge = (status) => {
   switch (status) {
@@ -223,12 +143,73 @@ const VoucherCard = ({ voucher }) => {
 
 export default function VouchersSection() {
   const [activeTab, setActiveTab] = useState("active");
+  const [vouchers, setVouchers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const activeVouchers = mockUserVouchers.filter((v) => v.status === "active");
-  const usedVouchers = mockUserVouchers.filter((v) => v.status === "used");
-  const expiredVouchers = mockUserVouchers.filter(
-    (v) => v.status === "expired",
-  );
+  useEffect(() => {
+    fetchVouchers();
+  }, []);
+
+  const fetchVouchers = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await getUserVouchers();
+
+      // Transform API data to match component structure
+      const transformedVouchers = (response.vouchers || []).map((item) => ({
+        id: item.voucherId._id,
+        code: item.voucherId.code,
+        description:
+          item.voucherId.description ||
+          `Voucher giảm giá ${item.voucherId.code}`,
+        discount_type: item.voucherId.discountPercentage
+          ? "percentage"
+          : "fixed",
+        discount_value:
+          item.voucherId.discountPercentage ||
+          item.voucherId.discountAmount ||
+          0,
+        min_order_value: item.voucherId.minOrderValue || 0,
+        max_discount: item.voucherId.maxDiscount || null,
+        expires_at: item.voucherId.expiryDate,
+        status: "active", // API only returns valid vouchers
+        source: item.source || "Đổi điểm",
+        quantity: item.quantity,
+      }));
+
+      setVouchers(transformedVouchers);
+    } catch (err) {
+      console.error("Error fetching vouchers:", err);
+      setError(err.message || "Không thể tải voucher");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const activeVouchers = vouchers.filter((v) => v.status === "active");
+  const usedVouchers = vouchers.filter((v) => v.status === "used");
+  const expiredVouchers = vouchers.filter((v) => v.status === "expired");
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-24 w-full" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
+  }
 
   return (
     <div className="">

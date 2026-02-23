@@ -42,7 +42,7 @@ const defaultAuth = {
     clearTokens();
   },
   isAuthenticated: () => !!getAccessToken(),
-  updateToken: (newToken) => {},
+  updateToken: () => {},
   refreshToken: async () => {},
 };
 

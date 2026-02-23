@@ -1,5 +1,6 @@
 // src/components/Layout/Header.jsx
 import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
 import {
   ShoppingCart,
   User,
@@ -15,15 +16,24 @@ import {
 } from "lucide-react";
 import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
+import NotificationDropdown from "../NotificationDropdown";
 
 export default function Header() {
   const { getTotalUniqueItems } = useCart();
   const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
 
   const handleLogout = () => {
     logout();
     navigate("/login");
+  };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
   };
 
   return (
@@ -85,14 +95,16 @@ export default function Header() {
 
             {/* Search Bar */}
             <div className="flex-1 max-w-2xl">
-              <div className="relative">
+              <form onSubmit={handleSearch} className="relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
                   type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Tìm kiếm sản phẩm, thương hiệu..."
                   className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent bg-white transition-all"
                 />
-              </div>
+              </form>
             </div>
 
             {/* Actions */}
@@ -173,6 +185,9 @@ export default function Header() {
                   </div>
                 </div>
               </div>
+
+              {/* Notifications */}
+              {isAuthenticated() && <NotificationDropdown />}
 
               {/* Cart */}
               <div className="relative group">

@@ -1,10 +1,7 @@
-import { Gift, Save, Loader2, Package } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Gift, Package, Bell } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import React from "react";
+import { Button } from "@/components/ui/button";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +9,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import {
   formatOrderNumber,
@@ -20,7 +24,8 @@ import {
   getPaymentMethodLabel,
   getItemStatusLabel,
   formatVND,
-  updateOrderMetadata,
+  updateItemStatus,
+  notifyPreOrderReady,
 } from "@/pages/staff/orders/services/orderService";
 
 // Format helpers
@@ -38,31 +43,10 @@ const formatDateTime = (dateString) => {
 export default function OrderDetailDialog({
   selectedOrder,
   onClose,
-  internalNote,
-  setInternalNote,
-  onOrderUpdated,
+  onOrderUpdate,
 }) {
-  const [isSaving, setIsSaving] = React.useState(false);
-
-  const handleSaveMetadata = async () => {
-    if (!selectedOrder) return;
-
-    setIsSaving(true);
-    try {
-      await updateOrderMetadata(selectedOrder._id, {
-        note: internalNote,
-      });
-      toast.success("Đã lưu thông tin đơn hàng");
-      if (onOrderUpdated) {
-        onOrderUpdated();
-      }
-    } catch (error) {
-      console.error("Failed to save order metadata:", error);
-      toast.error(error.message || "Không thể lưu thông tin đơn hàng");
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  const [isUpdatingItem, setIsUpdatingItem] = useState(false);
+  const [isNotifying, setIsNotifying] = useState(false);
 
   // Calculate order breakdown
   const calculateOrderBreakdown = () => {
@@ -103,6 +87,51 @@ export default function OrderDetailDialog({
   const orderBreakdown = selectedOrder
     ? calculateOrderBreakdown()
     : { subtotal: 0, discount: 0, shippingFee: 0 };
+
+  // Handler: Update item status
+  const handleUpdateItemStatus = async (itemIndex, newStatus) => {
+    if (!selectedOrder) return;
+    setIsUpdatingItem(true);
+    try {
+      await updateItemStatus(selectedOrder._id, itemIndex, newStatus);
+      toast.success("Đã cập nhật trạng thái sản phẩm");
+
+      // Update the order locally
+      const updatedOrder = {
+        ...selectedOrder,
+        cartItems: selectedOrder.cartItems.map((item, idx) =>
+          idx === itemIndex ? { ...item, itemStatus: newStatus } : item,
+        ),
+      };
+
+      if (onOrderUpdate) {
+        onOrderUpdate(updatedOrder);
+      }
+    } catch (err) {
+      toast.error(err.message || "Không thể cập nhật trạng thái sản phẩm");
+    } finally {
+      setIsUpdatingItem(false);
+    }
+  };
+
+  // Handler: Notify pre-order ready
+  const handleNotifyPreOrderReady = async () => {
+    if (!selectedOrder) return;
+    setIsNotifying(true);
+    try {
+      await notifyPreOrderReady(selectedOrder._id);
+      toast.success("Đã gửi thông báo cho khách hàng");
+    } catch (err) {
+      toast.error(err.message || "Không thể gửi thông báo");
+    } finally {
+      setIsNotifying(false);
+    }
+  };
+
+  // Check if order has pre-order items that are ready
+  const hasReadyPreOrderItems = selectedOrder?.cartItems?.some(
+    (item) => item.isPreOrder && item.itemStatus === "preorder_ready",
+  );
 
   return (
     <Dialog open={!!selectedOrder} onOpenChange={onClose}>
@@ -160,9 +189,23 @@ export default function OrderDetailDialog({
                     <AlertTitle className="text-blue-900">
                       Đơn hàng có sản phẩm đặt trước
                     </AlertTitle>
-                    <AlertDescription className="text-blue-800">
-                      Đơn hàng này có chứa sản phẩm đặt trước. Vui lòng kiểm tra
-                      ngày dự kiến.
+                    <AlertDescription className="text-blue-800 space-y-2">
+                      <p>
+                        Đơn hàng này có chứa sản phẩm đặt trước. Vui lòng kiểm
+                        tra ngày dự kiến.
+                      </p>
+                      {hasReadyPreOrderItems && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mt-2"
+                          onClick={handleNotifyPreOrderReady}
+                          disabled={isNotifying}
+                        >
+                          <Bell className="h-3 w-3 mr-1" />
+                          {isNotifying ? "Đang gửi..." : "Thông báo hàng đã về"}
+                        </Button>
+                      )}
                     </AlertDescription>
                   </Alert>
                 )}
@@ -194,7 +237,7 @@ export default function OrderDetailDialog({
                           <Package className="w-full h-full p-4 text-gray-400" />
                         )}
                       </div>
-                      <div className="flex-1">
+                      <div className="flex-1 space-y-1">
                         <div className="flex items-center gap-2">
                           <span>
                             {item.name} x{item.quantity}
@@ -206,10 +249,44 @@ export default function OrderDetailDialog({
                             </Badge>
                           )}
                         </div>
-                        {item.itemStatus && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Trạng thái: {getItemStatusLabel(item.itemStatus)}
+                        {item.isPreOrder && (
+                          <p className="text-xs text-blue-600">
+                            {item.expectedAvailableDate ? (
+                              <>
+                                Dự kiến:{" "}
+                                {formatDateTime(item.expectedAvailableDate)}
+                              </>
+                            ) : (
+                              <span className="text-muted-foreground italic">
+                                Chưa có ngày dự kiến
+                              </span>
+                            )}
                           </p>
+                        )}
+                        {item.itemStatus && (
+                          <Select
+                            value={item.itemStatus}
+                            onValueChange={(value) =>
+                              handleUpdateItemStatus(index, value)
+                            }
+                            disabled={isUpdatingItem}
+                          >
+                            <SelectTrigger className="h-7 text-xs w-full max-w-[180px]">
+                              <SelectValue>
+                                {getItemStatusLabel(item.itemStatus)}
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="available">Có sẵn</SelectItem>
+                              <SelectItem value="preorder_pending">
+                                Đặt trước - Chờ hàng
+                              </SelectItem>
+                              <SelectItem value="preorder_ready">
+                                Đặt trước - Đã có hàng
+                              </SelectItem>
+                              <SelectItem value="shipped">Đã giao</SelectItem>
+                            </SelectContent>
+                          </Select>
                         )}
                       </div>
                       <span className="font-medium">

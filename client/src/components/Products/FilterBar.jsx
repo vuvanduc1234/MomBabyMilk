@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Package, Calendar, ShoppingBag } from "lucide-react";
@@ -12,8 +12,7 @@ const mapProductData = (product) => {
     description: product.description || "",
     price: product.price,
     sale_price: product.sale_price || null,
-    stock: product.quantity || product.stock || 0,
-    quantity: product.quantity || product.stock || 0,
+    quantity: product.quantity || product.stock || 0, // Standardize to 'quantity'
     image_url: Array.isArray(product.imageUrl)
       ? product.imageUrl[0]
       : product.image_url || product.imageUrl || null,
@@ -37,6 +36,7 @@ export function FilterBar({ onFilterChange, onProductsUpdate }) {
   const [selectedProductTypes, setSelectedProductTypes] = useState([]);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
+  const [brandImageErrors, setBrandImageErrors] = useState({}); // Track image errors
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [isLoadingBrands, setIsLoadingBrands] = useState(true);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
@@ -128,7 +128,7 @@ export function FilterBar({ onFilterChange, onProductsUpdate }) {
   }, []);
 
   // Fetch all products with data mapping
-  const fetchAllProducts = async () => {
+  const fetchAllProducts = useCallback(async () => {
     try {
       setIsLoadingProducts(true);
 
@@ -162,10 +162,10 @@ export function FilterBar({ onFilterChange, onProductsUpdate }) {
     } finally {
       setIsLoadingProducts(false);
     }
-  };
+  }, [onProductsUpdate]);
 
   // Fetch products by category with data mapping
-  const fetchProductsByCategory = async (categoryId) => {
+  const fetchProductsByCategory = useCallback(async () => {
     try {
       setIsLoadingProducts(true);
 
@@ -198,10 +198,10 @@ export function FilterBar({ onFilterChange, onProductsUpdate }) {
     } finally {
       setIsLoadingProducts(false);
     }
-  };
+  }, []);
 
   // Fetch products by brand with data mapping
-  const fetchProductsByBrand = async (brandId) => {
+  const fetchProductsByBrand = useCallback(async (brandId) => {
     try {
       setIsLoadingProducts(true);
 
@@ -230,112 +230,146 @@ export function FilterBar({ onFilterChange, onProductsUpdate }) {
     } finally {
       setIsLoadingProducts(false);
     }
-  };
+  }, []);
 
-  // Apply filters and fetch products
-  const applyFilters = async (categories, brands, productTypes) => {
-    try {
-      setIsLoadingProducts(true);
-      let allProducts = [];
+  // Apply filters with search query
+  const applyFiltersWithSearch = useCallback(
+    async (categories, brands, productTypes, searchQuery) => {
+      try {
+        setIsLoadingProducts(true);
+        let allProducts = [];
 
-      // Nếu không có filter nào được chọn, lấy tất cả sản phẩm
-      if (categories.length === 0 && brands.length === 0) {
-        allProducts = await fetchAllProducts();
-      } else {
-        // Fetch products theo category
-        if (categories.length > 0) {
-          const categoryPromises = categories.map((categoryId) =>
-            fetchProductsByCategory(categoryId),
-          );
-          const categoryResults = await Promise.all(categoryPromises);
-          allProducts = categoryResults.flat();
-        }
-
-        // Fetch products theo brand
-        if (brands.length > 0) {
-          const brandPromises = brands.map((brandId) =>
-            fetchProductsByBrand(brandId),
-          );
-          const brandResults = await Promise.all(brandPromises);
-          const brandProducts = brandResults.flat();
-
-          // Nếu có cả category và brand, lấy giao của 2 tập hợp
+        // Fetch products based on filters (same as applyFilters)
+        if (categories.length === 0 && brands.length === 0) {
+          allProducts = await fetchAllProducts();
+        } else {
+          // Fetch products by category
           if (categories.length > 0) {
-            const brandProductIds = new Set(brandProducts.map((p) => p.id));
-            allProducts = allProducts.filter((p) => brandProductIds.has(p.id));
-          } else {
-            allProducts = brandProducts;
+            const categoryPromises = categories.map(() =>
+              fetchProductsByCategory(),
+            );
+            const categoryResults = await Promise.all(categoryPromises);
+            const categoryProducts = categoryResults.flat();
+            allProducts = [...allProducts, ...categoryProducts];
           }
+
+          // Fetch products by brand
+          if (brands.length > 0) {
+            const brandPromises = brands.map((brandId) =>
+              fetchProductsByBrand(brandId),
+            );
+            const brandResults = await Promise.all(brandPromises);
+            const brandProducts = brandResults.flat();
+
+            if (categories.length > 0) {
+              // If we have both categories and brands, find intersection
+              const categoryProductIds = new Set(allProducts.map((p) => p.id));
+              const intersectionProducts = brandProducts.filter((p) =>
+                categoryProductIds.has(p.id),
+              );
+              allProducts = intersectionProducts;
+            } else {
+              allProducts = [...allProducts, ...brandProducts];
+            }
+          }
+
+          // Remove duplicates
+          const uniqueProducts = Array.from(
+            new Map(allProducts.map((item) => [item.id, item])).values(),
+          );
+          allProducts = uniqueProducts;
         }
 
-        // Loại bỏ sản phẩm trùng lặp
-        const uniqueProducts = Array.from(
-          new Map(allProducts.map((item) => [item.id, item])).values(),
-        );
-        allProducts = uniqueProducts;
-      }
+        // Apply search filter if search query exists
+        if (searchQuery && searchQuery.trim()) {
+          const searchLower = searchQuery.toLowerCase().trim();
+          allProducts = allProducts.filter((product) =>
+            product.name.toLowerCase().includes(searchLower),
+          );
+        }
 
-      // Lọc theo product types (in-stock, preorder, etc.) - client-side filtering
-      if (productTypes.length > 0) {
-        allProducts = allProducts.filter((product) => {
-          const isOutOfStock = product.stock === 0 && !product.releaseDate;
-          const isComingSoon =
-            product.releaseDate && new Date(product.releaseDate) > new Date();
-          const isInStock = product.stock > 0 && !isComingSoon;
+        // Apply product type filters
+        if (productTypes.length > 0) {
+          allProducts = allProducts.filter((product) => {
+            const isOutOfStock = product.quantity === 0 && !product.releaseDate;
+            const isComingSoon =
+              product.releaseDate && new Date(product.releaseDate) > new Date();
+            const isInStock = product.quantity > 0 && !isComingSoon;
 
-          return productTypes.some((typeId) => {
-            if (typeId === "in-stock") {
-              return isInStock;
-            }
-            if (typeId === "out-of-stock-preorder") {
-              return isOutOfStock;
-            }
-            if (typeId === "coming-soon-preorder") {
-              return isComingSoon;
-            }
-            return false;
+            return productTypes.some((typeId) => {
+              if (typeId === "in-stock") {
+                return isInStock;
+              }
+              if (typeId === "out-of-stock-preorder") {
+                return isOutOfStock;
+              }
+              if (typeId === "coming-soon-preorder") {
+                return isComingSoon;
+              }
+              return false;
+            });
           });
-        });
-      }
+        }
 
-      onProductsUpdate?.(allProducts);
-    } catch (error) {
-      console.error("Error applying filters:", error);
-      onProductsUpdate?.([], "Không thể tải sản phẩm");
-    } finally {
-      setIsLoadingProducts(false);
-    }
-  };
+        onProductsUpdate?.(allProducts);
+      } catch (error) {
+        console.error("Error applying filters with search:", error);
+        onProductsUpdate?.([], "Không thể tải sản phẩm");
+      } finally {
+        setIsLoadingProducts(false);
+      }
+    },
+    [
+      onProductsUpdate,
+      fetchAllProducts,
+      fetchProductsByCategory,
+      fetchProductsByBrand,
+    ],
+  );
 
   // Initialize filters from URL params on mount
   useEffect(() => {
     if (!isInitialized && categories.length > 0 && brands.length > 0) {
-      const categoryParam = searchParams.get('category');
-      const brandParam = searchParams.get('brand');
-      const typeParam = searchParams.get('type');
+      const categoryParam = searchParams.get("category");
+      const brandParam = searchParams.get("brand");
+      const typeParam = searchParams.get("type");
+      const searchParam = searchParams.get("search");
 
       const initialCategories = categoryParam ? [categoryParam] : [];
       const initialBrands = brandParam ? [brandParam] : [];
-      const initialTypes = typeParam ? typeParam.split(',') : [];
+      const initialTypes = typeParam ? typeParam.split(",") : [];
 
       setSelectedCategories(initialCategories);
       setSelectedBrands(initialBrands);
       setSelectedProductTypes(initialTypes);
 
       // Apply filters based on URL params
-      if (initialCategories.length > 0 || initialBrands.length > 0 || initialTypes.length > 0) {
-        applyFilters(initialCategories, initialBrands, initialTypes);
+      if (
+        initialCategories.length > 0 ||
+        initialBrands.length > 0 ||
+        initialTypes.length > 0 ||
+        searchParam
+      ) {
+        applyFiltersWithSearch(
+          initialCategories,
+          initialBrands,
+          initialTypes,
+          searchParam,
+        );
       } else {
         fetchAllProducts();
       }
 
       setIsInitialized(true);
-    } else if (!isInitialized && categories.length > 0 && brands.length > 0) {
-      // No URL params, just load all products
-      fetchAllProducts();
-      setIsInitialized(true);
     }
-  }, [categories, brands, isInitialized]);
+  }, [
+    categories,
+    brands,
+    isInitialized,
+    applyFiltersWithSearch,
+    fetchAllProducts,
+    searchParams,
+  ]);
 
   const handleCategoryChange = (categoryId) => {
     const updated = selectedCategories.includes(categoryId)
@@ -346,9 +380,9 @@ export function FilterBar({ onFilterChange, onProductsUpdate }) {
     // Update URL params
     const newParams = new URLSearchParams(searchParams);
     if (updated.length > 0) {
-      newParams.set('category', updated[0]); // Single category for now
+      newParams.set("category", updated[0]); // Single category for now
     } else {
-      newParams.delete('category');
+      newParams.delete("category");
     }
     setSearchParams(newParams, { replace: true });
 
@@ -359,8 +393,14 @@ export function FilterBar({ onFilterChange, onProductsUpdate }) {
       productTypes: selectedProductTypes,
     });
 
-    // Apply filters with API calls
-    applyFilters(updated, selectedBrands, selectedProductTypes);
+    // Apply filters with API calls and search query
+    const searchQuery = searchParams.get("search");
+    applyFiltersWithSearch(
+      updated,
+      selectedBrands,
+      selectedProductTypes,
+      searchQuery,
+    );
   };
 
   const handleBrandChange = (brandId) => {
@@ -372,9 +412,9 @@ export function FilterBar({ onFilterChange, onProductsUpdate }) {
     // Update URL params
     const newParams = new URLSearchParams(searchParams);
     if (updated.length > 0) {
-      newParams.set('brand', updated[0]); // Single brand for now
+      newParams.set("brand", updated[0]); // Single brand for now
     } else {
-      newParams.delete('brand');
+      newParams.delete("brand");
     }
     setSearchParams(newParams, { replace: true });
 
@@ -385,8 +425,14 @@ export function FilterBar({ onFilterChange, onProductsUpdate }) {
       productTypes: selectedProductTypes,
     });
 
-    // Apply filters with API calls
-    applyFilters(selectedCategories, updated, selectedProductTypes);
+    // Apply filters with API calls and search query
+    const searchQuery = searchParams.get("search");
+    applyFiltersWithSearch(
+      selectedCategories,
+      updated,
+      selectedProductTypes,
+      searchQuery,
+    );
   };
 
   const handleProductTypeChange = (typeId) => {
@@ -398,9 +444,9 @@ export function FilterBar({ onFilterChange, onProductsUpdate }) {
     // Update URL params
     const newParams = new URLSearchParams(searchParams);
     if (updated.length > 0) {
-      newParams.set('type', updated.join(','));
+      newParams.set("type", updated.join(","));
     } else {
-      newParams.delete('type');
+      newParams.delete("type");
     }
     setSearchParams(newParams, { replace: true });
 
@@ -411,8 +457,14 @@ export function FilterBar({ onFilterChange, onProductsUpdate }) {
       productTypes: updated,
     });
 
-    // Apply filters with API calls
-    applyFilters(selectedCategories, selectedBrands, updated);
+    // Apply filters with API calls and search query
+    const searchQuery = searchParams.get("search");
+    applyFiltersWithSearch(
+      selectedCategories,
+      selectedBrands,
+      updated,
+      searchQuery,
+    );
   };
 
   const handleClearAll = () => {
@@ -596,15 +648,17 @@ export function FilterBar({ onFilterChange, onProductsUpdate }) {
                       : "hover:ring-1 hover:ring-primary"
                   }`}
                 >
-                  {hasValidImage ? (
+                  {hasValidImage && !brandImageErrors[brand.id] ? (
                     <img
                       src={brand.imagePath}
                       alt={brand.name}
                       className="max-w-full max-h-full object-contain"
-                      onError={(e) => {
-                        // Fallback nếu ảnh không load được
-                        e.target.style.display = "none";
-                        e.target.parentElement.innerHTML = `<span class="text-xs text-gray-600 px-2 text-center">${brand.name}</span>`;
+                      onError={() => {
+                        // Use state instead of innerHTML (XSS safe)
+                        setBrandImageErrors((prev) => ({
+                          ...prev,
+                          [brand.id]: true,
+                        }));
                       }}
                     />
                   ) : (

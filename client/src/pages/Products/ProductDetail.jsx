@@ -18,6 +18,7 @@ import {
 import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
 import axiosInstance from "@/lib/axios";
+import { toast } from "sonner";
 
 // API Configuration
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -251,12 +252,16 @@ export default function ProductDetail() {
     }).format(price);
   };
 
-  // Normalize fields: API dùng quantity & imageUrl
-  const stock = product.quantity ?? product.stock ?? 0;
+  // Get available stock for display (API returns 'quantity')
+  const stock = product.quantity || product.stock || 0;
 
+  // Ensure quantity field exists (API returns 'quantity')
   const handleAddToCart = () => {
-    addToCart({ ...product, stock });
-    alert(`Đã thêm ${quantity} x ${product.name} vào giỏ hàng!`);
+    addToCart({
+      ...product,
+      quantity: stock,
+    });
+    toast.success(`Đã thêm ${quantity} x ${product.name} vào giỏ hàng!`);
   };
 
   // Xử lý images array - API trả về imageUrl (array)

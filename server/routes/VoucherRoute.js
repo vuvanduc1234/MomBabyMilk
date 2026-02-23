@@ -1,15 +1,15 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { authenticateToken } = require('../middleware/auth');
-const VoucherModel = require('../models/VoucherModel');
+const { authenticateToken } = require("../middleware/auth");
+const VoucherModel = require("../models/VoucherModel");
 const {
   createManualVoucher,
   createRandomVoucher,
   assignVoucherToUser,
   assignVoucherToAll,
-  getMyVouchers,
-  applyVoucher
-} = require('../controllers/VoucherController');
+  applyVoucher,
+  deleteVoucher,
+} = require("../controllers/VoucherController");
 
 /**
  * @swagger
@@ -31,9 +31,9 @@ const {
  *       500:
  *         description: Server error
  */
-router.get('/', authenticateToken, async (req, res) => {
+router.get("/", authenticateToken, async (req, res) => {
   try {
-    const vouchers = await VoucherModel.find();
+    const vouchers = await VoucherModel.find().sort({createdAt: -1});
     res.status(200).json({ message: "Danh sách voucher", data: vouchers });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -76,7 +76,7 @@ router.get('/', authenticateToken, async (req, res) => {
  *       500:
  *         description: Server error
  */
-router.post('/validate', authenticateToken, applyVoucher);
+router.post("/validate", authenticateToken, applyVoucher);
 
 /**
  * @swagger
@@ -114,7 +114,7 @@ router.post('/validate', authenticateToken, applyVoucher);
  *       500:
  *         description: Server error
  */
-router.post('/apply', authenticateToken, applyVoucher);
+router.post("/apply", authenticateToken, applyVoucher);
 
 /**
  * @swagger
@@ -156,7 +156,7 @@ router.post('/apply', authenticateToken, applyVoucher);
  *       500:
  *         description: Server error
  */
-router.post('/create-manual', authenticateToken, createManualVoucher);
+router.post("/create-manual", authenticateToken, createManualVoucher);
 
 /**
  * @swagger
@@ -195,7 +195,7 @@ router.post('/create-manual', authenticateToken, createManualVoucher);
  *       500:
  *         description: Server error
  */
-router.post('/create-random', authenticateToken, createRandomVoucher);
+router.post("/create-random", authenticateToken, createRandomVoucher);
 
 /**
  * @swagger
@@ -234,7 +234,7 @@ router.post('/create-random', authenticateToken, createRandomVoucher);
  *       500:
  *         description: Server error
  */
-router.post('/assign-to-user', authenticateToken, assignVoucherToUser);
+router.post("/assign-to-user", authenticateToken, assignVoucherToUser);
 
 /**
  * @swagger
@@ -270,7 +270,7 @@ router.post('/assign-to-user', authenticateToken, assignVoucherToUser);
  *       500:
  *         description: Server error
  */
-router.post('/assign-to-all', authenticateToken, assignVoucherToAll);
+router.post("/assign-to-all", authenticateToken, assignVoucherToAll);
 
 /**
  * @swagger
@@ -316,22 +316,27 @@ router.post('/assign-to-all', authenticateToken, assignVoucherToAll);
  *       500:
  *         description: Server error
  */
-router.put('/:id', authenticateToken, async (req, res) => {
+router.put("/:id", authenticateToken, async (req, res) => {
   try {
-    const mongoose = require('mongoose');
-    if (!mongoose.Types.ObjectId.isValid(req.params.id) || req.params.id.length !== 24) {
-      return res.status(400).json({ message: 'ID không hợp lệ' });
+    const mongoose = require("mongoose");
+    if (
+      !mongoose.Types.ObjectId.isValid(req.params.id) ||
+      req.params.id.length !== 24
+    ) {
+      return res.status(400).json({ message: "ID không hợp lệ" });
     }
-    
+
     const updatedVoucher = await VoucherModel.findByIdAndUpdate(
       req.params.id,
       req.body,
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
     if (!updatedVoucher) {
-      return res.status(404).json({ message: 'Voucher không tồn tại' });
+      return res.status(404).json({ message: "Voucher không tồn tại" });
     }
-    res.status(200).json({ message: 'Cập nhật voucher thành công', data: updatedVoucher });
+    res
+      .status(200)
+      .json({ message: "Cập nhật voucher thành công", data: updatedVoucher });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -356,28 +361,13 @@ router.put('/:id', authenticateToken, async (req, res) => {
  *       200:
  *         description: Voucher deleted successfully
  *       400:
- *         description: Invalid ID
+ *         description: Invalid ID or voucher still in use
  *       404:
  *         description: Voucher not found
  *       500:
  *         description: Server error
  */
-router.delete('/:id', authenticateToken, async (req, res) => {
-  try {
-    const mongoose = require('mongoose');
-    if (!mongoose.Types.ObjectId.isValid(req.params.id) || req.params.id.length !== 24) {
-      return res.status(400).json({ message: 'ID không hợp lệ' });
-    }
-    
-    const deletedVoucher = await VoucherModel.findByIdAndDelete(req.params.id);
-    if (!deletedVoucher) {
-      return res.status(404).json({ message: 'Voucher không tồn tại' });
-    }
-    res.status(200).json({ message: 'Xóa voucher thành công' });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
+router.delete("/:id", authenticateToken, deleteVoucher);
 
 /**
  * @swagger
@@ -402,22 +392,22 @@ router.delete('/:id', authenticateToken, async (req, res) => {
  *       500:
  *         description: Server error
  */
-router.get('/:idOrCode', authenticateToken, async (req, res) => {
+router.get("/:idOrCode", authenticateToken, async (req, res) => {
   try {
     const { idOrCode } = req.params;
     let voucher;
-    
+
     // Check if it's a valid MongoDB ObjectId (24 hex characters)
-    const mongoose = require('mongoose');
+    const mongoose = require("mongoose");
     if (mongoose.Types.ObjectId.isValid(idOrCode) && idOrCode.length === 24) {
       voucher = await VoucherModel.findById(idOrCode);
     } else {
       // Search by code
       voucher = await VoucherModel.findOne({ code: idOrCode.toUpperCase() });
     }
-    
+
     if (!voucher) {
-      return res.status(404).json({ message: 'Voucher không tồn tại' });
+      return res.status(404).json({ message: "Voucher không tồn tại" });
     }
     res.status(200).json({ message: "Chi tiết voucher", data: voucher });
   } catch (error) {

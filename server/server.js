@@ -20,6 +20,7 @@ const WishlistRoute = require("./routes/WishlistRoute");
 const OrderRoute = require("./routes/OrderRoute");
 const AnalyticsRoute = require("./routes/AnalyticsRoute");
 const PointRoute = require("./routes/PointRoute");
+const NotificationRoute = require("./routes/NotificationRoute");
 const app = express();
 
 database.connect();
@@ -27,10 +28,10 @@ database.connect();
 app.use(database.ensureConnection);
 
 const allowedOrigins = [
-  process.env.CLIENT_URL, 
-  "http://localhost:5173", 
-  "https://mom-baby-milk-client.vercel.app"
-].filter(Boolean); 
+  process.env.CLIENT_URL,
+  "http://localhost:5173",
+  "https://mom-baby-milk-client.vercel.app",
+].filter(Boolean);
 
 app.use(
   cors({
@@ -61,6 +62,7 @@ app.use("/api/wishlist", WishlistRoute);
 app.use("/api/orders", OrderRoute);
 app.use("/api/analytics", AnalyticsRoute);
 app.use("/api/points", PointRoute);
+app.use("/api/notifications", NotificationRoute);
 
 app.use("/api/upload", UploadRoute);
 

@@ -195,11 +195,15 @@ export default function Checkout() {
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      // Deduplicate cart items by productId (_id), summing quantity if same product appears twice
+      // Deduplicate cart items by productId, summing quantity if same product appears twice
+      let skippedCount = 0;
       const deduped = Object.values(
         cartItems.reduce((acc, item) => {
-          const pid = item._id || item.id;
-          if (!pid) return acc;
+          const pid = item.id || item._id;
+          if (!pid) {
+            skippedCount++;
+            return acc;
+          }
           if (acc[pid]) {
             acc[pid] = {
               ...acc[pid],
@@ -211,6 +215,13 @@ export default function Checkout() {
           return acc;
         }, {}),
       );
+
+      // Warn user if items were skipped
+      if (skippedCount > 0) {
+        toast.warning(
+          `${skippedCount} sản phẩm không hợp lệ đã bị bỏ qua. Vui lòng kiểm tra lại giỏ hàng.`,
+        );
+      }
 
       if (deduped.length === 0) {
         toast.error("Giỏ hàng không có sản phẩm hợp lệ");

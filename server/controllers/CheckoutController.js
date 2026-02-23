@@ -8,6 +8,7 @@ const qs = require("qs");
 const moment = require("moment");
 const mongoose = require("mongoose");
 const { addPendingPoints } = require("../services/pointService");
+const { createNotification } = require("./NotificationController");
 
 function sortObject(obj) {
   let sorted = {};
@@ -118,6 +119,16 @@ const checkout = async (req, res) => {
 
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
+    // Validate payment method
+    const validPaymentMethods = ["cod", "momo", "vnpay"];
+    if (!validPaymentMethods.includes(paymentMethod)) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        message:
+          "Phương thức thanh toán không hợp lệ. Chỉ hỗ trợ: cod, momo, vnpay",
+      });
+    }
+
     // Load user
     const user = await User.findById(userId).session(session);
     if (!user) {
@@ -197,7 +208,9 @@ const checkout = async (req, res) => {
           name: product.name,
           price: product.price,
           quantity,
-          imageUrl: product.imageUrl,
+          imageUrl: Array.isArray(product.imageUrl)
+            ? product.imageUrl[0]
+            : product.imageUrl,
           isPreOrder: false,
           itemStatus: "available",
         });
@@ -234,7 +247,9 @@ const checkout = async (req, res) => {
             name: product.name,
             price: product.price,
             quantity: availableStock,
-            imageUrl: product.imageUrl,
+            imageUrl: Array.isArray(product.imageUrl)
+              ? product.imageUrl[0]
+              : product.imageUrl,
             isPreOrder: false,
             itemStatus: "available",
           });
@@ -247,7 +262,9 @@ const checkout = async (req, res) => {
             name: productFromDB.name,
             price: productFromDB.price,
             quantity: preOrderQuantity,
-            imageUrl: productFromDB.imageUrl,
+            imageUrl: Array.isArray(productFromDB.imageUrl)
+              ? productFromDB.imageUrl[0]
+              : productFromDB.imageUrl,
             isPreOrder: true,
             expectedAvailableDate:
               productFromDB.expectedRestockDate ||
@@ -351,10 +368,7 @@ const checkout = async (req, res) => {
       }
     }
 
-    const total = Math.max(
-      10000,
-      subTotal + shippingFee - discount,
-    );
+    const total = Math.max(10000, subTotal + shippingFee - discount);
 
     const allPreOrder = orderItems.every((item) => item.isPreOrder);
     if (allPreOrder && paymentMethod === "cod") {
@@ -395,12 +409,29 @@ const checkout = async (req, res) => {
     // ✅ FIX 4: Commit transaction trước khi return
     await session.commitTransaction();
 
+    // Create notification for order created
+    try {
+      await createNotification({
+        userId: userId,
+        type: "order_created",
+        title: "Đặt hàng thành công",
+        message: `Đơn hàng #${order._id.toString().slice(-6).toUpperCase()} đã được tạo. Tổng tiền: ${total.toLocaleString()}đ`,
+        orderId: order._id,
+        data: {
+          orderTotal: total,
+          paymentMethod: paymentMethod,
+        },
+        link: `/track-order`,
+      });
+    } catch (notifError) {
+      console.error("Failed to create notification:", notifError);
+    }
+
     // Thêm pending points cho COD orders
     if (paymentMethod === "cod") {
       try {
         await addPendingPoints(userId, order._id, total);
       } catch (pointError) {
-        console.error("Error adding pending points:", pointError);
         // Không fail order nếu point service lỗi
       }
 
@@ -446,7 +477,6 @@ const checkout = async (req, res) => {
     res.status(201).json({ message: "Đặt hàng thành công", order });
   } catch (error) {
     await session.abortTransaction();
-    console.error("Checkout error:", error);
     res
       .status(500)
       .json({ message: "Lỗi khi thanh toán", error: error.message });
@@ -476,8 +506,6 @@ const momoNotify = async (req, res) => {
       signature,
     } = req.body;
 
-    console.log("MOMO IPN:", { orderId, resultCode, message, transId });
-
     // ✅ FIX 1: Verify MoMo signature
     const secretKey = process.env.MOMO_SECRET_KEY;
     const accessKey = process.env.MOMO_ACCESS_KEY;
@@ -490,11 +518,6 @@ const momoNotify = async (req, res) => {
       .digest("hex");
 
     if (signature !== expectedSignature) {
-      console.error("Invalid MoMo signature", {
-        orderId,
-        signature,
-        expectedSignature,
-      });
       await session.abortTransaction();
       session.endSession();
       return res.status(400).json({ message: "Invalid signature" });
@@ -504,7 +527,6 @@ const momoNotify = async (req, res) => {
       .populate("customer")
       .session(session);
     if (!order) {
-      console.error("Order not found:", orderId);
       await session.abortTransaction();
       session.endSession();
       return res.status(404).json({ message: "Order not found" });
@@ -512,7 +534,6 @@ const momoNotify = async (req, res) => {
 
     // Check idempotency
     if (order.paymentStatus === "paid") {
-      console.log("Order already paid:", orderId);
       await session.abortTransaction();
       session.endSession();
       return res.status(200).json({ message: "Already processed" });
@@ -556,18 +577,15 @@ const momoNotify = async (req, res) => {
       try {
         await addPendingPoints(userId, order._id, order.totalAmount);
       } catch (pointError) {
-        console.error("Error adding pending points:", pointError);
+        // Silent fail - don't break checkout flow
       }
 
-      console.log("Order paid successfully:", orderId);
       return res.status(200).json({ message: "Payment successful" });
     } else {
       // Payment failed
       order.paymentStatus = "failed";
       order.orderStatus = "cancelled";
       await order.save({ session });
-
-      console.log("Order payment failed:", orderId, message);
 
       // ✅ FIX: Refund stock with transaction, only for non-preorder items
       for (const item of order.cartItems) {
@@ -589,7 +607,6 @@ const momoNotify = async (req, res) => {
   } catch (e) {
     await session.abortTransaction();
     session.endSession();
-    console.error("MOMO IPN Error:", e);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -617,7 +634,6 @@ const vnpayReturn = async (req, res) => {
 
     // Verify signature
     if (secureHash !== signed) {
-      console.error("Invalid VNPAY signature");
       await session.abortTransaction();
       session.endSession();
       return res.redirect(
@@ -629,7 +645,6 @@ const vnpayReturn = async (req, res) => {
       .populate("customer")
       .session(session);
     if (!order) {
-      console.error("Order not found:", orderId);
       await session.abortTransaction();
       session.endSession();
       return res.redirect(
@@ -639,11 +654,6 @@ const vnpayReturn = async (req, res) => {
 
     // ✅ FIX 2: Verify amount
     if (Math.abs(paidAmount - order.totalAmount) > 1) {
-      console.error("Amount mismatch", {
-        orderId,
-        paidAmount,
-        expectedAmount: order.totalAmount,
-      });
       await session.abortTransaction();
       session.endSession();
       return res.redirect(
@@ -653,7 +663,6 @@ const vnpayReturn = async (req, res) => {
 
     // Check idempotency
     if (order.paymentStatus === "paid") {
-      console.log("VNPAY: Order already paid:", orderId);
       await session.abortTransaction();
       session.endSession();
       return res.redirect(
@@ -699,10 +708,9 @@ const vnpayReturn = async (req, res) => {
       try {
         await addPendingPoints(userId, order._id, order.totalAmount);
       } catch (pointError) {
-        console.error("Error adding pending points:", pointError);
+        // Silent fail - don't break checkout flow
       }
 
-      console.log("VNPAY: Order paid successfully:", orderId);
       return res.redirect(
         `${process.env.CLIENT_URL || "http://localhost:5173"}/payment-result?status=success&orderId=${orderId}&amount=${paidAmount}`,
       );
@@ -712,8 +720,6 @@ const vnpayReturn = async (req, res) => {
     order.paymentStatus = "failed";
     order.orderStatus = "cancelled";
     await order.save({ session });
-
-    console.log("VNPAY: Payment failed:", orderId, responseCode);
 
     // ✅ FIX: Refund stock with transaction, only for non-preorder items
     for (const item of order.cartItems) {
@@ -752,7 +758,6 @@ const vnpayReturn = async (req, res) => {
   } catch (e) {
     await session.abortTransaction();
     session.endSession();
-    console.error("VNPAY Return Error:", e);
     return res.redirect(
       `${process.env.CLIENT_URL || "http://localhost:5173"}/payment-result?status=error&message=${encodeURIComponent("Lỗi hệ thống")}`,
     );

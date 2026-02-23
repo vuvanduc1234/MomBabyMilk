@@ -14,6 +14,7 @@ import {
   List,
   Clock,
   Newspaper,
+  Gift,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ const menuItems = [
   { icon: Clock, label: "Pre-Order", href: "/staff/preorders" },
   { icon: Package, label: "Tồn kho", href: "/staff/inventory" },
   { icon: TicketPercent, label: "Voucher", href: "/staff/vouchers" },
+  { icon: Gift, label: "Phần thưởng", href: "/staff/rewards" },
   { icon: Package, label: "Sản phẩm", href: "/staff/products" },
   { icon: Tag, label: "Thương hiệu", href: "/staff/brands" },
   { icon: List, label: "Danh mục", href: "/staff/categories" },

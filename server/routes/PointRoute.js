@@ -1,6 +1,10 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const {
+  authenticateToken,
+  requireAdmin,
+  checkRole,
+} = require("../middleware/auth");
 const {
   getMyPointBalance,
   getMyPointHistory,
@@ -10,7 +14,7 @@ const {
   updateRewardItem,
   deleteRewardItem,
   getAllRewardItems,
-} = require('../controllers/PointController');
+} = require("../controllers/PointController");
 
 // ==================== USER ROUTES ====================
 
@@ -48,7 +52,7 @@ const {
  *                       type: number
  *                       description: Total points spent
  */
-router.get('/balance', authenticateToken, getMyPointBalance);
+router.get("/balance", authenticateToken, getMyPointBalance);
 
 /**
  * @swagger
@@ -73,7 +77,7 @@ router.get('/balance', authenticateToken, getMyPointBalance);
  *       200:
  *         description: Get point history successfully
  */
-router.get('/history', authenticateToken, getMyPointHistory);
+router.get("/history", authenticateToken, getMyPointHistory);
 
 /**
  * @swagger
@@ -99,11 +103,11 @@ router.get('/history', authenticateToken, getMyPointHistory);
  *       200:
  *         description: Get available rewards successfully
  */
-router.get('/rewards', getAvailableRewards);
+router.get("/rewards", getAvailableRewards);
 
 /**
  * @swagger
- * /api/points/redeem/{rewardId}:
+ * /api/points/rewards/{rewardId}/redeem:
  *   post:
  *     summary: Redeem points for reward
  *     tags: [Points]
@@ -121,7 +125,7 @@ router.get('/rewards', getAvailableRewards);
  *       400:
  *         description: Insufficient points or reward not available
  */
-router.post('/redeem/:rewardId', authenticateToken, redeemRewardItem);
+router.post("/rewards/:rewardId/redeem", authenticateToken, redeemRewardItem);
 
 // ==================== ADMIN ROUTES ====================
 
@@ -147,7 +151,12 @@ router.post('/redeem/:rewardId', authenticateToken, redeemRewardItem);
  *       200:
  *         description: Get reward items successfully
  */
-router.get('/admin/rewards', authenticateToken, requireAdmin, getAllRewardItems);
+router.get(
+  "/admin/rewards",
+  authenticateToken,
+  checkRole(["Admin", "Staff"]),
+  getAllRewardItems,
+);
 
 /**
  * @swagger
@@ -188,7 +197,12 @@ router.get('/admin/rewards', authenticateToken, requireAdmin, getAllRewardItems)
  *       201:
  *         description: Reward item created successfully
  */
-router.post('/admin/rewards', authenticateToken, requireAdmin, createRewardItem);
+router.post(
+  "/admin/rewards",
+  authenticateToken,
+  checkRole(["Admin", "Staff"]),
+  createRewardItem,
+);
 
 /**
  * @swagger
@@ -226,7 +240,12 @@ router.post('/admin/rewards', authenticateToken, requireAdmin, createRewardItem)
  *       200:
  *         description: Reward item updated successfully
  */
-router.put('/admin/rewards/:id', authenticateToken, requireAdmin, updateRewardItem);
+router.put(
+  "/admin/rewards/:id",
+  authenticateToken,
+  checkRole(["Admin", "Staff"]),
+  updateRewardItem,
+);
 
 /**
  * @swagger
@@ -246,6 +265,11 @@ router.put('/admin/rewards/:id', authenticateToken, requireAdmin, updateRewardIt
  *       200:
  *         description: Reward item deleted successfully
  */
-router.delete('/admin/rewards/:id', authenticateToken, requireAdmin, deleteRewardItem);
+router.delete(
+  "/admin/rewards/:id",
+  authenticateToken,
+  checkRole(["Admin", "Staff"]),
+  deleteRewardItem,
+);
 
 module.exports = router;

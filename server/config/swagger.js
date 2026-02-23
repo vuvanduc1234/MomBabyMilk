@@ -49,7 +49,7 @@ const options = {
               description: "User full name",
             },
             phone: {
-              type: "number",
+              type: "string",
               description: "User phone number",
             },
             gender: {

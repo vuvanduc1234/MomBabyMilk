@@ -3,7 +3,6 @@ import AccountSidebar from "./components/AccountSidebar";
 import AvatarUploader from "./components/AvatarUploader";
 import ProfileSection from "./components/ProfileSection";
 import PasswordSection from "./components/PasswordSection";
-import OrdersSection from "./components/OrdersSection";
 import { ACCOUNT_SECTIONS, DEFAULT_STATUS, MEMBER_SECTIONS } from "./constants";
 import { useAccountProfile } from "./hooks/useAccountProfile";
 import VouchersSection from "./components/VouchersSection";
@@ -13,11 +12,9 @@ import RewardsSection from "./components/RewardsSection";
 const SECTION_COMPONENTS = {
   profile: ProfileSection,
   password: PasswordSection,
-  orders: OrdersSection,
   loyalty: LoyaltySection,
   rewards: RewardsSection,
   vouchers: VouchersSection,
-  // reviews: () => <div>Phản hồi</div>,
 };
 
 const getDateInputValue = (value) => {

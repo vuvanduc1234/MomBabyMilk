@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Package,
   Clock,
@@ -18,6 +18,7 @@ import {
   getPreOrderOrders,
   updateItemStatus,
   notifyPreOrderReady,
+  formatOrderNumber,
 } from "./orders/services/orderService";
 
 const PreOrders = () => {
@@ -33,25 +34,7 @@ const PreOrders = () => {
     fetchPreOrders();
   }, []);
 
-  useEffect(() => {
-    filterOrders();
-  }, [orders, activeTab]);
-
-  const fetchPreOrders = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await getPreOrderOrders();
-      setOrders(response.orders || []);
-    } catch (err) {
-      setError(err.message || "Không thể tải danh sách pre-order");
-      toast.error("Không thể tải danh sách pre-order");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filterOrders = () => {
+  const filterOrders = useCallback(() => {
     if (activeTab === "all") {
       setFilteredOrders(orders);
     } else if (activeTab === "pending") {
@@ -68,6 +51,24 @@ const PreOrders = () => {
           order.cartItems.some((item) => item.itemStatus === "preorder_ready"),
         ),
       );
+    }
+  }, [orders, activeTab]);
+
+  useEffect(() => {
+    filterOrders();
+  }, [filterOrders]);
+
+  const fetchPreOrders = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await getPreOrderOrders();
+      setOrders(response.orders || []);
+    } catch (err) {
+      setError(err.message || "Không thể tải danh sách pre-order");
+      toast.error("Không thể tải danh sách pre-order");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -225,13 +226,13 @@ const PreOrders = () => {
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <CardTitle className="text-lg flex items-center gap-2">
-                          <span>#{order.orderNumber}</span>
-                          <Badge variant="outline">{order.status}</Badge>
+                          <span>#{formatOrderNumber(order)}</span>
+                          <Badge variant="outline">{order.orderStatus}</Badge>
                         </CardTitle>
                         <div className="mt-2 space-y-1 text-sm text-muted-foreground">
                           <p>Khách hàng: {order.customer?.fullname}</p>
                           <p>Ngày đặt: {formatDate(order.createdAt)}</p>
-                          <p>Tổng tiền: {formatPrice(order.total)}</p>
+                          <p>Tổng tiền: {formatPrice(order.totalAmount)}</p>
                           <p>
                             Số sản phẩm pre-order: {preOrderItems.length} /{" "}
                             {order.cartItems.length}
@@ -265,7 +266,7 @@ const PreOrders = () => {
                     <CardContent className="border-t">
                       <div className="space-y-4 pt-4">
                         <h4 className="font-semibold">Sản phẩm Pre-Order:</h4>
-                        {preOrderItems.map((item, index) => {
+                        {preOrderItems.map((item) => {
                           const originalIndex = order.cartItems.findIndex(
                             (ci) => ci._id === item._id,
                           );
@@ -279,15 +280,11 @@ const PreOrders = () => {
                             >
                               <img
                                 src={
-                                  item.imageUrl
-                                    ? Array.isArray(item.imageUrl)
-                                      ? item.imageUrl[0]
-                                      : item.imageUrl
-                                    : item.product?.imageUrl
-                                      ? Array.isArray(item.product.imageUrl)
-                                        ? item.product.imageUrl[0]
-                                        : item.product.imageUrl
-                                      : "/placeholder.jpg"
+                                  item.imageUrl ||
+                                  (Array.isArray(item.product?.imageUrl)
+                                    ? item.product.imageUrl[0]
+                                    : item.product?.imageUrl) ||
+                                  "/placeholder.jpg"
                                 }
                                 alt={item.name}
                                 className="w-20 h-20 object-cover rounded"
