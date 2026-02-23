@@ -97,14 +97,6 @@ export default function Header() {
 
             {/* Actions */}
             <div className="flex items-center gap-6">
-              <Link
-                to="#"
-                className="flex flex-col items-center text-gray-600 hover:text-pink-600 transition"
-              >
-                <Heart className="h-10 w-10" strokeWidth={1.5} />
-                <span className="text-xs">Yêu thích</span>
-              </Link>
-
               {/* Account Dropdown */}
               <div className="relative group">
                 <div className="flex flex-col items-center text-gray-600 hover:text-pink-600 transition cursor-pointer">
@@ -211,22 +203,10 @@ export default function Header() {
               <div className="p-3">Sản phẩm</div>
             </Link>
             <Link
-              to="#"
-              className="text-gray-700 hover:text-pink-600 font-medium transition"
-            >
-              <div className="p-3">Khuyến mãi</div>
-            </Link>
-            <Link
               to="/track-order"
               className="text-gray-700 hover:text-pink-600 font-medium transition"
             >
               <div className="p-3">Theo dõi đơn hàng</div>
-            </Link>
-            <Link
-              to="#"
-              className="text-gray-700 hover:text-pink-600 font-medium transition"
-            >
-              <div className="p-3">Hỗ trợ</div>
             </Link>
             <Link
               to="/blog"

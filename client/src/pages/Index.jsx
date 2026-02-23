@@ -37,17 +37,6 @@ const features = [
   },
 ];
 
-// Mock data for categories
-const categories = [
-  { id: 1, name: "Sữa cho bé", slug: "sua-cho-be" },
-  { id: 2, name: "Sữa bầu", slug: "sua-bau" },
-  { id: 3, name: "Dinh dưỡng", slug: "dinh-duong" },
-  { id: 4, name: "Đồ dùng", slug: "do-dung" },
-  { id: 5, name: "Chăm sóc", slug: "cham-soc" },
-  { id: 6, name: "Chăm sóc", slug: "cham-soc" },
-  { id: 7, name: "Chăm sóc", slug: "cham-soc" },
-];
-
 //Mock data for brands
 const brands = [
   {
@@ -323,7 +312,7 @@ export default function Index() {
               Sản phẩm nổi bật
             </h2>
             <Button variant="ghost" asChild>
-              <Link to="/san-pham">
+              <Link to="/products">
                 Xem tất cả
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
