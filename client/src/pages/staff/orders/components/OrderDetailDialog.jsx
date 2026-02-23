@@ -167,48 +167,6 @@ export default function OrderDetailDialog({
                   </Alert>
                 )}
               </div>
-
-              {/* Staff Actions */}
-              <div className="border-t pt-4 space-y-4">
-                <h4 className="font-medium">Thao tác nhân viên</h4>
-
-                <div className="space-y-2">
-                  <Label htmlFor="note">Ghi chú nội bộ</Label>
-                  <Textarea
-                    id="note"
-                    placeholder="Ghi chú nội bộ..."
-                    value={internalNote}
-                    onChange={(e) => setInternalNote(e.target.value)}
-                    rows={3}
-                  />
-                </div>
-
-                <div className="flex gap-2 lg:flex-row flex-col">
-                  <Button
-                    size="sm"
-                    onClick={handleSaveMetadata}
-                    disabled={isSaving}
-                    className="flex-1"
-                  >
-                    {isSaving ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Đang lưu...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="h-4 w-4 mr-2" />
-                        Lưu thông tin
-                      </>
-                    )}
-                  </Button>
-                </div>
-
-                <p className="text-xs text-muted-foreground">
-                  * Staff không thể chỉnh sửa giá, thanh toán hoặc hoàn tiền.
-                  Liên hệ Admin nếu cần.
-                </p>
-              </div>
             </div>
 
             {/* Order Items */}

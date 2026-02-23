@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Package, Calendar, ShoppingBag } from "lucide-react";
 
@@ -30,6 +31,7 @@ const mapProductData = (product) => {
 };
 
 export function FilterBar({ onFilterChange, onProductsUpdate }) {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [selectedBrands, setSelectedBrands] = useState([]);
   const [selectedProductTypes, setSelectedProductTypes] = useState([]);
@@ -38,6 +40,7 @@ export function FilterBar({ onFilterChange, onProductsUpdate }) {
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [isLoadingBrands, setIsLoadingBrands] = useState(true);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const productTypes = [
     {
@@ -304,16 +307,50 @@ export function FilterBar({ onFilterChange, onProductsUpdate }) {
     }
   };
 
-  // Load all products on initial mount
+  // Initialize filters from URL params on mount
   useEffect(() => {
-    fetchAllProducts();
-  }, []);
+    if (!isInitialized && categories.length > 0 && brands.length > 0) {
+      const categoryParam = searchParams.get('category');
+      const brandParam = searchParams.get('brand');
+      const typeParam = searchParams.get('type');
+
+      const initialCategories = categoryParam ? [categoryParam] : [];
+      const initialBrands = brandParam ? [brandParam] : [];
+      const initialTypes = typeParam ? typeParam.split(',') : [];
+
+      setSelectedCategories(initialCategories);
+      setSelectedBrands(initialBrands);
+      setSelectedProductTypes(initialTypes);
+
+      // Apply filters based on URL params
+      if (initialCategories.length > 0 || initialBrands.length > 0 || initialTypes.length > 0) {
+        applyFilters(initialCategories, initialBrands, initialTypes);
+      } else {
+        fetchAllProducts();
+      }
+
+      setIsInitialized(true);
+    } else if (!isInitialized && categories.length > 0 && brands.length > 0) {
+      // No URL params, just load all products
+      fetchAllProducts();
+      setIsInitialized(true);
+    }
+  }, [categories, brands, isInitialized]);
 
   const handleCategoryChange = (categoryId) => {
     const updated = selectedCategories.includes(categoryId)
       ? selectedCategories.filter((id) => id !== categoryId)
       : [...selectedCategories, categoryId];
     setSelectedCategories(updated);
+
+    // Update URL params
+    const newParams = new URLSearchParams(searchParams);
+    if (updated.length > 0) {
+      newParams.set('category', updated[0]); // Single category for now
+    } else {
+      newParams.delete('category');
+    }
+    setSearchParams(newParams, { replace: true });
 
     // Call the legacy callback if provided
     onFilterChange?.({
@@ -332,6 +369,15 @@ export function FilterBar({ onFilterChange, onProductsUpdate }) {
       : [...selectedBrands, brandId];
     setSelectedBrands(updated);
 
+    // Update URL params
+    const newParams = new URLSearchParams(searchParams);
+    if (updated.length > 0) {
+      newParams.set('brand', updated[0]); // Single brand for now
+    } else {
+      newParams.delete('brand');
+    }
+    setSearchParams(newParams, { replace: true });
+
     // Call the legacy callback if provided
     onFilterChange?.({
       categories: selectedCategories,
@@ -349,6 +395,15 @@ export function FilterBar({ onFilterChange, onProductsUpdate }) {
       : [...selectedProductTypes, typeId];
     setSelectedProductTypes(updated);
 
+    // Update URL params
+    const newParams = new URLSearchParams(searchParams);
+    if (updated.length > 0) {
+      newParams.set('type', updated.join(','));
+    } else {
+      newParams.delete('type');
+    }
+    setSearchParams(newParams, { replace: true });
+
     // Call the legacy callback if provided
     onFilterChange?.({
       categories: selectedCategories,
@@ -364,6 +419,9 @@ export function FilterBar({ onFilterChange, onProductsUpdate }) {
     setSelectedCategories([]);
     setSelectedBrands([]);
     setSelectedProductTypes([]);
+
+    // Clear URL params
+    setSearchParams({}, { replace: true });
 
     // Call the legacy callback if provided
     onFilterChange?.({ categories: [], brands: [], productTypes: [] });
