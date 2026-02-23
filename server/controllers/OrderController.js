@@ -4,6 +4,7 @@ const {
   confirmPendingPoints,
   cancelPendingPoints,
 } = require("../services/pointService");
+const { createNotification } = require("./NotificationController");
 
 const getMyOrders = async (req, res) => {
   try {
@@ -87,7 +88,6 @@ const getAllOrders = async (req, res) => {
       total: orders.length,
     });
   } catch (error) {
-    console.error(error);
     res.status(500).json({
       message: "Lỗi khi lấy danh sách đơn hàng",
       error: error.message,
@@ -125,7 +125,6 @@ const getOrderById = async (req, res) => {
       order,
     });
   } catch (error) {
-    console.error(error);
     res.status(500).json({
       message: "Lỗi khi lấy chi tiết đơn hàng",
       error: error.message,
@@ -172,7 +171,7 @@ const updateOrderStatus = async (req, res) => {
       order.orderStatus = orderStatus;
 
       // ✅ FIX 3: Hoàn stock trong transaction khi cancel
-      if (orderStatus === "cancelled" && order.paymentStatus !== "paid") {
+      if (orderStatus === "cancelled") {
         for (const item of order.cartItems) {
           // Only refund stock for non-preorder items and items in preorder_ready status
           if (
@@ -208,14 +207,13 @@ const updateOrderStatus = async (req, res) => {
 
     // Xử lý điểm sau khi commit transaction
     const userId = order.customer._id || order.customer;
-    
+
     // Xác nhận điểm khi order delivered
     if (orderStatus === "delivered") {
       try {
         await confirmPendingPoints(userId, order._id);
-        console.log("Points confirmed for order:", order._id);
       } catch (pointError) {
-        console.error("Error confirming points:", pointError);
+        // Log error but don't fail the request
       }
     }
 
@@ -223,9 +221,36 @@ const updateOrderStatus = async (req, res) => {
     if (orderStatus === "cancelled") {
       try {
         await cancelPendingPoints(userId, order._id);
-        console.log("Pending points cancelled for order:", order._id);
       } catch (pointError) {
-        console.error("Error cancelling points:", pointError);
+        // Log error but don't fail the request
+      }
+    }
+
+    // Create notification for order status change
+    if (orderStatus) {
+      try {
+        const statusMessages = {
+          processing: "Đơn hàng đang được xử lý",
+          shipped: "Đơn hàng đang được giao tới bạn",
+          delivered: "Đơn hàng đã được giao thành công",
+          cancelled: "Đơn hàng đã bị hủy",
+          partially_shipped: "Đơn hàng đã giao một phần",
+        };
+
+        await createNotification({
+          userId: userId,
+          type: "order_status_changed",
+          title: "Trạng thái đơn hàng thay đổi",
+          message: `${statusMessages[orderStatus] || "Đơn hàng đã cập nhật"}. Mã đơn: #${order._id.toString().slice(-6).toUpperCase()}`,
+          orderId: order._id,
+          data: {
+            oldStatus: order.orderStatus,
+            newStatus: orderStatus,
+          },
+          link: `/track-order`,
+        });
+      } catch (notifError) {
+        console.error("Failed to create notification:", notifError);
       }
     }
 
@@ -236,7 +261,6 @@ const updateOrderStatus = async (req, res) => {
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
-    console.error(error);
     res.status(500).json({
       message: "Lỗi khi cập nhật trạng thái đơn hàng",
       error: error.message,
@@ -306,20 +330,18 @@ const cancelOrder = async (req, res) => {
         : `Lý do hủy: ${reason}`;
     }
 
-    // ✅ FIX 3: Hoàn stock trong transaction
-    if (order.paymentStatus !== "paid" || order.paymentMethod === "cod") {
-      for (const item of order.cartItems) {
-        // Only refund stock for non-preorder items and items not in preorder_pending status
-        if (
-          !item.isPreOrder ||
-          (item.isPreOrder && item.itemStatus === "preorder_ready")
-        ) {
-          await Product.findByIdAndUpdate(
-            item.product,
-            { $inc: { quantity: item.quantity } },
-            { session },
-          );
-        }
+    // ✅ FIX 3: Hoàn stock trong transaction - luôn hoàn stock khi hủy đơn
+    for (const item of order.cartItems) {
+      // Only refund stock for non-preorder items and items not in preorder_pending status
+      if (
+        !item.isPreOrder ||
+        (item.isPreOrder && item.itemStatus === "preorder_ready")
+      ) {
+        await Product.findByIdAndUpdate(
+          item.product,
+          { $inc: { quantity: item.quantity } },
+          { session },
+        );
       }
     }
 
@@ -331,9 +353,8 @@ const cancelOrder = async (req, res) => {
     // Hủy pending points
     try {
       await cancelPendingPoints(userId, order._id);
-      console.log("Pending points cancelled for order:", order._id);
     } catch (pointError) {
-      console.error("Error cancelling points:", pointError);
+      // Log error but don't fail the request
     }
 
     res.status(200).json({
@@ -343,7 +364,6 @@ const cancelOrder = async (req, res) => {
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
-    console.error(error);
     res.status(500).json({
       message: "Lỗi khi hủy đơn hàng",
       error: error.message,
@@ -386,7 +406,6 @@ const confirmDelivery = async (req, res) => {
       order,
     });
   } catch (error) {
-    console.error(error);
     res.status(500).json({
       message: "Lỗi khi xác nhận nhận hàng",
       error: error.message,
@@ -474,7 +493,6 @@ const updateItemStatus = async (req, res) => {
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
-    console.error(error);
     res.status(500).json({
       message: "Lỗi khi cập nhật trạng thái item",
       error: error.message,
@@ -493,7 +511,7 @@ const getPreOrderOrders = async (req, res) => {
 
     const orders = await Order.find(query)
       .populate("customer", "fullname email phone")
-      .populate("cartItems.product", "name images")
+      .populate("cartItems.product", "name imageUrl")
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -502,7 +520,6 @@ const getPreOrderOrders = async (req, res) => {
       total: orders.length,
     });
   } catch (error) {
-    console.error(error);
     res.status(500).json({
       message: "Lỗi khi lấy danh sách đơn hàng pre-order",
       error: error.message,
@@ -539,9 +556,23 @@ const notifyPreOrderReady = async (req, res) => {
       });
     }
 
-    // TODO: Gửi email/notification cho khách hàng
-    // Có thể tích hợp với mailer service
-    // await sendEmail(order.customer.email, 'Pre-order ready', ...)
+    // Create notification for pre-order ready
+    try {
+      const customerId = order.customer._id || order.customer;
+      await createNotification({
+        userId: customerId,
+        type: "preorder_ready",
+        title: "Hàng đặt trước đã về",
+        message: `Sản phẩm đặt trước trong đơn hàng #${order._id.toString().slice(-6).toUpperCase()} đã có sẵn và sẵn sàng giao. Vui lòng kiểm tra đơn hàng của bạn.`,
+        orderId: order._id,
+        data: {
+          orderNumber: order._id.toString().slice(-6).toUpperCase(),
+        },
+        link: `/track-order`,
+      });
+    } catch (notifError) {
+      console.error("Failed to create pre-order notification:", notifError);
+    }
 
     res.status(200).json({
       message: "Thông báo đã được gửi cho khách hàng",
@@ -549,7 +580,6 @@ const notifyPreOrderReady = async (req, res) => {
       customerName: order.customer.fullname,
     });
   } catch (error) {
-    console.error(error);
     res.status(500).json({
       message: "Lỗi khi gửi thông báo pre-order",
       error: error.message,

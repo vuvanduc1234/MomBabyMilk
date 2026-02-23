@@ -54,3 +54,15 @@ export const uploadAvatar = async (file) => {
     handleError(error);
   }
 };
+
+/**
+ * Get user's vouchers
+ */
+export const getUserVouchers = async () => {
+  try {
+    const response = await axiosInstance.get("/api/users/my-vouchers");
+    return response.data;
+  } catch (error) {
+    handleError(error);
+  }
+};

@@ -46,8 +46,6 @@ import {
   getOrderStatusColor,
   getPaymentStatusLabel,
   getPaymentStatusColor,
-  getPaymentMethodLabel,
-  getItemStatusLabel,
   formatVND,
 } from "../orders/services/orderService";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -91,7 +89,6 @@ export default function StaffOrders() {
   const [maxPrice, setMaxPrice] = useState("");
   const [page, setPage] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [internalNote, setInternalNote] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("all");
@@ -101,7 +98,7 @@ export default function StaffOrders() {
   const handleTabChange = (value) => {
     setActiveTab(value);
     setPage(1);
-    
+
     const tabToStatusMap = {
       all: "all",
       pending: "pending_payment",
@@ -113,7 +110,7 @@ export default function StaffOrders() {
       returned: "cancelled", // Could be separated if you add a return status
       failed: "cancelled",
     };
-    
+
     setStatusFilter(tabToStatusMap[value] || "all");
   };
 
@@ -144,6 +141,7 @@ export default function StaffOrders() {
   // Load orders on mount and when filters change
   useEffect(() => {
     fetchOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paymentStatusFilter, paymentFilter, hasPreOrderFilter]);
 
   // Debounced search
@@ -154,6 +152,7 @@ export default function StaffOrders() {
       }
     }, 500);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
   // Filter and paginate orders (client-side filtering for date/price/status)
@@ -195,7 +194,15 @@ export default function StaffOrders() {
     }
 
     return filtered;
-  }, [orders, statusFilter, dateRangeType, startDate, endDate, minPrice, maxPrice]);
+  }, [
+    orders,
+    statusFilter,
+    dateRangeType,
+    startDate,
+    endDate,
+    minPrice,
+    maxPrice,
+  ]);
 
   const paginatedOrders = useMemo(() => {
     const start = (page - 1) * pageSize;
@@ -207,27 +214,30 @@ export default function StaffOrders() {
   const orderCounts = useMemo(() => {
     return {
       all: orders.length,
-      pending: orders.filter(o => o.orderStatus === 'pending_payment').length,
-      processing: orders.filter(o => o.orderStatus === 'processing').length,
-      shipping: orders.filter(o => o.orderStatus === 'shipped').length,
-      delivered: orders.filter(o => o.orderStatus === 'delivered').length,
-      cancelled: orders.filter(o => o.orderStatus === 'cancelled').length,
+      pending: orders.filter((o) => o.orderStatus === "pending_payment").length,
+      processing: orders.filter((o) => o.orderStatus === "processing").length,
+      shipping: orders.filter((o) => o.orderStatus === "shipped").length,
+      delivered: orders.filter((o) => o.orderStatus === "delivered").length,
+      cancelled: orders.filter((o) => o.orderStatus === "cancelled").length,
     };
   }, [orders]);
 
   const handleUpdateStatus = async (orderId, newStatus) => {
     try {
       await updateOrderStatus(orderId, { orderStatus: newStatus });
-      toast.success('Đã cập nhật trạng thái đơn hàng');
+      toast.success("Đã cập nhật trạng thái đơn hàng");
       // Update local state
       setOrders((prevOrders) =>
         prevOrders.map((order) =>
           order._id === orderId ? { ...order, orderStatus: newStatus } : order,
         ),
       );
+      // Update the selected order if it's currently open
+      if (selectedOrder?._id === orderId) {
+        setSelectedOrder((prev) => ({ ...prev, orderStatus: newStatus }));
+      }
     } catch (err) {
-      console.error("Failed to update order status:", err);
-      toast.error(err.message || 'Không thể cập nhật trạng thái đơn hàng');
+      toast.error(err.message || "Không thể cập nhật trạng thái đơn hàng");
     }
   };
 
@@ -280,7 +290,6 @@ export default function StaffOrders() {
                     <SelectItem value="pending">Chờ thanh toán</SelectItem>
                     <SelectItem value="paid">Đã thanh toán</SelectItem>
                     <SelectItem value="failed">Thất bại</SelectItem>
-                    <SelectItem value="refunded">Đã hoàn tiền</SelectItem>
                   </SelectGroup>
                 </SelectContent>
               </Select>
@@ -579,7 +588,9 @@ export default function StaffOrders() {
                                     {order.customer?.fullname || "N/A"}
                                   </p>
                                   <p className="text-sm text-muted-foreground">
-                                    {order.phone || order.customer?.phone || "N/A"}
+                                    {order.phone ||
+                                      order.customer?.phone ||
+                                      "N/A"}
                                   </p>
                                 </div>
                               </TableCell>
@@ -666,9 +677,14 @@ export default function StaffOrders() {
           <OrderDetailDialog
             selectedOrder={selectedOrder}
             onClose={() => setSelectedOrder(null)}
-            internalNote={internalNote}
-            setInternalNote={setInternalNote}
-            onOrderUpdated={fetchOrders}
+            onOrderUpdate={(updatedOrder) => {
+              setSelectedOrder(updatedOrder);
+              setOrders((prev) =>
+                prev.map((o) =>
+                  o._id === updatedOrder._id ? updatedOrder : o,
+                ),
+              );
+            }}
           />
         </div>
       </div>

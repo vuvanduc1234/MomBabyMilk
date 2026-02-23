@@ -1,11 +1,28 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../../context/AuthContext";
-import { decodeJwtPayload } from "../utils/authToken";
 import {
   changePassword,
   fetchUserProfile,
   updateUserProfile,
 } from "../services/accountApi";
+
+// Simple JWT payload decoder
+const decodeJwtPayload = (token) => {
+  if (!token) return null;
+  try {
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => `%${("00" + c.charCodeAt(0).toString(16)).slice(-2)}`)
+        .join(""),
+    );
+    return JSON.parse(jsonPayload);
+  } catch {
+    return null;
+  }
+};
 
 const buildInitialState = () => ({
   data: null,
@@ -45,7 +62,8 @@ export const useAccountProfile = () => {
 
   useEffect(() => {
     loadProfile();
-  }, [loadProfile]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, userId]);
 
   const updateProfile = async (payload) => {
     if (!token || !userId) {

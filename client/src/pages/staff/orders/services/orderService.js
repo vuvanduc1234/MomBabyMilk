@@ -95,10 +95,13 @@ export const getAllOrders = async (filters = {}) => {
   try {
     const params = new URLSearchParams();
     if (filters.status) params.append("status", filters.status);
-    if (filters.paymentStatus) params.append("paymentStatus", filters.paymentStatus);
-    if (filters.paymentMethod) params.append("paymentMethod", filters.paymentMethod);
+    if (filters.paymentStatus)
+      params.append("paymentStatus", filters.paymentStatus);
+    if (filters.paymentMethod)
+      params.append("paymentMethod", filters.paymentMethod);
     if (filters.search) params.append("search", filters.search);
-    if (filters.hasPreOrder !== undefined) params.append("hasPreOrder", filters.hasPreOrder);
+    if (filters.hasPreOrder !== undefined)
+      params.append("hasPreOrder", filters.hasPreOrder);
     if (filters.itemStatus) params.append("itemStatus", filters.itemStatus);
 
     const url = `/api/orders${params.toString() ? `?${params.toString()}` : ""}`;
@@ -117,7 +120,7 @@ export const updateOrderStatus = async (orderId, statusData) => {
   try {
     const response = await axiosInstance.patch(
       `/api/orders/${orderId}/status`,
-      statusData
+      statusData,
     );
     return response.data;
   } catch (error) {
@@ -211,13 +214,13 @@ export const getPaymentStatusColor = (status) => {
 export const formatOrderNumber = (order) => {
   // If order has a readable order number, use it, otherwise format the ID
   if (order.orderNumber) return order.orderNumber;
-  
+
   // Create readable order number from ID and date
   const date = new Date(order.createdAt);
   const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, "0");
   const shortId = order._id.slice(-6).toUpperCase();
-  
+
   return `ORD-${year}${month}-${shortId}`;
 };
 
@@ -226,29 +229,38 @@ export const formatOrderNumber = (order) => {
  */
 export const getDashboardStats = async () => {
   try {
-    const response = await axiosInstance.get('/api/orders');
+    const response = await axiosInstance.get("/api/orders");
     const orders = response.data.orders || [];
-    
+
     const stats = {
-      totalPendingOrders: orders.filter(o => o.orderStatus === 'processing' && o.paymentStatus === 'pending').length,
-      totalConfirmedOrders: orders.filter(o => o.orderStatus === 'processing' && o.paymentStatus === 'paid').length,
-      totalShippingOrders: orders.filter(o => o.orderStatus === 'shipped').length,
+      totalPendingOrders: orders.filter(
+        (o) => o.orderStatus === "processing" && o.paymentStatus === "pending",
+      ).length,
+      totalConfirmedOrders: orders.filter(
+        (o) => o.orderStatus === "processing" && o.paymentStatus === "paid",
+      ).length,
+      totalShippingOrders: orders.filter((o) => o.orderStatus === "shipped")
+        .length,
       pendingOrders: orders
-        .filter(o => o.orderStatus === 'processing' || o.orderStatus === 'pending_payment')
+        .filter(
+          (o) =>
+            o.orderStatus === "processing" ||
+            o.orderStatus === "pending_payment",
+        )
         .slice(0, 5)
-        .map(order => ({
+        .map((order) => ({
           id: order._id,
           order_number: formatOrderNumber(order),
-          customer_name: order.customer?.fullname || 'N/A',
+          customer_name: order.customer?.fullname || "N/A",
           total: order.totalAmount,
           created_at: order.createdAt,
           status: order.orderStatus,
         })),
     };
-    
+
     return stats;
   } catch (error) {
-    console.error('Error fetching dashboard stats:', error);
+    console.error("Error fetching dashboard stats:", error);
     throw error.response?.data || error;
   }
 };
@@ -258,24 +270,24 @@ export const getDashboardStats = async () => {
  */
 export const getLowStockProducts = async (threshold = 10) => {
   try {
-    const response = await axiosInstance.get('/api/product');
+    const response = await axiosInstance.get("/api/product");
     const products = response.data.data || response.data || [];
-    
+
     const lowStockProducts = products
-      .filter(p => p.quantity > 0 && p.quantity <= threshold)
+      .filter((p) => p.quantity <= threshold)
       .sort((a, b) => a.quantity - b.quantity)
       .slice(0, 5)
-      .map(product => ({
+      .map((product) => ({
         id: product._id,
         name: product.name,
         stock: product.quantity,
-        image_url: product.imageUrl?.[0] || '/placeholder.jpg',
+        image_url: product.imageUrl?.[0] || "/placeholder.jpg",
         slug: product._id,
       }));
-    
+
     return lowStockProducts;
   } catch (error) {
-    console.error('Error fetching low stock products:', error);
+    console.error("Error fetching low stock products:", error);
     throw error.response?.data || error;
   }
 };
@@ -292,11 +304,11 @@ export const updateOrderMetadata = async (orderId, metadata) => {
       {
         note: metadata.note,
         trackingNumber: metadata.trackingNumber,
-      }
+      },
     );
     return response.data;
   } catch (error) {
-    console.error('Error updating order metadata:', error);
+    console.error("Error updating order metadata:", error);
     throw error.response?.data || error;
   }
 };
@@ -308,11 +320,11 @@ export const getPreOrderOrders = async (itemStatus = null) => {
   try {
     const url = itemStatus
       ? `/api/orders/pre-orders?itemStatus=${itemStatus}`
-      : '/api/orders/pre-orders';
+      : "/api/orders/pre-orders";
     const response = await axiosInstance.get(url);
     return response.data;
   } catch (error) {
-    console.error('Error fetching pre-order orders:', error);
+    console.error("Error fetching pre-order orders:", error);
     throw error.response?.data || error;
   }
 };
@@ -324,11 +336,11 @@ export const updateItemStatus = async (orderId, itemIndex, itemStatus) => {
   try {
     const response = await axiosInstance.patch(
       `/api/orders/${orderId}/items/${itemIndex}/status`,
-      { itemStatus }
+      { itemStatus },
     );
     return response.data;
   } catch (error) {
-    console.error('Error updating item status:', error);
+    console.error("Error updating item status:", error);
     throw error.response?.data || error;
   }
 };
@@ -339,11 +351,11 @@ export const updateItemStatus = async (orderId, itemIndex, itemStatus) => {
 export const notifyPreOrderReady = async (orderId) => {
   try {
     const response = await axiosInstance.post(
-      `/api/orders/${orderId}/notify-preorder-ready`
+      `/api/orders/${orderId}/notify-preorder-ready`,
     );
     return response.data;
   } catch (error) {
-    console.error('Error notifying pre-order ready:', error);
+    console.error("Error notifying pre-order ready:", error);
     throw error.response?.data || error;
   }
 };

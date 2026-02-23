@@ -1,9 +1,9 @@
-const Point = require('../models/PointModel');
-const PointHistory = require('../models/PointHistoryModel');
-const RewardItem = require('../models/RewardItemModel');
-const User = require('../models/UserModel');
-const Voucher = require('../models/VoucherModel');
-const mongoose = require('mongoose');
+const Point = require("../models/PointModel");
+const PointHistory = require("../models/PointHistoryModel");
+const RewardItem = require("../models/RewardItemModel");
+const User = require("../models/UserModel");
+const Voucher = require("../models/VoucherModel");
+const mongoose = require("mongoose");
 
 const getOrCreatePoint = async (userId) => {
   let point = await Point.findOne({ user: userId });
@@ -23,7 +23,12 @@ const calculatePointsFromOrder = (orderTotal) => {
   return Math.floor(orderTotal * 0.01);
 };
 
-const addPendingPoints = async (userId, orderId, orderTotal, session = null) => {
+const addPendingPoints = async (
+  userId,
+  orderId,
+  orderTotal,
+  session = null,
+) => {
   const points = calculatePointsFromOrder(orderTotal);
   if (points <= 0) return null;
 
@@ -37,17 +42,17 @@ const addPendingPoints = async (userId, orderId, orderTotal, session = null) => 
     [
       {
         user: userId,
-        type: 'earn',
+        type: "earn",
         amount: points,
-        status: 'pending',
-        reason: 'Order placed (pending delivery)',
+        status: "pending",
+        reason: "Order placed (pending delivery)",
         relatedOrder: orderId,
         balanceBefore,
         balanceAfter: balanceBefore,
         meta: { orderTotal },
       },
     ],
-    { session }
+    { session },
   );
 
   return { point, history: history[0], pointsEarned: points };
@@ -60,8 +65,8 @@ const confirmPendingPoints = async (userId, orderId, session = null) => {
   const pendingHistory = await PointHistory.findOne({
     user: userId,
     relatedOrder: orderId,
-    type: 'earn',
-    status: 'pending',
+    type: "earn",
+    status: "pending",
   }).session(session);
 
   if (!pendingHistory) return null;
@@ -74,9 +79,9 @@ const confirmPendingPoints = async (userId, orderId, session = null) => {
   point.totalEarned += amount;
   await point.save({ session });
 
-  pendingHistory.status = 'confirmed';
+  pendingHistory.status = "confirmed";
   pendingHistory.balanceAfter = point.balance;
-  pendingHistory.reason = 'Order delivered successfully';
+  pendingHistory.reason = "Order delivered successfully";
   await pendingHistory.save({ session });
 
   return { point, pointsConfirmed: amount };
@@ -89,8 +94,8 @@ const cancelPendingPoints = async (userId, orderId, session = null) => {
   const pendingHistory = await PointHistory.findOne({
     user: userId,
     relatedOrder: orderId,
-    type: 'earn',
-    status: 'pending',
+    type: "earn",
+    status: "pending",
   }).session(session);
 
   if (!pendingHistory) return null;
@@ -100,8 +105,8 @@ const cancelPendingPoints = async (userId, orderId, session = null) => {
   point.pendingPoints -= amount;
   await point.save({ session });
 
-  pendingHistory.status = 'cancelled';
-  pendingHistory.reason = 'Order cancelled';
+  pendingHistory.status = "cancelled";
+  pendingHistory.reason = "Order cancelled";
   await pendingHistory.save({ session });
 
   return { point, pointsCancelled: amount };
@@ -114,8 +119,8 @@ const refundPoints = async (userId, orderId, session = null) => {
   const confirmedHistory = await PointHistory.findOne({
     user: userId,
     relatedOrder: orderId,
-    type: 'earn',
-    status: 'confirmed',
+    type: "earn",
+    status: "confirmed",
   }).session(session);
 
   if (!confirmedHistory) return null;
@@ -131,16 +136,16 @@ const refundPoints = async (userId, orderId, session = null) => {
     [
       {
         user: userId,
-        type: 'refund',
+        type: "refund",
         amount: -amount,
-        status: 'confirmed',
-        reason: 'Order refunded',
+        status: "confirmed",
+        reason: "Order refunded",
         relatedOrder: orderId,
         balanceBefore,
         balanceAfter: point.balance,
       },
     ],
-    { session }
+    { session },
   );
 
   return { point, pointsRefunded: amount, history: refundHistory[0] };
@@ -153,25 +158,25 @@ const redeemReward = async (userId, rewardItemId) => {
   try {
     const point = await Point.findOne({ user: userId }).session(session);
     if (!point) {
-      throw new Error('Point account not found');
+      throw new Error("Point account not found");
     }
 
     const rewardItem = await RewardItem.findById(rewardItemId).session(session);
     if (!rewardItem) {
-      throw new Error('Reward item not found');
+      throw new Error("Reward item not found");
     }
 
     if (!rewardItem.isActive) {
-      throw new Error('Reward item is not available');
+      throw new Error("Reward item is not available");
     }
 
     if (rewardItem.quantity !== null && rewardItem.quantity <= 0) {
-      throw new Error('Reward item is out of stock');
+      throw new Error("Reward item is out of stock");
     }
 
     if (point.balance < rewardItem.pointsCost) {
       throw new Error(
-        `Insufficient points. You need ${rewardItem.pointsCost} points but only have ${point.balance} points`
+        `Insufficient points. You need ${rewardItem.pointsCost} points but only have ${point.balance} points`,
       );
     }
 
@@ -191,27 +196,27 @@ const redeemReward = async (userId, rewardItemId) => {
       [
         {
           user: userId,
-          type: 'redeem',
+          type: "redeem",
           amount: -rewardItem.pointsCost,
-          status: 'confirmed',
+          status: "confirmed",
           reason: `Redeemed points for voucher: ${rewardItem.name}`,
           relatedReward: rewardItemId,
           balanceBefore,
           balanceAfter: point.balance,
           meta: {
-            rewardType: 'voucher',
+            rewardType: "voucher",
             rewardName: rewardItem.name,
             voucherId: rewardItem.voucherId,
           },
         },
       ],
-      { session }
+      { session },
     );
 
     const user = await User.findById(userId).session(session);
     if (user) {
       const existingVoucher = user.userVouchers.find(
-        (v) => v.voucherId.toString() === rewardItem.voucherId.toString()
+        (v) => v.voucherId.toString() === rewardItem.voucherId.toString(),
       );
 
       if (existingVoucher) {
@@ -233,7 +238,7 @@ const redeemReward = async (userId, rewardItemId) => {
       point,
       rewardItem,
       history: history[0],
-      message: 'Points redeemed successfully',
+      message: "Points redeemed successfully",
     };
   } catch (error) {
     await session.abortTransaction();
@@ -244,14 +249,14 @@ const redeemReward = async (userId, rewardItemId) => {
 
 const getPointHistory = async (userId, limit = 20, page = 1) => {
   const skip = (page - 1) * limit;
-  
+
   const [histories, total] = await Promise.all([
     PointHistory.find({ user: userId })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .populate('relatedOrder', 'orderStatus totalAmount')
-      .populate('relatedReward', 'name type')
+      .populate("relatedOrder", "orderStatus totalAmount")
+      .populate("relatedReward", "name type")
       .lean(),
     PointHistory.countDocuments({ user: userId }),
   ]);

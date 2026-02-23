@@ -13,6 +13,8 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
+import { useState, useEffect } from "react";
+import axiosInstance from "@/lib/axios";
 
 const features = [
   {
@@ -37,166 +39,74 @@ const features = [
   },
 ];
 
-//Mock data for brands
-const brands = [
-  {
-    id: 1,
-    name: "Abbott",
-    slug: "abbott",
-    imagePath: "/labels/abbottgrow.webp",
-  },
-  {
-    id: 2,
-    name: "Alphagen",
-    slug: "alphagen",
-    imagePath: "/labels/alphagen.webp",
-  },
-  {
-    id: 4,
-    name: "Blackmores",
-    slug: "blackmores",
-    imagePath: "/labels/blackmores.webp",
-  },
-  {
-    id: 5,
-    name: "ColosBaby",
-    slug: "colosbaby",
-    imagePath: "/labels/colosbaby.webp",
-  },
-  { id: 7, name: "Ensure", slug: "ensure", imagePath: "/labels/ensure.webp" },
-  {
-    id: 8,
-    name: "Friso",
-    slug: "friso",
-    imagePath: "/labels/frisogold-pro.webp",
-  },
-  { id: 9, name: "Glico", slug: "glico", imagePath: "/labels/glico.webp" },
-  { id: 10, name: "Hikid", slug: "hikid", imagePath: "/labels/hikid.webp" },
-  { id: 11, name: "Meiji", slug: "meiji", imagePath: "/labels/meiji.webp" },
-  {
-    id: 12,
-    name: "Morinaga",
-    slug: "morinaga",
-    imagePath: "/labels/morinaga.webp",
-  },
-  { id: 13, name: "Nestlé", slug: "nestle", imagePath: "/labels/nan.webp" },
-  {
-    id: 15,
-    name: "Vinamilk",
-    slug: "vinamilk",
-    imagePath: "/labels/colosgold.webp",
-  },
-  {
-    id: 16,
-    name: "Yokogold",
-    slug: "yokogold",
-    imagePath: "/labels/yokogold.webp",
-  },
-];
-
-// Mock data for featured products
-const featuredProducts = [
-  {
-    id: 1,
-    name: "Sữa Enfamil A+ 1 cho trẻ từ 0-6 tháng (900g)",
-    slug: "sua-enfamil-a-plus-1",
-    price: 580000,
-    sale_price: 520000,
-    image_url: "/placeholder.jpg",
-    stock: 50,
-    brand: { name: "Enfamil" },
-    is_featured: true,
-    reviews: 128,
-  },
-  {
-    id: 2,
-    name: "Sữa Abbott Similac Eye-Q 4 HMO (900g)",
-    slug: "sua-similac-eye-q-4",
-    price: 450000,
-    sale_price: 399000,
-    image_url: "/placeholder.jpg",
-    stock: 35,
-    brand: { name: "Abbott" },
-    is_featured: true,
-    reviews: 89,
-  },
-  {
-    id: 3,
-    name: "Sữa Aptamil Đức số 2 (800g)",
-    slug: "sua-aptamil-duc-so-2",
-    price: 650000,
-    sale_price: null,
-    image_url: "/placeholder.jpg",
-    stock: 20,
-    brand: { name: "Aptamil" },
-    is_featured: false,
-    reviews: 67,
-  },
-  {
-    id: 4,
-    name: "Sữa Nan Optipro 3 (800g)",
-    slug: "sua-nan-optipro-3",
-    price: 380000,
-    sale_price: 350000,
-    image_url: "/placeholder.jpg",
-    stock: 0,
-    brand: { name: "Nestlé" },
-    is_featured: true,
-    reviews: 156,
-  },
-  {
-    id: 5,
-    name: "Sữa Friso Gold 4 (1500g)",
-    slug: "sua-friso-gold-4",
-    price: 720000,
-    sale_price: 680000,
-    image_url: "/placeholder.jpg",
-    stock: 42,
-    brand: { name: "Friso" },
-    is_featured: true,
-    reviews: 201,
-  },
-  {
-    id: 6,
-    name: "Sữa Vinamilk Dielac Alpha Gold 4 (900g)",
-    slug: "sua-dielac-alpha-gold-4",
-    price: 320000,
-    sale_price: 285000,
-    image_url: "/placeholder.jpg",
-    stock: 78,
-    brand: { name: "Vinamilk" },
-    is_featured: false,
-    reviews: 94,
-  },
-  {
-    id: 7,
-    name: "Sữa Ensure Gold Vanilla (850g)",
-    slug: "sua-ensure-gold-vanilla",
-    price: 580000,
-    sale_price: 520000,
-    image_url: "/placeholder.jpg",
-    stock: 30,
-    brand: { name: "Abbott" },
-    is_featured: true,
-    reviews: 112,
-  },
-  {
-    id: 8,
-    name: "Sữa Nutricare Bone (900g)",
-    slug: "sua-nutricare-bone",
-    price: 450000,
-    sale_price: null,
-    image_url: "/placeholder.jpg",
-    stock: 25,
-    brand: { name: "Nutricare" },
-    is_featured: false,
-    reviews: 45,
-  },
-];
-
 export default function Index() {
-  const productsLoading = false;
-  const categoriesLoading = false;
+  const [brands, setBrands] = useState([]);
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [productsLoading, setProductsLoading] = useState(true);
+  const [brandsLoading, setBrandsLoading] = useState(true);
+
+  // Fetch brands from API
+  useEffect(() => {
+    const fetchBrands = async () => {
+      try {
+        setBrandsLoading(true);
+        const response = await axiosInstance.get("/api/brand");
+        const brandsData = response.data.data || response.data;
+
+        // Transform brand data to match component format
+        const transformedBrands = brandsData.map((brand) => ({
+          id: brand._id,
+          name: brand.name,
+          slug: brand.name.toLowerCase().replace(/\s+/g, "-"),
+          imagePath: brand.logoUrl || "/placeholder.jpg",
+        }));
+
+        setBrands(transformedBrands);
+      } catch (error) {
+        console.error("Error fetching brands:", error);
+      } finally {
+        setBrandsLoading(false);
+      }
+    };
+
+    fetchBrands();
+  }, []);
+
+  // Fetch featured products from API
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setProductsLoading(true);
+        const response = await axiosInstance.get("/api/product");
+        const productsData = response.data.data || response.data;
+
+        // Transform product data to match component format
+        const transformedProducts = productsData.map((product) => ({
+          id: product._id,
+          name: product.name,
+          slug: product._id,
+          price: product.price,
+          sale_price: product.sale_price,
+          image_url: Array.isArray(product.imageUrl)
+            ? product.imageUrl[0]
+            : product.imageUrl,
+          stock: product.quantity || 0,
+          brand: product.brand,
+          is_featured: product.is_featured || false,
+          reviews: product.reviews || 0,
+        }));
+
+        // Take only first 8 products for featured section
+        setFeaturedProducts(transformedProducts.slice(0, 8));
+      } catch (error) {
+        console.error("Error fetching products:", error);
+      } finally {
+        setProductsLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
 
   return (
     <>
@@ -221,17 +131,17 @@ export default function Index() {
                 <CarouselContent>
                   <CarouselItem className="pl-0">
                     <div className="w-full h-full bg-amber-200 aspect-3/1 flex items-center justify-center">
-                      <img src="/ads/promo-dutchlady.webp" className="h-full"/>
+                      <img src="/ads/promo-dutchlady.webp" className="h-full" />
                     </div>
                   </CarouselItem>
                   <CarouselItem className="pl-0">
                     <div className="w-full h-full bg-green-200 aspect-3/1 flex items-center justify-center">
-                      <img src="/ads/promo-dutchlady.webp" className="h-full"/>
+                      <img src="/ads/promo-dutchlady.webp" className="h-full" />
                     </div>
                   </CarouselItem>
                   <CarouselItem className="pl-0">
                     <div className="w-full h-full bg-blue-200 aspect-3/1 flex items-center justify-center">
-                      <img src="/ads/promo-dutchlady.webp" className="h-full"/>
+                      <img src="/ads/promo-dutchlady.webp" className="h-full" />
                     </div>
                   </CarouselItem>
                 </CarouselContent>
@@ -281,14 +191,14 @@ export default function Index() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {categoriesLoading
-              ? Array(5)
+            {brandsLoading
+              ? Array(6)
                   .fill(0)
                   .map((_, i) => (
                     <Skeleton key={i} className="h-32 rounded-xl" />
                   ))
               : brands.map((brand) => (
-                  <Link key={brand.id} to={`/products?brand=${brand.slug}`}>
+                  <Link key={brand.id} to={`/products?brand=${brand.id}`}>
                     <Card className="hover:ring hover:ring-primary transition-all cursor-pointer group shadow-none">
                       <CardContent className="p-2 text-center flex items-center justify-center h-24">
                         <img
@@ -326,11 +236,9 @@ export default function Index() {
                   .map((_, i) => (
                     <Skeleton key={i} className="h-80 rounded-xl" />
                   ))
-              : featuredProducts
-                  .slice(0, 8)
-                  .map((product) => (
-                    <ProductCard key={product.id} product={product} />
-                  ))}
+              : featuredProducts.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
           </div>
         </div>
       </section>

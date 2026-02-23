@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { ShoppingCart, Star, Calendar, Clock, Package } from "lucide-react";
 import { useCart } from "../../context/CartContext";
 import { PreOrderModal } from "../PreOrder/PreOrderModal";
+import { toast } from "sonner";
 
 export function ProductCard({ product }) {
   const { addToCart } = useCart();
@@ -23,6 +24,7 @@ export function ProductCard({ product }) {
     } else {
       // Sản phẩm thường - thêm vào giỏ hàng bình thường
       addToCart(product);
+      toast.success(`Đã thêm ${product.name} vào giỏ hàng!`);
     }
   };
 
@@ -45,7 +47,7 @@ export function ProductCard({ product }) {
         ? "Đã thêm vào giỏ hàng (Đặt trước)!"
         : "Đã đăng ký đặt trước thành công!";
 
-    alert(message);
+    toast.success(message);
   };
 
   const discountPercent = product.sale_price

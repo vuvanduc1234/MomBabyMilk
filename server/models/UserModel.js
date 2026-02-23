@@ -10,8 +10,10 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
     },
     phone: {
-      type: Number,
+      type: String,
       unique: true,
+      sparse: true,
+      trim: true,
     },
     fullname: {
       type: String,
@@ -39,20 +41,24 @@ const userSchema = new mongoose.Schema(
       enum: ["Admin", "Staff", "User"],
       default: "User",
     },
-    userVouchers: [{
-      _id: false,
-      voucherId: { type: mongoose.Schema.Types.ObjectId, ref: "Voucher" },
-      quantity: { type: Number, default: 1 }
-    }],
-    wishlist: [{ 
-      type: mongoose.Schema.Types.ObjectId, 
-      ref: "Product" 
-    }],
+    userVouchers: [
+      {
+        _id: false,
+        voucherId: { type: mongoose.Schema.Types.ObjectId, ref: "Voucher" },
+        quantity: { type: Number, default: 1 },
+      },
+    ],
+    wishlist: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Product",
+      },
+    ],
     isVerified: {
       type: Boolean,
       default: false,
     },
-    avatar: {type: String},
+    avatar: { type: String },
     emailVerificationToken: String,
     emailVerificationExpires: Date,
     passwordResetToken: String,
@@ -60,7 +66,7 @@ const userSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 module.exports = mongoose.models.User || mongoose.model("User", userSchema);

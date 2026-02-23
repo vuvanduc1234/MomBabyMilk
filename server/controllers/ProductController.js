@@ -1,6 +1,8 @@
 const ProductModel = require("../models/ProductModel");
 const CategoryModel = require("../models/CategoryModel");
 const BrandModel = require("../models/BrandModel");
+const UserModel = require("../models/UserModel");
+const BlogModel = require("../models/BlogModel");
 
 const createProduct = async (req, res) => {
   const {
@@ -66,6 +68,19 @@ const updateProduct = async (req, res) => {
         return res.status(400).json({ message: "Thương hiệu không tồn tại" });
       }
     }
+
+    // Validate quantity không được âm
+    if (req.body.quantity !== undefined && req.body.quantity < 0) {
+      return res
+        .status(400)
+        .json({ message: "Số lượng sản phẩm không được âm" });
+    }
+
+    // Validate price không được âm
+    if (req.body.price !== undefined && req.body.price < 0) {
+      return res.status(400).json({ message: "Giá sản phẩm không được âm" });
+    }
+
     const product = await ProductModel.findByIdAndUpdate(id, req.body, {
       new: true,
       runValidators: true,
@@ -84,11 +99,28 @@ const updateProduct = async (req, res) => {
 const deleteProduct = async (req, res) => {
   const { id } = req.params;
   try {
-    const product = await ProductModel.findByIdAndDelete(id);
+    // Kiểm tra product tồn tại
+    const product = await ProductModel.findById(id);
     if (!product) {
       return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
     }
-    res.status(200).json({ message: "Xóa sản phẩm thành công" });
+
+    // CASCADE 1: Xóa product khỏi tất cả User.wishlist
+    await UserModel.updateMany({ wishlist: id }, { $pull: { wishlist: id } });
+
+    // CASCADE 2: Xóa product khỏi tất cả Blog.recommended_products
+    await BlogModel.updateMany(
+      { recommended_products: id },
+      { $pull: { recommended_products: id } },
+    );
+
+    // Xóa product (comments embedded sẽ tự động xóa)
+    await ProductModel.findByIdAndDelete(id);
+
+    res.status(200).json({
+      message:
+        "Xóa sản phẩm thành công (đã cleanup wishlist và blog references)",
+    });
   } catch (err) {
     res.status(500).json({ message: "Lối server:" + err.message });
   }

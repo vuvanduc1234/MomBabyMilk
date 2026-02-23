@@ -4,8 +4,10 @@ import {
   ChevronUp,
   ChevronDown,
   Clock,
-  CircleDot,
   Package,
+  Truck,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import {
@@ -13,6 +15,8 @@ import {
   formatVND,
   getOrderStatusLabel,
   getOrderStatusColor,
+  getPaymentMethodLabel,
+  cancelOrder,
 } from "../../services/orderService";
 import { toast } from "sonner";
 
@@ -20,12 +24,14 @@ export default function OrderTracking() {
   const { user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [expandedOrders, setExpandedOrders] = useState({});
+  const [selectedStatus, setSelectedStatus] = useState("all");
+  const [expandedOrders, setExpandedOrders] = useState(new Set());
 
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await getMyOrders();
+      const status = selectedStatus === "all" ? null : selectedStatus;
+      const data = await getMyOrders(status);
       setOrders(data.orders || []);
     } catch (error) {
       console.error("Error fetching orders:", error);
@@ -38,9 +44,9 @@ export default function OrderTracking() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedStatus]);
 
-  // Fetch orders khi component mount
+  // Fetch orders khi component mount hoặc status thay đổi
   useEffect(() => {
     if (user) {
       fetchOrders();
@@ -48,29 +54,46 @@ export default function OrderTracking() {
       setLoading(false);
       toast.error("Vui lòng đăng nhập để xem đơn hàng");
     }
-  }, [user, fetchOrders]);
+  }, [user, fetchOrders, selectedStatus]);
+
+  const handleCancelOrder = async (orderId) => {
+    if (!confirm("Bạn có chắc muốn hủy đơn hàng này?")) return;
+
+    try {
+      await cancelOrder(orderId, "Khách hàng yêu cầu hủy");
+      toast.success("Đã hủy đơn hàng thành công");
+      fetchOrders();
+    } catch (error) {
+      console.error("Error cancelling order:", error);
+      toast.error(error.message || "Không thể hủy đơn hàng");
+    }
+  };
 
   const toggleExpand = (orderId) => {
-    setExpandedOrders((prev) => ({
-      ...prev,
-      [orderId]: !prev[orderId],
-    }));
-  };
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
+    setExpandedOrders((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(orderId)) {
+        newSet.delete(orderId);
+      } else {
+        newSet.add(orderId);
+      }
+      return newSet;
     });
   };
+
+  const statusOptions = [
+    { value: "all", label: "Tất cả", icon: Package },
+    { value: "processing", label: "Đang xử lý", icon: Clock },
+    { value: "shipped", label: "Đang giao", icon: Truck },
+    { value: "delivered", label: "Đã giao", icon: CheckCircle },
+    { value: "cancelled", label: "Đã hủy", icon: XCircle },
+  ];
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <Package className="w-16 h-16 text-pink-400 mx-auto mb-4 animate-pulse" />
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto mb-4"></div>
           <p className="text-gray-600">Đang tải đơn hàng...</p>
         </div>
       </div>
@@ -80,140 +103,78 @@ export default function OrderTracking() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header với thông tin user */}
-        <div className="mb-8">
+        {/* Header */}
+        <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Theo dõi đơn hàng
+            Đơn hàng của tôi
           </h1>
-          {user && (
-            <div className="bg-white rounded-lg p-6 mt-4 border border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900 mb-3">
-                Thông tin tài khoản
-              </h2>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-500">Họ và tên</p>
-                  <p className="text-base font-medium text-gray-900">
-                    {user.name || "Chưa cập nhật"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Email</p>
-                  <p className="text-base font-medium text-gray-900">
-                    {user.email || "Chưa cập nhật"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Số điện thoại</p>
-                  <p className="text-base font-medium text-gray-900">
-                    {user.phone || "Chưa cập nhật"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Địa chỉ</p>
-                  <p className="text-base font-medium text-gray-900">
-                    {user.address || "Chưa cập nhật"}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+          <p className="text-sm text-gray-600">
+            Quản lý và theo dõi đơn hàng của bạn
+          </p>
+        </div>
+
+        {/* Status Filter */}
+        <div className="flex gap-2 overflow-x-auto pb-4 mb-6">
+          {statusOptions.map((option) => {
+            const Icon = option.icon;
+            return (
+              <button
+                key={option.value}
+                onClick={() => setSelectedStatus(option.value)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition ${
+                  selectedStatus === option.value
+                    ? "bg-pink-100 text-pink-600 border border-pink-300"
+                    : "bg-white text-gray-600 border border-gray-200 hover:border-pink-200"
+                }`}
+              >
+                <Icon size={16} />
+                <span className="text-sm font-medium">{option.label}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Orders List */}
         {orders.length > 0 ? (
           <div className="space-y-4">
-            {orders.map((order) => (
-              <div
-                key={order._id}
-                className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
-              >
-                {/* Order Header */}
-                <div className="px-6 py-5 border-b border-gray-100">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-8 flex-1">
-                      {/* Order ID */}
+            {orders.map((order) => {
+              const isExpanded = expandedOrders.has(order._id);
+              return (
+                <div
+                  key={order._id}
+                  className="bg-white rounded-lg border border-gray-200 overflow-hidden"
+                >
+                  {/* Order Header */}
+                  <div className="p-4 bg-gray-50 border-b border-gray-200">
+                    <div className="flex justify-between items-start">
                       <div>
-                        <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-                          Mã đơn hàng
+                        <p className="text-sm text-gray-600">
+                          Mã đơn:{" "}
+                          <span className="font-semibold text-gray-800">
+                            #{order._id.slice(-8).toUpperCase()}
+                          </span>
                         </p>
-                        <p className="text-sm font-mono font-semibold text-gray-900">
-                          {order._id.slice(-8).toUpperCase()}
+                        <p className="text-xs text-gray-500 mt-1">
+                          {new Date(order.createdAt).toLocaleString("vi-VN")}
                         </p>
                       </div>
-
-                      {/* Date */}
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-                          Ngày đặt
-                        </p>
-                        <p className="text-sm font-medium text-gray-700">
-                          {formatDate(order.createdAt)}
-                        </p>
-                      </div>
-
-                      {/* Total */}
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-                          Tổng tiền
-                        </p>
-                        <p className="text-sm font-medium text-gray-700">
-                          {formatVND(order.totalAmount)}
-                        </p>
-                      </div>
-
-                      {/* Payment Method */}
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-                          Thanh toán
-                        </p>
-                        <p className="text-sm font-medium text-gray-700">
-                          {order.paymentMethod === "cod"
-                            ? "COD"
-                            : order.paymentMethod === "momo"
-                              ? "MoMo"
-                              : "VNPay"}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Status Badge */}
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`px-4 py-2 rounded-full ${getOrderStatusColor(order.orderStatus)}`}
-                      >
-                        <span className="text-sm font-medium">
+                      <div className="text-right">
+                        <span
+                          className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getOrderStatusColor(order.orderStatus)}`}
+                        >
                           {getOrderStatusLabel(order.orderStatus)}
                         </span>
                       </div>
-
-                      {/* Expand Button */}
-                      <button
-                        onClick={() => toggleExpand(order._id)}
-                        className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                      >
-                        {expandedOrders[order._id] ? (
-                          <ChevronUp className="w-5 h-5 text-gray-600" />
-                        ) : (
-                          <ChevronDown className="w-5 h-5 text-gray-600" />
-                        )}
-                      </button>
                     </div>
                   </div>
-                </div>
 
-                {/* Order Details (Expandable) */}
-                {expandedOrders[order._id] && (
-                  <div className="bg-white">
-                    {/* Order Items */}
-                    <div className="px-6 py-5 border-b border-gray-100">
-                      <h3 className="text-sm font-semibold text-gray-900 mb-4">
-                        Sản phẩm ({order.cartItems?.length || 0})
-                      </h3>
-
-                      <div className="space-y-4">
-                        {order.cartItems?.map((item, idx) => (
-                          <div key={idx} className="flex items-center gap-4">
+                  {/* Order Items Preview */}
+                  <div className="p-4">
+                    <div className="space-y-3">
+                      {order.cartItems
+                        .slice(0, isExpanded ? undefined : 2)
+                        .map((item, idx) => (
+                          <div key={idx} className="flex gap-3">
                             <div className="w-16 h-16 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
                               {item.imageUrl || item.product?.imageUrl ? (
                                 <img
@@ -232,68 +193,105 @@ export default function OrderTracking() {
                                 <Package className="w-full h-full p-4 text-gray-400" />
                               )}
                             </div>
-
-                            <div className="flex-1">
-                              <h4 className="text-sm font-medium text-gray-900 mb-1">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-sm font-medium text-gray-800 truncate">
                                 {item.name}
                               </h4>
-                              <div className="text-sm text-gray-600">
-                                Số lượng:{" "}
-                                <span className="font-medium">
-                                  {item.quantity}
-                                </span>
-                                {" • "}
-                                Đơn giá:{" "}
-                                <span className="font-medium">
-                                  {formatVND(item.price)}
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="text-right">
-                              <p className="text-sm font-semibold text-gray-900">
-                                {formatVND(item.price * item.quantity)}
+                              <p className="text-xs text-gray-500 mt-1">
+                                x{item.quantity} • {formatVND(item.price)}
                               </p>
+                            </div>
+                            <div className="text-sm font-semibold text-gray-800">
+                              {formatVND(item.price * item.quantity)}
                             </div>
                           </div>
                         ))}
+
+                      {!isExpanded && order.cartItems.length > 2 && (
+                        <p className="text-xs text-gray-500 text-center">
+                          +{order.cartItems.length - 2} sản phẩm khác
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Expand Button */}
+                    <button
+                      onClick={() => toggleExpand(order._id)}
+                      className="w-full mt-3 py-2 text-sm text-pink-600 hover:bg-pink-50 rounded-lg transition flex items-center justify-center gap-2"
+                    >
+                      {isExpanded ? (
+                        <>
+                          Ẩn chi tiết <ChevronUp size={16} />
+                        </>
+                      ) : (
+                        <>
+                          Xem chi tiết <ChevronDown size={16} />
+                        </>
+                      )}
+                    </button>
+
+                    {/* Shipping Information */}
+                    {isExpanded && (
+                      <div className="mt-4 pt-4 border-t border-gray-200 bg-blue-50 rounded-lg p-4">
+                        <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                          Thông tin giao hàng
+                        </h4>
+                        <div className="space-y-2 text-sm">
+                          <p className="text-gray-700">
+                            <span className="font-medium">Người nhận:</span>{" "}
+                            {user?.name || user?.fullname || "N/A"}
+                          </p>
+                          <p className="text-gray-700">
+                            <span className="font-medium">Số điện thoại:</span>{" "}
+                            {order.phone || user?.phone || "N/A"}
+                          </p>
+                          <p className="text-gray-700">
+                            <span className="font-medium">Địa chỉ:</span>{" "}
+                            {order.shippingAddress || user?.address || "N/A"}
+                          </p>
+                          {order.note && (
+                            <p className="text-gray-700">
+                              <span className="font-medium">Ghi chú:</span>{" "}
+                              {order.note}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Order Summary */}
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <div className="flex justify-between text-sm mb-2">
+                        <span className="text-gray-600">Phương thức:</span>
+                        <span className="text-gray-800">
+                          {getPaymentMethodLabel(order.paymentMethod)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">
+                          Tổng cộng:
+                        </span>
+                        <span className="text-lg font-bold text-pink-600">
+                          {formatVND(order.totalAmount)}
+                        </span>
                       </div>
                     </div>
 
-                    {/* Shipping Info */}
-                    <div className="px-6 py-5 bg-blue-50">
-                      <h4 className="text-sm font-semibold text-gray-900 mb-3">
-                        Thông tin giao hàng
-                      </h4>
-                      <div className="space-y-2 text-sm">
-                        <p className="text-gray-700">
-                          <span className="font-medium">Người nhận:</span>{" "}
-                          {user?.name || "N/A"}
-                        </p>
-                        <p className="text-gray-700">
-                          <span className="font-medium">Số điện thoại:</span>{" "}
-                          {order.phone || "N/A"}
-                        </p>
-                        <p className="text-gray-700">
-                          <span className="font-medium">Email:</span>{" "}
-                          {user?.email || "N/A"}
-                        </p>
-                        <p className="text-gray-700">
-                          <span className="font-medium">Địa chỉ:</span>{" "}
-                          {order.shippingAddress || "N/A"}
-                        </p>
-                        {order.note && (
-                          <p className="text-gray-700">
-                            <span className="font-medium">Ghi chú:</span>{" "}
-                            {order.note}
-                          </p>
-                        )}
+                    {/* Actions */}
+                    {order.orderStatus === "processing" && (
+                      <div className="mt-4">
+                        <button
+                          onClick={() => handleCancelOrder(order._id)}
+                          className="w-full py-2 border border-red-300 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition"
+                        >
+                          Hủy đơn
+                        </button>
                       </div>
-                    </div>
+                    )}
                   </div>
-                )}
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
         ) : (
           /* Empty State */

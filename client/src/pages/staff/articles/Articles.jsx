@@ -66,6 +66,7 @@ export default function StaffArticles() {
   // Filter articles when search changes
   useEffect(() => {
     filterArticles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [articles, search]);
 
   // Reset to first page when search changes
@@ -148,7 +149,7 @@ export default function StaffArticles() {
 
   const handleSaveArticle = async (articleData) => {
     try {
-      const response = await axiosInstance.post("/api/blogs", articleData);
+      await axiosInstance.post("/api/blogs", articleData);
       toast.success("Bài viết đã được tạo thành công!");
 
       // Refresh articles list
@@ -162,10 +163,7 @@ export default function StaffArticles() {
 
   const handleUpdateArticle = async (articleId, articleData) => {
     try {
-      const response = await axiosInstance.put(
-        `/api/blogs/${articleId}`,
-        articleData,
-      );
+      await axiosInstance.put(`/api/blogs/${articleId}`, articleData);
       toast.success("Bài viết đã được cập nhật thành công!");
 
       // Refresh articles list
@@ -303,9 +301,6 @@ export default function StaffArticles() {
                         <Skeleton className="h-4 w-32" />
                       </TableHead>
                       <TableHead>
-                        <Skeleton className="h-4 w-24" />
-                      </TableHead>
-                      <TableHead>
                         <Skeleton className="h-4 w-20" />
                       </TableHead>
                       <TableHead>
@@ -335,9 +330,6 @@ export default function StaffArticles() {
                                 <Skeleton className="h-3 w-20" />
                               </div>
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            <Skeleton className="h-6 w-24" />
                           </TableCell>
                           <TableCell>
                             <Skeleton className="h-4 w-20" />
@@ -418,7 +410,6 @@ export default function StaffArticles() {
                         </TableHead>
                         <TableHead className="bg-white">Mã bài viết</TableHead>
                         <TableHead className="bg-white">Tiêu đề</TableHead>
-                        <TableHead className="bg-white">Danh mục</TableHead>
                         <TableHead className="bg-white">Tác giả</TableHead>
                         <TableHead className="bg-white">Trạng thái</TableHead>
                         <TableHead className="text-right bg-white"></TableHead>
@@ -428,7 +419,7 @@ export default function StaffArticles() {
                       {paginatedArticles.length === 0 ? (
                         <TableRow>
                           <TableCell
-                            colSpan={7}
+                            colSpan={6}
                             className="text-center text-muted-foreground py-12"
                           >
                             {articles.length === 0
@@ -476,11 +467,6 @@ export default function StaffArticles() {
                                   </p>
                                 </div>
                               </div>
-                            </TableCell>
-                            <TableCell>
-                              <code className="text-xs font-mono bg-muted px-2 py-1 rounded">
-                                {article.category?.name || "N/A"}
-                              </code>
                             </TableCell>
                             <TableCell>
                               <p className="text-sm">{article.author}</p>

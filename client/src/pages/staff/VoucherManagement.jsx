@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import axiosInstance from "@/lib/axios";
+import { toast } from "sonner";
 import {
   Plus,
   Tag,
@@ -110,6 +111,7 @@ export default function VoucherManagement() {
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedVoucher, setSelectedVoucher] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Create form
   const [form, setForm] = useState(defaultForm);
@@ -303,13 +305,17 @@ export default function VoucherManagement() {
   };
 
   const handleConfirmDelete = async () => {
+    setIsDeleting(true);
     try {
       await axiosInstance.delete(`/api/voucher/${selectedVoucher.id}`);
       await fetchVouchers();
+      toast.success("Xóa voucher thành công!");
       setDeleteDialogOpen(false);
       setSelectedVoucher(null);
     } catch (err) {
-      alert(err.response?.data?.message || "Lỗi khi xóa voucher");
+      toast.error(err.response?.data?.message || "Lỗi khi xóa voucher");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -873,12 +879,21 @@ export default function VoucherManagement() {
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
+              disabled={isDeleting}
             >
               Hủy
             </Button>
-            <Button variant="destructive" onClick={handleConfirmDelete}>
-              <Trash2 className="mr-2 h-4 w-4" />
-              Xóa
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="mr-2 h-4 w-4" />
+              )}
+              {isDeleting ? "Đang xóa..." : "Xóa"}
             </Button>
           </DialogFooter>
         </DialogContent>

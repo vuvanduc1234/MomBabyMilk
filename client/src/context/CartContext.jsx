@@ -26,21 +26,27 @@ export const CartProvider = ({ children }) => {
   // Thêm sản phẩm vào giỏ (bao gồm cả pre-order)
   const addToCart = (product, preOrderOptions = null) => {
     setCartItems((prev) => {
-      const existingItem = prev.find((item) => item.id === product.id);
+      // Chuẩn hóa ID: server trả về _id, frontend dùng id
+      const productId = product.id || product._id;
+      const existingItem = prev.find((item) => item.id === productId);
 
       if (existingItem) {
         // Nếu đã có, tăng số lượng
         const quantityToAdd = preOrderOptions?.quantity || 1;
         return prev.map((item) =>
-          item.id === product.id
+          item.id === productId
             ? { ...item, quantity: item.quantity + quantityToAdd }
             : item,
         );
       } else {
         // Nếu chưa có, thêm mới
+        // Store available stock separately to avoid confusion with cart quantity
+        const availableStock = product.quantity || product.stock || 999;
         const newItem = {
           ...product,
-          quantity: preOrderOptions?.quantity || 1,
+          id: productId, // Chuẩn hóa ID
+          availableStock: availableStock, // Store product stock
+          quantity: preOrderOptions?.quantity || 1, // Cart quantity
           // Thông tin pre-order (nếu có)
           ...(preOrderOptions && {
             isPreOrder: true,
@@ -56,12 +62,18 @@ export const CartProvider = ({ children }) => {
   };
 
   // Cập nhật số lượng
-  const updateQuantity = (id, quantity) => {
-    if (quantity < 1) return;
+  const updateQuantity = (id, newQuantity) => {
+    if (newQuantity < 1) return;
     setCartItems((prev) =>
       prev.map((item) =>
         item.id === id
-          ? { ...item, quantity: Math.min(quantity, item.stock || 999) }
+          ? {
+              ...item,
+              quantity: Math.min(
+                newQuantity,
+                item.availableStock || 999, // Limit by available stock
+              ),
+            }
           : item,
       ),
     );
