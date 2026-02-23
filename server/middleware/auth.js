@@ -22,4 +22,14 @@ const checkRole = (roleDuocPhep) => {
   };
 };
 
-module.exports = { authenticateToken, checkRole };
+// Middleware kiểm tra admin
+const requireAdmin = (req, res, next) => {
+  const userRole = req.user?.role;
+  if (userRole === 'Admin') {
+    next();
+  } else {
+    res.status(403).json({ message: "Chặn lại! Bạn không đủ quyền." });
+  }
+};
+
+module.exports = { authenticateToken, checkRole, requireAdmin };

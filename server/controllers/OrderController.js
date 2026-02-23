@@ -1,5 +1,9 @@
 const Order = require("../models/OrderModel");
 const Product = require("../models/ProductModel");
+const {
+  confirmPendingPoints,
+  cancelPendingPoints,
+} = require("../services/pointService");
 
 const getMyOrders = async (req, res) => {
   try {
@@ -202,6 +206,29 @@ const updateOrderStatus = async (req, res) => {
     await session.commitTransaction();
     session.endSession();
 
+    // Xử lý điểm sau khi commit transaction
+    const userId = order.customer._id || order.customer;
+    
+    // Xác nhận điểm khi order delivered
+    if (orderStatus === "delivered") {
+      try {
+        await confirmPendingPoints(userId, order._id);
+        console.log("Points confirmed for order:", order._id);
+      } catch (pointError) {
+        console.error("Error confirming points:", pointError);
+      }
+    }
+
+    // Hủy pending points khi order cancelled
+    if (orderStatus === "cancelled") {
+      try {
+        await cancelPendingPoints(userId, order._id);
+        console.log("Pending points cancelled for order:", order._id);
+      } catch (pointError) {
+        console.error("Error cancelling points:", pointError);
+      }
+    }
+
     res.status(200).json({
       message: "Cập nhật trạng thái đơn hàng thành công",
       order,
@@ -300,6 +327,14 @@ const cancelOrder = async (req, res) => {
 
     await session.commitTransaction();
     session.endSession();
+
+    // Hủy pending points
+    try {
+      await cancelPendingPoints(userId, order._id);
+      console.log("Pending points cancelled for order:", order._id);
+    } catch (pointError) {
+      console.error("Error cancelling points:", pointError);
+    }
 
     res.status(200).json({
       message: "Hủy đơn hàng thành công",
