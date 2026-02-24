@@ -1,6 +1,7 @@
 const VoucherModel = require("../models/VoucherModel");
 const UserModel = require("../models/UserModel");
 const OrderModel = require("../models/OrderModel");
+const mongoose = require("mongoose");
 
 // Hàm tạo mã ngẫu nhiên
 const generateRandomCode = (length) => {
@@ -156,17 +157,13 @@ const assignVoucherToAll = async (req, res) => {
       await user.save();
     }
 
-    res
-      .status(200)
-      .json({
-        message: `Đã gửi ${qtyToAdd} voucher thành công cho tất cả người dùng`,
-      });
+    res.status(200).json({
+      message: `Đã gửi ${qtyToAdd} voucher thành công cho tất cả người dùng`,
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
-
-
 
 // 6. KIỂM TRA/ÁP DỤNG VOUCHER (Validate)
 const applyVoucher = async (req, res) => {
@@ -210,11 +207,9 @@ const applyVoucher = async (req, res) => {
     );
 
     if (!userVoucher || userVoucher.quantity <= 0) {
-      return res
-        .status(400)
-        .json({
-          message: "Bạn không sở hữu voucher này hoặc đã hết lượt sử dụng",
-        });
+      return res.status(400).json({
+        message: "Bạn không sở hữu voucher này hoặc đã hết lượt sử dụng",
+      });
     }
 
     const discountAmount = (orderTotal * voucher.discountPercentage) / 100;
@@ -274,6 +269,64 @@ const deleteVoucher = async (req, res) => {
   }
 };
 
+// 7. LẤY TẤT CẢ VOUCHER
+const getAllVouchers = async (req, res) => {
+  try {
+    const vouchers = await VoucherModel.find().sort({ createdAt: -1 });
+    res.status(200).json({ message: "Danh sách voucher", data: vouchers });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// 8. CẬP NHẬT VOUCHER
+const updateVoucher = async (req, res) => {
+  try {
+    if (
+      !mongoose.Types.ObjectId.isValid(req.params.id) ||
+      req.params.id.length !== 24
+    ) {
+      return res.status(400).json({ message: "ID không hợp lệ" });
+    }
+
+    const updatedVoucher = await VoucherModel.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true },
+    );
+    if (!updatedVoucher) {
+      return res.status(404).json({ message: "Voucher không tồn tại" });
+    }
+    res
+      .status(200)
+      .json({ message: "Cập nhật voucher thành công", data: updatedVoucher });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+// 9. LẤY VOUCHER THEO ID HOẶC CODE
+const getVoucherByIdOrCode = async (req, res) => {
+  try {
+    const { idOrCode } = req.params;
+    let voucher;
+
+    if (mongoose.Types.ObjectId.isValid(idOrCode) && idOrCode.length === 24) {
+      voucher = await VoucherModel.findById(idOrCode);
+    } else {
+      // Search by code
+      voucher = await VoucherModel.findOne({ code: idOrCode.toUpperCase() });
+    }
+
+    if (!voucher) {
+      return res.status(404).json({ message: "Voucher không tồn tại" });
+    }
+    res.status(200).json({ message: "Chi tiết voucher", data: voucher });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 module.exports = {
   createManualVoucher,
   createRandomVoucher,
@@ -281,4 +334,7 @@ module.exports = {
   assignVoucherToAll,
   applyVoucher,
   deleteVoucher,
+  getAllVouchers,
+  updateVoucher,
+  getVoucherByIdOrCode,
 };

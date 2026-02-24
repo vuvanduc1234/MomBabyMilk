@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const { authenticateToken } = require("../middleware/auth");
-const VoucherModel = require("../models/VoucherModel");
 const {
   createManualVoucher,
   createRandomVoucher,
@@ -9,6 +8,9 @@ const {
   assignVoucherToAll,
   applyVoucher,
   deleteVoucher,
+  getAllVouchers,
+  updateVoucher,
+  getVoucherByIdOrCode,
 } = require("../controllers/VoucherController");
 
 /**
@@ -31,14 +33,7 @@ const {
  *       500:
  *         description: Server error
  */
-router.get("/", authenticateToken, async (req, res) => {
-  try {
-    const vouchers = await VoucherModel.find().sort({createdAt: -1});
-    res.status(200).json({ message: "Danh sách voucher", data: vouchers });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+router.get("/", authenticateToken, getAllVouchers);
 
 /**
  * @swagger
@@ -316,31 +311,7 @@ router.post("/assign-to-all", authenticateToken, assignVoucherToAll);
  *       500:
  *         description: Server error
  */
-router.put("/:id", authenticateToken, async (req, res) => {
-  try {
-    const mongoose = require("mongoose");
-    if (
-      !mongoose.Types.ObjectId.isValid(req.params.id) ||
-      req.params.id.length !== 24
-    ) {
-      return res.status(400).json({ message: "ID không hợp lệ" });
-    }
-
-    const updatedVoucher = await VoucherModel.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true },
-    );
-    if (!updatedVoucher) {
-      return res.status(404).json({ message: "Voucher không tồn tại" });
-    }
-    res
-      .status(200)
-      .json({ message: "Cập nhật voucher thành công", data: updatedVoucher });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
+router.put("/:id", authenticateToken, updateVoucher);
 
 /**
  * @swagger
@@ -392,27 +363,6 @@ router.delete("/:id", authenticateToken, deleteVoucher);
  *       500:
  *         description: Server error
  */
-router.get("/:idOrCode", authenticateToken, async (req, res) => {
-  try {
-    const { idOrCode } = req.params;
-    let voucher;
-
-    // Check if it's a valid MongoDB ObjectId (24 hex characters)
-    const mongoose = require("mongoose");
-    if (mongoose.Types.ObjectId.isValid(idOrCode) && idOrCode.length === 24) {
-      voucher = await VoucherModel.findById(idOrCode);
-    } else {
-      // Search by code
-      voucher = await VoucherModel.findOne({ code: idOrCode.toUpperCase() });
-    }
-
-    if (!voucher) {
-      return res.status(404).json({ message: "Voucher không tồn tại" });
-    }
-    res.status(200).json({ message: "Chi tiết voucher", data: voucher });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+router.get("/:idOrCode", authenticateToken, getVoucherByIdOrCode);
 
 module.exports = router;
