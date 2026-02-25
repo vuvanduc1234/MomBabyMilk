@@ -222,7 +222,33 @@ export default function StaffOrders() {
     };
   }, [orders]);
 
+  // Helper: Check if all items are ready to ship
+  const checkAllItemsReady = (order) => {
+    if (!order.cartItems || order.cartItems.length === 0) return true;
+    return order.cartItems.every((item) => {
+      // Item có thể ship nếu:
+      // 1. Có sẵn (available)
+      // 2. Pre-order đã có hàng (preorder_ready)
+      // 3. Đã ship rồi (shipped)
+      return ["available", "preorder_ready", "shipped"].includes(
+        item.itemStatus,
+      );
+    });
+  };
+
   const handleUpdateStatus = async (orderId, newStatus) => {
+    // Validation: Nếu chuyển sang shipped hoặc delivered, kiểm tra tất cả items phải ready
+    if (newStatus === "shipped" || newStatus === "delivered") {
+      const order = orders.find((o) => o._id === orderId);
+      if (order && !checkAllItemsReady(order)) {
+        toast.error(
+          "Không thể giao hàng! Vui lòng đảm bảo tất cả sản phẩm đã sẵn sàng (có sẵn hoặc pre-order đã có hàng)",
+          { duration: 5000 },
+        );
+        return;
+      }
+    }
+
     try {
       await updateOrderStatus(orderId, { orderStatus: newStatus });
       toast.success("Đã cập nhật trạng thái đơn hàng");
@@ -598,47 +624,55 @@ export default function StaffOrders() {
                                 {formatVND(order.totalAmount)}
                               </TableCell>
                               <TableCell>
-                                <Select
-                                  value={order.orderStatus}
-                                  onValueChange={(value) =>
-                                    handleUpdateStatus(order._id, value)
-                                  }
-                                >
-                                  <SelectTrigger className="w-40">
-                                    <SelectValue>
-                                      <Badge
-                                        className={getOrderStatusColor(
-                                          order.orderStatus,
-                                        )}
-                                      >
-                                        {getOrderStatusIcon(order.orderStatus)}
-                                        {getOrderStatusLabel(order.orderStatus)}
-                                      </Badge>
-                                    </SelectValue>
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectGroup>
-                                      <SelectItem value="pending_payment">
-                                        Chờ thanh toán
-                                      </SelectItem>
-                                      <SelectItem value="processing">
-                                        Đang xử lý
-                                      </SelectItem>
-                                      <SelectItem value="shipped">
-                                        Đang giao
-                                      </SelectItem>
-                                      <SelectItem value="delivered">
-                                        Đã giao
-                                      </SelectItem>
-                                      <SelectItem value="cancelled">
-                                        Đã hủy
-                                      </SelectItem>
-                                      <SelectItem value="partially_shipped">
-                                        Giao một phần
-                                      </SelectItem>
-                                    </SelectGroup>
-                                  </SelectContent>
-                                </Select>
+                                <div className="space-y-1">
+                                  <Select
+                                    value={order.orderStatus}
+                                    onValueChange={(value) =>
+                                      handleUpdateStatus(order._id, value)
+                                    }
+                                  >
+                                    <SelectTrigger className="w-40">
+                                      <SelectValue>
+                                        <Badge
+                                          className={getOrderStatusColor(
+                                            order.orderStatus,
+                                          )}
+                                        >
+                                          {getOrderStatusIcon(
+                                            order.orderStatus,
+                                          )}
+                                          {getOrderStatusLabel(
+                                            order.orderStatus,
+                                          )}
+                                        </Badge>
+                                      </SelectValue>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectGroup>
+                                        <SelectItem value="pending_payment">
+                                          Chờ thanh toán
+                                        </SelectItem>
+                                        <SelectItem value="processing">
+                                          Đang xử lý
+                                        </SelectItem>
+                                        <SelectItem value="shipped">
+                                          Đang giao
+                                        </SelectItem>
+                                        <SelectItem value="cancelled">
+                                          Đã hủy
+                                        </SelectItem>
+                                      </SelectGroup>
+                                    </SelectContent>
+                                  </Select>
+                                  {/* Hiển thị cảnh báo nếu có pre-order chưa sẵn sàng */}
+                                  {order.hasPreOrderItems &&
+                                    !checkAllItemsReady(order) && (
+                                      <p className="text-xs text-orange-600 flex items-center gap-1">
+                                        <AlertCircle size={10} />
+                                        Có hàng chưa sẵn sàng
+                                      </p>
+                                    )}
+                                </div>
                               </TableCell>
                               <TableCell>
                                 <Badge
