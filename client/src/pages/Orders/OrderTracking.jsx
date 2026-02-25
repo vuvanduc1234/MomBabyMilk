@@ -8,6 +8,8 @@ import {
   Truck,
   CheckCircle,
   XCircle,
+  AlertCircle,
+  PackageCheck,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import {
@@ -17,8 +19,41 @@ import {
   getOrderStatusColor,
   getPaymentMethodLabel,
   cancelOrder,
+  confirmDelivery,
 } from "../../services/orderService";
 import { toast } from "sonner";
+
+// Helper function để lấy thông tin trạng thái item
+const getItemStatusInfo = (item) => {
+  // Kiểm tra item có phải pre-order không
+  if (item.isPreOrder) {
+    // Nếu đã sẵn sàng giao hàng
+    if (item.itemStatus === "preorder_ready" || item.itemStatus === "shipped") {
+      return {
+        label: "Đã có hàng",
+        color: "bg-green-100 text-green-700 border-green-300",
+        icon: PackageCheck,
+        showDate: false,
+      };
+    }
+    // Nếu đang chờ nhập hàng
+    return {
+      label: "Đang chờ nhập hàng",
+      color: "bg-orange-100 text-orange-700 border-orange-300",
+      icon: AlertCircle,
+      showDate: true,
+      expectedDate: item.expectedAvailableDate,
+    };
+  }
+
+  // Sản phẩm có sẵn (không phải pre-order)
+  return {
+    label: "Có sẵn",
+    color: "bg-blue-100 text-blue-700 border-blue-300",
+    icon: PackageCheck,
+    showDate: false,
+  };
+};
 
 export default function OrderTracking() {
   const { user } = useAuth();
@@ -66,6 +101,19 @@ export default function OrderTracking() {
     } catch (error) {
       console.error("Error cancelling order:", error);
       toast.error(error.message || "Không thể hủy đơn hàng");
+    }
+  };
+
+  const handleConfirmDelivery = async (orderId) => {
+    if (!confirm("Xác nhận bạn đã nhận được hàng?")) return;
+
+    try {
+      await confirmDelivery(orderId);
+      toast.success("Cảm ơn bạn! Đơn hàng đã được xác nhận hoàn thành");
+      fetchOrders();
+    } catch (error) {
+      console.error("Error confirming delivery:", error);
+      toast.error(error.message || "Không thể xác nhận đã nhận hàng");
     }
   };
 
@@ -148,12 +196,21 @@ export default function OrderTracking() {
                   <div className="p-4 bg-gray-50 border-b border-gray-200">
                     <div className="flex justify-between items-start">
                       <div>
-                        <p className="text-sm text-gray-600">
-                          Mã đơn:{" "}
-                          <span className="font-semibold text-gray-800">
-                            #{order._id.slice(-8).toUpperCase()}
-                          </span>
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm text-gray-600">
+                            Mã đơn:{" "}
+                            <span className="font-semibold text-gray-800">
+                              #{order._id.slice(-8).toUpperCase()}
+                            </span>
+                          </p>
+                          {/* Badge Pre-Order ở header */}
+                          {order.hasPreOrderItems && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-100 text-orange-700 border border-orange-300 rounded-full text-xs font-medium">
+                              <Clock size={10} />
+                              Pre-Order
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-gray-500 mt-1">
                           {new Date(order.createdAt).toLocaleString("vi-VN")}
                         </p>
@@ -173,39 +230,64 @@ export default function OrderTracking() {
                     <div className="space-y-3">
                       {order.cartItems
                         .slice(0, isExpanded ? undefined : 2)
-                        .map((item, idx) => (
-                          <div key={idx} className="flex gap-3">
-                            <div className="w-16 h-16 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
-                              {item.imageUrl || item.product?.imageUrl ? (
-                                <img
-                                  src={
-                                    Array.isArray(item.imageUrl)
-                                      ? item.imageUrl[0]
-                                      : item.imageUrl ||
-                                        (Array.isArray(item.product?.imageUrl)
-                                          ? item.product.imageUrl[0]
-                                          : item.product?.imageUrl)
-                                  }
-                                  alt={item.name}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <Package className="w-full h-full p-4 text-gray-400" />
-                              )}
+                        .map((item, idx) => {
+                          const statusInfo = getItemStatusInfo(item);
+                          const StatusIcon = statusInfo.icon;
+
+                          return (
+                            <div key={idx} className="flex gap-3">
+                              <div className="w-16 h-16 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
+                                {item.imageUrl || item.product?.imageUrl ? (
+                                  <img
+                                    src={
+                                      Array.isArray(item.imageUrl)
+                                        ? item.imageUrl[0]
+                                        : item.imageUrl ||
+                                          (Array.isArray(item.product?.imageUrl)
+                                            ? item.product.imageUrl[0]
+                                            : item.product?.imageUrl)
+                                    }
+                                    alt={item.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <Package className="w-full h-full p-4 text-gray-400" />
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-sm font-medium text-gray-800 truncate">
+                                  {item.name}
+                                </h4>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  x{item.quantity} • {formatVND(item.price)}
+                                </p>
+                                {/* Trạng thái sản phẩm */}
+                                <div className="mt-2">
+                                  <span
+                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${statusInfo.color}`}
+                                  >
+                                    <StatusIcon size={12} />
+                                    {statusInfo.label}
+                                  </span>
+                                  {/* Hiển thị ngày dự kiến cho pre-order */}
+                                  {statusInfo.showDate &&
+                                    statusInfo.expectedDate && (
+                                      <p className="text-xs text-orange-600 mt-1 flex items-center gap-1">
+                                        <Clock size={11} />
+                                        Dự kiến:{" "}
+                                        {new Date(
+                                          statusInfo.expectedDate,
+                                        ).toLocaleDateString("vi-VN")}
+                                      </p>
+                                    )}
+                                </div>
+                              </div>
+                              <div className="text-sm font-semibold text-gray-800">
+                                {formatVND(item.price * item.quantity)}
+                              </div>
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <h4 className="text-sm font-medium text-gray-800 truncate">
-                                {item.name}
-                              </h4>
-                              <p className="text-xs text-gray-500 mt-1">
-                                x{item.quantity} • {formatVND(item.price)}
-                              </p>
-                            </div>
-                            <div className="text-sm font-semibold text-gray-800">
-                              {formatVND(item.price * item.quantity)}
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
 
                       {!isExpanded && order.cartItems.length > 2 && (
                         <p className="text-xs text-gray-500 text-center">
@@ -232,31 +314,56 @@ export default function OrderTracking() {
 
                     {/* Shipping Information */}
                     {isExpanded && (
-                      <div className="mt-4 pt-4 border-t border-gray-200 bg-blue-50 rounded-lg p-4">
-                        <h4 className="text-sm font-semibold text-gray-900 mb-3">
-                          Thông tin giao hàng
-                        </h4>
-                        <div className="space-y-2 text-sm">
-                          <p className="text-gray-700">
-                            <span className="font-medium">Người nhận:</span>{" "}
-                            {user?.name || user?.fullname || "N/A"}
-                          </p>
-                          <p className="text-gray-700">
-                            <span className="font-medium">Số điện thoại:</span>{" "}
-                            {order.phone || user?.phone || "N/A"}
-                          </p>
-                          <p className="text-gray-700">
-                            <span className="font-medium">Địa chỉ:</span>{" "}
-                            {order.shippingAddress || user?.address || "N/A"}
-                          </p>
-                          {order.note && (
+                      <>
+                        {/* Thông báo Pre-order nếu có */}
+                        {order.hasPreOrderItems && (
+                          <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                            <div className="flex items-start gap-3">
+                              <AlertCircle
+                                className="text-orange-600 mt-0.5 flex-shrink-0"
+                                size={18}
+                              />
+                              <div className="flex-1">
+                                <h4 className="text-sm font-semibold text-orange-900 mb-1">
+                                  Đơn hàng có sản phẩm Pre-Order
+                                </h4>
+                                <p className="text-xs text-orange-700">
+                                  {order.preOrderNote ||
+                                    "Đơn hàng này có chứa sản phẩm đặt trước. Chúng tôi sẽ giao hàng từng phần: sản phẩm có sẵn sẽ được giao trước, sản phẩm pre-order sẽ giao khi hàng về."}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="mt-4 pt-4 border-t border-gray-200 bg-blue-50 rounded-lg p-4">
+                          <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                            Thông tin giao hàng
+                          </h4>
+                          <div className="space-y-2 text-sm">
                             <p className="text-gray-700">
-                              <span className="font-medium">Ghi chú:</span>{" "}
-                              {order.note}
+                              <span className="font-medium">Người nhận:</span>{" "}
+                              {user?.name || user?.fullname || "N/A"}
                             </p>
-                          )}
+                            <p className="text-gray-700">
+                              <span className="font-medium">
+                                Số điện thoại:
+                              </span>{" "}
+                              {order.phone || user?.phone || "N/A"}
+                            </p>
+                            <p className="text-gray-700">
+                              <span className="font-medium">Địa chỉ:</span>{" "}
+                              {order.shippingAddress || user?.address || "N/A"}
+                            </p>
+                            {order.note && (
+                              <p className="text-gray-700">
+                                <span className="font-medium">Ghi chú:</span>{" "}
+                                {order.note}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                      </div>
+                      </>
                     )}
 
                     {/* Order Summary */}
@@ -278,16 +385,28 @@ export default function OrderTracking() {
                     </div>
 
                     {/* Actions */}
-                    {order.orderStatus === "processing" && (
-                      <div className="mt-4">
+                    <div className="mt-4 space-y-2">
+                      {/* Nút hủy đơn - chỉ hiện khi đơn đang xử lý */}
+                      {order.orderStatus === "processing" && (
                         <button
                           onClick={() => handleCancelOrder(order._id)}
                           className="w-full py-2 border border-red-300 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition"
                         >
                           Hủy đơn
                         </button>
-                      </div>
-                    )}
+                      )}
+
+                      {/* Nút xác nhận đã nhận hàng - chỉ hiện khi đơn đang giao */}
+                      {order.orderStatus === "shipped" && (
+                        <button
+                          onClick={() => handleConfirmDelivery(order._id)}
+                          className="w-full py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition flex items-center justify-center gap-2"
+                        >
+                          <CheckCircle size={16} />
+                          Đã nhận hàng
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
