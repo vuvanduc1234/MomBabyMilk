@@ -12,7 +12,7 @@ const mapProductData = (product) => {
     description: product.description || "",
     price: product.price,
     sale_price: product.sale_price || null,
-    quantity: product.quantity || product.stock || 0, // Standardize to 'quantity'
+    quantity: product.quantity || 0,
     image_url: Array.isArray(product.imageUrl)
       ? product.imageUrl[0]
       : product.image_url || product.imageUrl || null,
@@ -20,10 +20,11 @@ const mapProductData = (product) => {
     slug: product.slug || product._id || product.id,
     brand: product.brand || null,
     category: product.category || null,
-    releaseDate: product.releaseDate || product.release_date || null,
+    expectedRestockDate: product.expectedRestockDate || null,
+    allowPreOrder: product.allowPreOrder,
     is_featured: product.is_featured || product.isFeatured || false,
     is_active: product.is_active !== false,
-    reviews: product.reviews || 0,
+    reviews: product.comments?.length || 0,
     appropriateAge: product.appropriateAge,
     weight: product.weight,
   };
@@ -165,19 +166,19 @@ export function FilterBar({ onFilterChange, onProductsUpdate }) {
   }, [onProductsUpdate]);
 
   // Fetch products by category with data mapping
-  const fetchProductsByCategory = useCallback(async () => {
+  const fetchProductsByCategory = useCallback(async (categoryId) => {
     try {
       setIsLoadingProducts(true);
 
-      const token = localStorage.getItem("token");
-
-      const response = await fetch(`${API_BASE}/api/product`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      const response = await fetch(
+        `${API_BASE}/api/product/category/${categoryId}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
         },
-      });
+      );
 
       if (!response.ok) {
         throw new Error("Failed to fetch products by category");
@@ -245,8 +246,8 @@ export function FilterBar({ onFilterChange, onProductsUpdate }) {
         } else {
           // Fetch products by category
           if (categories.length > 0) {
-            const categoryPromises = categories.map(() =>
-              fetchProductsByCategory(),
+            const categoryPromises = categories.map((categoryId) =>
+              fetchProductsByCategory(categoryId),
             );
             const categoryResults = await Promise.all(categoryPromises);
             const categoryProducts = categoryResults.flat();
@@ -291,9 +292,11 @@ export function FilterBar({ onFilterChange, onProductsUpdate }) {
         // Apply product type filters
         if (productTypes.length > 0) {
           allProducts = allProducts.filter((product) => {
-            const isOutOfStock = product.quantity === 0 && !product.releaseDate;
+            const isOutOfStock =
+              product.quantity === 0 && !product.expectedRestockDate;
             const isComingSoon =
-              product.releaseDate && new Date(product.releaseDate) > new Date();
+              product.expectedRestockDate &&
+              new Date(product.expectedRestockDate) > new Date();
             const isInStock = product.quantity > 0 && !isComingSoon;
 
             return productTypes.some((typeId) => {

@@ -18,8 +18,10 @@ import {
   getOrderStatusLabel,
   getOrderStatusColor,
   getPaymentMethodLabel,
+  getPaymentStatusLabel,
   cancelOrder,
   confirmDelivery,
+  retryPayment,
 } from "../../services/orderService";
 import { toast } from "sonner";
 
@@ -114,6 +116,19 @@ export default function OrderTracking() {
     } catch (error) {
       console.error("Error confirming delivery:", error);
       toast.error(error.message || "Không thể xác nhận đã nhận hàng");
+    }
+  };
+
+  const handleRetryPayment = async (orderId) => {
+    try {
+      const result = await retryPayment(orderId);
+      if (result.paymentUrl) {
+        toast.success("Đang chuyển đến trang thanh toán...");
+        window.location.href = result.paymentUrl;
+      }
+    } catch (error) {
+      console.error("Error retrying payment:", error);
+      toast.error(error.message || "Không thể thử lại thanh toán");
     }
   };
 
@@ -336,6 +351,28 @@ export default function OrderTracking() {
                           </div>
                         )}
 
+                        {/* Thông báo thanh toán thất bại */}
+                        {(order.orderStatus === "pending_payment" ||
+                          order.paymentStatus === "failed") && (
+                          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                            <div className="flex items-start gap-3">
+                              <XCircle
+                                className="text-red-600 mt-0.5 flex-shrink-0"
+                                size={18}
+                              />
+                              <div className="flex-1">
+                                <h4 className="text-sm font-semibold text-red-900 mb-1">
+                                  Thanh toán chưa thành công
+                                </h4>
+                                <p className="text-xs text-red-700">
+                                  Đơn hàng của bạn đang chờ thanh toán. Vui lòng
+                                  thử lại hoặc hủy đơn nếu không muốn tiếp tục.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
                         <div className="mt-4 pt-4 border-t border-gray-200 bg-blue-50 rounded-lg p-4">
                           <h4 className="text-sm font-semibold text-gray-900 mb-3">
                             Thông tin giao hàng
@@ -374,6 +411,22 @@ export default function OrderTracking() {
                           {getPaymentMethodLabel(order.paymentMethod)}
                         </span>
                       </div>
+                      <div className="flex justify-between text-sm mb-2">
+                        <span className="text-gray-600">
+                          Trạng thái thanh toán:
+                        </span>
+                        <span
+                          className={`font-medium ${
+                            order.paymentStatus === "paid"
+                              ? "text-green-600"
+                              : order.paymentStatus === "failed"
+                                ? "text-red-600"
+                                : "text-yellow-600"
+                          }`}
+                        >
+                          {getPaymentStatusLabel(order.paymentStatus)}
+                        </span>
+                      </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-gray-600">
                           Tổng cộng:
@@ -386,15 +439,30 @@ export default function OrderTracking() {
 
                     {/* Actions */}
                     <div className="mt-4 space-y-2">
-                      {/* Nút hủy đơn - chỉ hiện khi đơn đang xử lý */}
-                      {order.orderStatus === "processing" && (
-                        <button
-                          onClick={() => handleCancelOrder(order._id)}
-                          className="w-full py-2 border border-red-300 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition"
-                        >
-                          Hủy đơn
-                        </button>
-                      )}
+                      {/* Nút thử lại thanh toán - hiện khi thanh toán thất bại hoặc pending */}
+                      {(order.orderStatus === "pending_payment" ||
+                        order.paymentStatus === "failed") &&
+                        order.paymentMethod !== "cod" && (
+                          <button
+                            onClick={() => handleRetryPayment(order._id)}
+                            className="w-full py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition flex items-center justify-center gap-2"
+                          >
+                            <AlertCircle size={16} />
+                            Thử lại thanh toán
+                          </button>
+                        )}
+
+                      {/* Nút hủy đơn - hiện khi đơn chưa ở trạng thái Đang Giao hoặc Đã Giao */}
+                      {order.orderStatus !== "shipped" &&
+                        order.orderStatus !== "delivered" &&
+                        order.orderStatus !== "cancelled" && (
+                          <button
+                            onClick={() => handleCancelOrder(order._id)}
+                            className="w-full py-2 border border-red-300 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition"
+                          >
+                            Hủy đơn
+                          </button>
+                        )}
 
                       {/* Nút xác nhận đã nhận hàng - chỉ hiện khi đơn đang giao */}
                       {order.orderStatus === "shipped" && (

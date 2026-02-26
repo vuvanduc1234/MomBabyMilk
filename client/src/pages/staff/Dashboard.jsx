@@ -18,9 +18,9 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { 
-  getDashboardStats, 
-  getLowStockProducts 
+import {
+  getDashboardStats,
+  getLowStockProducts,
 } from "./orders/services/orderService";
 
 // Format price helper
@@ -69,9 +69,9 @@ export default function StaffDashboard() {
         setStats(dashboardStats);
         setLowStockProducts(lowStock);
       } catch (err) {
-        console.error('Failed to fetch dashboard data:', err);
-        setError(err.message || 'Không thể tải dữ liệu dashboard');
-        toast.error('Không thể tải dữ liệu dashboard');
+        console.error("Failed to fetch dashboard data:", err);
+        setError(err.message || "Không thể tải dữ liệu dashboard");
+        toast.error("Không thể tải dữ liệu dashboard");
       } finally {
         setIsLoading(false);
       }
@@ -176,7 +176,10 @@ export default function StaffDashboard() {
             {isLoading ? (
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div
+                    key={i}
+                    className="flex items-center justify-between p-3 border rounded-lg"
+                  >
                     <div className="space-y-2">
                       <Skeleton className="h-4 w-32" />
                       <Skeleton className="h-3 w-24" />
@@ -237,7 +240,10 @@ export default function StaffDashboard() {
             {isLoading ? (
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  <div
+                    key={i}
+                    className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                  >
                     <div className="flex items-center gap-3">
                       <Skeleton className="w-10 h-10 rounded" />
                       <Skeleton className="h-4 w-32" />
@@ -266,9 +272,11 @@ export default function StaffDashboard() {
                       <p className="font-medium line-clamp-1">{product.name}</p>
                     </div>
                     <Badge
-                      variant={product.stock <= 5 ? "destructive" : "secondary"}
+                      variant={
+                        product.quantity <= 5 ? "destructive" : "secondary"
+                      }
                     >
-                      Còn {product.stock}
+                      Còn {product.quantity}
                     </Badge>
                   </div>
                 ))}

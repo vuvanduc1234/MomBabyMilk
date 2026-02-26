@@ -79,6 +79,21 @@ export const confirmDelivery = async (orderId) => {
 };
 
 /**
+ * Thử lại thanh toán cho đơn hàng failed/pending
+ */
+export const retryPayment = async (orderId) => {
+  try {
+    const response = await axiosInstance.post(
+      `/api/orders/${orderId}/retry-payment`,
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error retrying payment:", error);
+    throw error.response?.data || error;
+  }
+};
+
+/**
  * Format giá tiền VND
  */
 export const formatVND = (price) => {
