@@ -8,6 +8,7 @@ const {
   updateOrderStatus,
   cancelOrder,
   confirmDelivery,
+  retryPayment,
   updateItemStatus,
   getPreOrderOrders,
   notifyPreOrderReady,
@@ -112,7 +113,7 @@ router.get(
   "/pre-orders",
   authenticateToken,
   checkRole(["Admin", "Staff"]),
-  getPreOrderOrders
+  getPreOrderOrders,
 );
 
 /**
@@ -184,7 +185,7 @@ router.patch(
   "/:id/status",
   authenticateToken,
   checkRole(["Admin", "Staff"]),
-  updateOrderStatus
+  updateOrderStatus,
 );
 
 /**
@@ -223,6 +224,50 @@ router.patch(
  *         description: Order not found
  */
 router.patch("/:id/cancel", authenticateToken, cancelOrder);
+
+/**
+ * @swagger
+ * /api/orders/{id}/retry-payment:
+ *   post:
+ *     summary: Retry payment for failed/pending order
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Order ID
+ *     responses:
+ *       200:
+ *         description: Payment URL created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 paymentUrl:
+ *                   type: string
+ *                   description: URL to redirect user for payment
+ *                 orderId:
+ *                   type: string
+ *                 amount:
+ *                   type: number
+ *                 paymentMethod:
+ *                   type: string
+ *                   enum: [momo, vnpay]
+ *       400:
+ *         description: Invalid order status or payment method
+ *       403:
+ *         description: Forbidden - Not your order
+ *       404:
+ *         description: Order not found
+ */
+router.post("/:id/retry-payment", authenticateToken, retryPayment);
 
 /**
  * @swagger
@@ -294,7 +339,7 @@ router.patch(
   "/:orderId/items/:itemIndex/status",
   authenticateToken,
   checkRole(["Admin", "Staff"]),
-  updateItemStatus
+  updateItemStatus,
 );
 
 /**
@@ -324,7 +369,7 @@ router.post(
   "/:orderId/notify-preorder-ready",
   authenticateToken,
   checkRole(["Admin", "Staff"]),
-  notifyPreOrderReady
+  notifyPreOrderReady,
 );
 
 module.exports = router;

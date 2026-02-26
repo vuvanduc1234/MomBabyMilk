@@ -280,7 +280,7 @@ export const getLowStockProducts = async (threshold = 10) => {
       .map((product) => ({
         id: product._id,
         name: product.name,
-        stock: product.quantity,
+        quantity: product.quantity,
         image_url: product.imageUrl?.[0] || "/placeholder.jpg",
         slug: product._id,
       }));

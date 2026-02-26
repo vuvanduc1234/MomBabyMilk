@@ -90,10 +90,12 @@ export default function Index() {
           image_url: Array.isArray(product.imageUrl)
             ? product.imageUrl[0]
             : product.imageUrl,
-          stock: product.quantity || 0,
+          quantity: product.quantity || 0,
+          expectedRestockDate: product.expectedRestockDate,
+          allowPreOrder: product.allowPreOrder,
           brand: product.brand,
           is_featured: product.is_featured || false,
-          reviews: product.reviews || 0,
+          reviews: product.comments?.length || 0,
         }));
 
         // Take only first 8 products for featured section

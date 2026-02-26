@@ -16,10 +16,11 @@ export function ProductCard({ product }) {
 
     // Kiểm tra xem có phải sản phẩm đặt trước không
     const isPreOrderProduct =
-      product.stock === 0 ||
-      (product.releaseDate && new Date(product.releaseDate) > new Date());
+      product.quantity === 0 ||
+      (product.expectedRestockDate &&
+        new Date(product.expectedRestockDate) > new Date());
 
-    if (isPreOrderProduct) {
+    if (isPreOrderProduct && product.allowPreOrder !== false) {
       setShowPreOrderModal(true);
     } else {
       // Sản phẩm thường - thêm vào giỏ hàng bình thường
@@ -39,7 +40,7 @@ export function ProductCard({ product }) {
       quantity,
       preOrderType,
       paymentOption,
-      releaseDate: product.releaseDate,
+      releaseDate: product.expectedRestockDate,
     });
 
     const message =
@@ -61,10 +62,12 @@ export function ProductCard({ product }) {
     }).format(price);
   };
 
-  const isOutOfStock = product.stock === 0 && !product.releaseDate;
+  const isOutOfStock = product.quantity === 0 && !product.expectedRestockDate;
   const isComingSoon =
-    product.releaseDate && new Date(product.releaseDate) > new Date();
-  const isPreOrderProduct = isOutOfStock || isComingSoon;
+    product.expectedRestockDate &&
+    new Date(product.expectedRestockDate) > new Date();
+  const isPreOrderProduct =
+    (isOutOfStock || isComingSoon) && product.allowPreOrder !== false;
 
   return (
     <>
@@ -118,19 +121,21 @@ export function ProductCard({ product }) {
           </div>
 
           {/* Release Date Badge - góc trên bên phải */}
-          {product.releaseDate && isComingSoon && (
+          {product.expectedRestockDate && isComingSoon && (
             <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg">
               <div className="flex items-center gap-1.5 text-purple-600">
                 <Clock className="h-3.5 w-3.5" />
                 <span className="text-xs font-bold">
-                  {new Date(product.releaseDate).toLocaleDateString("vi-VN")}
+                  {new Date(product.expectedRestockDate).toLocaleDateString(
+                    "vi-VN",
+                  )}
                 </span>
               </div>
             </div>
           )}
 
           {/* Overlay hết hàng - chỉ hiện khi không phải pre-order */}
-          {product.stock <= 0 && !isPreOrderProduct && (
+          {product.quantity <= 0 && !isPreOrderProduct && (
             <div className="absolute inset-0 bg-white/70 flex items-center justify-center backdrop-blur-sm">
               <span className="bg-gray-800 text-white text-sm font-medium px-4 py-2 rounded-full">
                 Hết hàng

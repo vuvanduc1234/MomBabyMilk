@@ -5,6 +5,7 @@ const {
   cancelPendingPoints,
 } = require("../services/pointService");
 const { createNotification } = require("./NotificationController");
+const { createMomoUrl, createVnpayUrl } = require("./CheckoutController");
 
 const getMyOrders = async (req, res) => {
   try {
@@ -311,15 +312,17 @@ const cancelOrder = async (req, res) => {
         .json({ message: "Không thể hủy đơn hàng đã giao" });
     }
 
+    // User chỉ có thể hủy đơn hàng khi chưa ở trạng thái "Đang Giao" hoặc "Đã Giao"
     if (
       userRole !== "Admin" &&
       userRole !== "Staff" &&
-      order.orderStatus !== "processing"
+      (order.orderStatus === "shipped" || order.orderStatus === "delivered")
     ) {
       await session.abortTransaction();
       session.endSession();
       return res.status(400).json({
-        message: "Chỉ có thể hủy đơn hàng đang xử lý. Vui lòng liên hệ hỗ trợ.",
+        message:
+          "Không thể hủy đơn hàng đang giao hoặc đã giao. Vui lòng liên hệ hỗ trợ.",
       });
     }
 
@@ -587,6 +590,100 @@ const notifyPreOrderReady = async (req, res) => {
   }
 };
 
+/**
+ * Retry payment for failed/pending orders
+ */
+const retryPayment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id;
+
+    // Tìm đơn hàng
+    const order = await Order.findById(id).populate("customer");
+
+    if (!order) {
+      return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
+    }
+
+    // Kiểm tra quyền (chỉ chủ đơn hàng hoặc Admin/Staff)
+    const userRole = req.user?.role;
+    if (
+      userRole !== "Admin" &&
+      userRole !== "Staff" &&
+      order.customer._id.toString() !== userId
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Bạn không có quyền truy cập đơn hàng này" });
+    }
+
+    // Kiểm tra trạng thái đơn hàng (chỉ cho phép retry nếu pending hoặc failed)
+    if (order.paymentStatus !== "pending" && order.paymentStatus !== "failed") {
+      return res.status(400).json({
+        message:
+          "Chỉ có thể thanh toán lại đơn hàng chưa thanh toán hoặc thanh toán thất bại",
+        currentStatus: order.paymentStatus,
+      });
+    }
+
+    // Kiểm tra phương thức thanh toán
+    if (order.paymentMethod === "cod") {
+      return res.status(400).json({
+        message: "Đơn hàng COD không cần thanh toán online",
+      });
+    }
+
+    // Kiểm tra đơn hàng đã bị hủy chưa
+    if (order.orderStatus === "cancelled") {
+      return res.status(400).json({
+        message: "Không thể thanh toán lại đơn hàng đã hủy",
+      });
+    }
+
+    // Tạo payment URL mới
+    let paymentUrl;
+
+    try {
+      if (order.paymentMethod === "momo") {
+        paymentUrl = await createMomoUrl(order);
+      } else if (order.paymentMethod === "vnpay") {
+        paymentUrl = createVnpayUrl(order, req);
+      } else {
+        return res.status(400).json({
+          message: "Phương thức thanh toán không hợp lệ",
+        });
+      }
+
+      // Cập nhật trạng thái về pending nếu đang là failed
+      if (order.paymentStatus === "failed") {
+        order.paymentStatus = "pending";
+        order.orderStatus = "pending_payment";
+        await order.save();
+      }
+
+      res.status(200).json({
+        message: "Tạo link thanh toán mới thành công",
+        paymentUrl,
+        orderId: order._id,
+        amount: order.totalAmount,
+        paymentMethod: order.paymentMethod,
+      });
+    } catch (paymentError) {
+      console.error("Payment URL generation error:", paymentError);
+      return res.status(500).json({
+        message: "Không thể tạo link thanh toán",
+        error: paymentError.message,
+      });
+    }
+  } catch (error) {
+    console.error("Retry payment error:", error);
+    res.status(500).json({
+      message: "Lỗi khi tạo link thanh toán mới",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   getMyOrders,
   getAllOrders,
@@ -594,6 +691,7 @@ module.exports = {
   updateOrderStatus,
   cancelOrder,
   confirmDelivery,
+  retryPayment,
   // Pre-order functions
   updateItemStatus,
   getPreOrderOrders,

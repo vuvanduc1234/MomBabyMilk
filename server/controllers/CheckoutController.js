@@ -582,20 +582,29 @@ const momoNotify = async (req, res) => {
 
       return res.status(200).json({ message: "Payment successful" });
     } else {
-      // Payment failed
+      // Payment failed - Cho phép user thanh toán lại
       order.paymentStatus = "failed";
-      order.orderStatus = "cancelled";
+      order.orderStatus = "pending_payment"; // Giữ đơn để thanh toán lại
       await order.save({ session });
 
-      // ✅ FIX: Refund stock with transaction, only for non-preorder items
-      for (const item of order.cartItems) {
-        if (!item.isPreOrder) {
-          await Product.findByIdAndUpdate(
-            item.product,
-            { $inc: { quantity: item.quantity } },
-            { session },
-          );
-        }
+      // KHÔNG hoàn stock - chỉ hoàn khi user hủy đơn
+
+      await session.commitTransaction();
+      session.endSession();
+
+      // Tạo thông báo cho user
+      try {
+        const userId = order.customer._id || order.customer;
+        await createNotification({
+          userId: userId,
+          type: "payment_failed",
+          title: "Thanh toán thất bại",
+          message: `Thanh toán đơn hàng #${order._id.toString().slice(-6).toUpperCase()} không thành công. Bạn có thể thanh toán lại hoặc hủy đơn hàng.`,
+          orderId: order._id,
+          link: "/track-order",
+        });
+      } catch (notifError) {
+        console.error("Notification error:", notifError);
       }
 
       await session.commitTransaction();
@@ -716,26 +725,30 @@ const vnpayReturn = async (req, res) => {
       );
     }
 
-    // Payment failed
+    // Payment failed - Cho phép user thanh toán lại
     order.paymentStatus = "failed";
-    order.orderStatus = "cancelled";
+    order.orderStatus = "pending_payment"; // Giữ đơn để thanh toán lại
     await order.save({ session });
 
-    // ✅ FIX: Refund stock with transaction, only for non-preorder items
-    for (const item of order.cartItems) {
-      if (!item.isPreOrder) {
-        await Product.findByIdAndUpdate(
-          item.product,
-          { $inc: { quantity: item.quantity } },
-          { session },
-        );
-      }
-    }
+    // KHÔNG hoàn stock - chỉ hoàn khi user hủy đơn
 
     await session.commitTransaction();
     session.endSession();
 
-    // Không cần hoàn voucher vì chưa trừ
+    // Tạo thông báo cho user
+    try {
+      const userId = order.customer._id || order.customer;
+      await createNotification({
+        userId: userId,
+        type: "payment_failed",
+        title: "Thanh toán thất bại",
+        message: `Thanh toán đơn hàng #${order._id.toString().slice(-6).toUpperCase()} không thành công. Bạn có thể thanh toán lại hoặc hủy đơn hàng.`,
+        orderId: order._id,
+        link: "/track-order",
+      });
+    } catch (notifError) {
+      console.error("Notification error:", notifError);
+    }
 
     const errorMessages = {
       "07": "Giao dịch bị nghi ngờ",
@@ -764,4 +777,10 @@ const vnpayReturn = async (req, res) => {
   }
 };
 
-module.exports = { checkout, momoNotify, vnpayReturn };
+module.exports = {
+  checkout,
+  momoNotify,
+  vnpayReturn,
+  createMomoUrl,
+  createVnpayUrl,
+};

@@ -21,9 +21,7 @@ export function PreOrderModal({ product, onClose, onConfirm }) {
     }).format(price);
   };
 
-  const isOutOfStock = product.stock === 0 && !product.releaseDate;
-  const isComingSoon =
-    product.releaseDate && new Date(product.releaseDate) > new Date();
+  const isOutOfStock = product.quantity === 0 && !product.expectedRestockDate;
 
   const handleConfirm = () => {
     if (!selectedOption && isOutOfStock) return;
@@ -87,13 +85,13 @@ export function PreOrderModal({ product, onClose, onConfirm }) {
               <p className="text-2xl font-bold text-pink-600">
                 {formatVND(product.sale_price || product.price)}
               </p>
-              {product.releaseDate && (
+              {product.expectedRestockDate && (
                 <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
                   <Calendar className="h-4 w-4" />
                   <span>
                     Ngày phát hành:{" "}
                     <strong>
-                      {new Date(product.releaseDate).toLocaleDateString(
+                      {new Date(product.expectedRestockDate).toLocaleDateString(
                         "vi-VN",
                       )}
                     </strong>
