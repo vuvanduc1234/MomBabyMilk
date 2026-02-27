@@ -21,6 +21,7 @@ const OrderRoute = require("./routes/OrderRoute");
 const AnalyticsRoute = require("./routes/AnalyticsRoute");
 const PointRoute = require("./routes/PointRoute");
 const NotificationRoute = require("./routes/NotificationRoute");
+const AIRoute = require("./routes/AIRoute");
 const app = express();
 
 database.connect();
@@ -63,6 +64,7 @@ app.use("/api/orders", OrderRoute);
 app.use("/api/analytics", AnalyticsRoute);
 app.use("/api/points", PointRoute);
 app.use("/api/notifications", NotificationRoute);
+app.use("/api/ai", AIRoute);
 
 app.use("/api/upload", UploadRoute);
 
