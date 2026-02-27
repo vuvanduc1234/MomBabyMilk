@@ -44,6 +44,7 @@ import RevenueStatistics from "./pages/admin/RevenueStatistics";
 import { ProtectedRoute } from "./components/layouts/ProtectedRoute";
 import OrderTracking from "./pages/Orders/OrderTracking";
 import StaffArticles from "./pages/staff/articles/Articles";
+import AIChatBox from "./components/AIChatBox";
 
 // Public Layout Component
 function PublicLayout() {
@@ -55,6 +56,7 @@ function PublicLayout() {
         <Outlet />
       </main>
       <Footer />
+      <AIChatBox />
     </div>
   );
 }
