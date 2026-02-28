@@ -27,7 +27,7 @@ const {
  *         name: status
  *         schema:
  *           type: string
- *           enum: [processing, partially_shipped, shipped, delivered, cancelled]
+ *           enum: [processing, shipped, delivered, cancelled]
  *         description: Filter by order status (optional - if not provided, returns all orders)
  *     responses:
  *       200:
@@ -50,7 +50,7 @@ router.get("/my-orders", authenticateToken, getMyOrders);
  *         name: status
  *         schema:
  *           type: string
- *           enum: [processing, partially_shipped, shipped, delivered, cancelled]
+ *           enum: [processing, shipped, delivered, cancelled]
  *         description: Filter by order status (optional)
  *       - in: query
  *         name: paymentStatus
@@ -165,7 +165,7 @@ router.get("/:id", authenticateToken, getOrderById);
  *             properties:
  *               orderStatus:
  *                 type: string
- *                 enum: [processing, partially_shipped, shipped, delivered, cancelled]
+ *                 enum: [processing, shipped, delivered, cancelled]
  *                 description: New order status
  *               paymentStatus:
  *                 type: string

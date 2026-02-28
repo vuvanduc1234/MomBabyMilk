@@ -88,7 +88,6 @@ const orderSchema = new mongoose.Schema(
     orderStatus: {
       type: String,
       enum: [
-        "partially_shipped",
         "pending_payment",
         "processing",
         "shipped",
@@ -96,7 +95,6 @@ const orderSchema = new mongoose.Schema(
         "cancelled",
       ],
       default: "processing",
-      description: "Hỗ trợ giao hàng từng phần với partially_shipped",
     },
   },
   { timestamps: true },

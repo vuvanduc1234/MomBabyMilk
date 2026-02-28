@@ -49,6 +49,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { formatDateTime } from "@/lib/formatters";
 
 const roleColors = {
   Admin: "bg-purple-100 text-purple-800",
@@ -61,13 +62,7 @@ const roleColors = {
 
 const formatDate = (dateString) => {
   if (!dateString) return "Chưa đăng nhập";
-  return new Intl.DateTimeFormat("vi-VN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(dateString));
+  return formatDateTime(dateString);
 };
 
 export default function AccountManagement() {

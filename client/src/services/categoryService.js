@@ -1,7 +1,5 @@
 import axiosInstance from "../lib/axios";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
-
 /**
  * Get all categories with brands and parent category populated
  */
@@ -44,7 +42,7 @@ export const getHierarchicalCategories = async () => {
     // Build hierarchical structure
     const hierarchical = rootCategories.map((parent) => {
       const children = childCategories.filter(
-        (child) => child.parentCategory._id === parent._id
+        (child) => child.parentCategory._id === parent._id,
       );
 
       return {

@@ -47,21 +47,10 @@ import {
   getPaymentStatusLabel,
   getPaymentStatusColor,
   formatVND,
-} from "../orders/services/orderService";
+} from "@/services/orderService";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-
-// Format helpers
-const formatDateTime = (dateString) => {
-  const date = new Date(dateString);
-  return new Intl.DateTimeFormat("vi-VN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-};
+import { formatDateTime } from "@/lib/formatters";
 
 const getOrderStatusIcon = (status) => {
   const iconMap = {
@@ -70,7 +59,6 @@ const getOrderStatusIcon = (status) => {
     shipped: <Truck className="w-4 h-4" />,
     delivered: <Package className="w-4 h-4" />,
     cancelled: <XCircle className="w-4 h-4" />,
-    partially_shipped: <AlertCircle className="w-4 h-4" />,
   };
   return iconMap[status] || <InfoIcon className="w-4 h-4" />;
 };

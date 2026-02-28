@@ -157,13 +157,7 @@ const updateOrderStatus = async (req, res) => {
     }
 
     if (orderStatus) {
-      const validStatuses = [
-        "processing",
-        "partially_shipped",
-        "shipped",
-        "delivered",
-        "cancelled",
-      ];
+      const validStatuses = ["processing", "shipped", "delivered", "cancelled"];
       if (!validStatuses.includes(orderStatus)) {
         await session.abortTransaction();
         session.endSession();
@@ -235,7 +229,6 @@ const updateOrderStatus = async (req, res) => {
           shipped: "Đơn hàng đang được giao tới bạn",
           delivered: "Đơn hàng đã được giao thành công",
           cancelled: "Đơn hàng đã bị hủy",
-          partially_shipped: "Đơn hàng đã giao một phần",
         };
 
         await createNotification({

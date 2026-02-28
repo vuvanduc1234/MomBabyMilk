@@ -26,19 +26,8 @@ import {
   formatVND,
   updateItemStatus,
   notifyPreOrderReady,
-} from "@/pages/staff/orders/services/orderService";
-
-// Format helpers
-const formatDateTime = (dateString) => {
-  const date = new Date(dateString);
-  return new Intl.DateTimeFormat("vi-VN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-};
+} from "@/services/orderService";
+import { formatDateTime } from "@/lib/formatters";
 
 export default function OrderDetailDialog({
   selectedOrder,

@@ -98,8 +98,8 @@ export default function StaffArticles() {
           tags: blog.tags || [],
           imageUrl: blog.image,
           recommended_products: blog.recommended_products || [],
-          category: null, // TODO: Add category support
-          status: "published", // TODO: Add status field to BlogModel
+          category: null,
+          status: "published",
           createdAt: blog.createdAt,
           updatedAt: blog.updatedAt,
         };
