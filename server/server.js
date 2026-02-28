@@ -2,7 +2,6 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-const mongoose = require("mongoose");
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./config/swagger");
 const database = require("./config/db");
@@ -25,10 +24,7 @@ const NotificationRoute = require("./routes/NotificationRoute");
 const AIRoute = require("./routes/AIRoute");
 const app = express();
 
-// Connect to database (async, non-blocking)
-database.connect().catch((err) => {
-  console.error("Failed to connect to database:", err);
-});
+database.connect();
 
 app.use(database.ensureConnection);
 
@@ -51,32 +47,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Health check endpoints
-app.get("/", (req, res) => {
-  res.json({
-    status: "OK",
-    message: "Mom Baby Milk API is running",
-    timestamp: new Date().toISOString(),
-  });
-});
-
-app.get("/api/health", (req, res) => {
-  res.json({
-    status: "healthy",
-    database:
-      mongoose.connection.readyState === 1 ? "connected" : "disconnected",
-    timestamp: new Date().toISOString(),
-  });
-});
-
-// Swagger documentation (with error handling)
-try {
-  if (swaggerSpec) {
-    app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-  }
-} catch (error) {
-  console.error("Failed to setup Swagger documentation:", error);
-}
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use("/api/auth", AuthRoute);
 app.use("/api/users", UserRoute);
@@ -97,33 +68,11 @@ app.use("/api/ai", AIRoute);
 
 app.use("/api/upload", UploadRoute);
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error("Error:", err.message);
-  res.status(err.status || 500).json({
-    success: false,
-    message: err.message || "Internal Server Error",
-    error: process.env.NODE_ENV === "development" ? err.stack : undefined,
-  });
-});
-
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    message: "Route not found",
-  });
-});
-
 const PORT = process.env.PORT || 3000;
 
-// Only listen when not in Vercel serverless environment
-if (process.env.VERCEL !== "1") {
-  app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-    console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
-    console.log(`Swagger Documentation: http://localhost:${PORT}/api-docs`);
-  });
-}
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+  console.log(`Swagger Documentation: http://localhost:${PORT}/api-docs`);
+});
 
 module.exports = app;
