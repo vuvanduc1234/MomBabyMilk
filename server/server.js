@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
+const mongoose = require("mongoose");
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./config/swagger");
 const database = require("./config/db");
@@ -24,7 +25,10 @@ const NotificationRoute = require("./routes/NotificationRoute");
 const AIRoute = require("./routes/AIRoute");
 const app = express();
 
-database.connect();
+// Connect to database (async, non-blocking)
+database.connect().catch((err) => {
+  console.error("Failed to connect to database:", err);
+});
 
 app.use(database.ensureConnection);
 
@@ -59,12 +63,20 @@ app.get("/", (req, res) => {
 app.get("/api/health", (req, res) => {
   res.json({
     status: "healthy",
-    database: "connected",
+    database:
+      mongoose.connection.readyState === 1 ? "connected" : "disconnected",
     timestamp: new Date().toISOString(),
   });
 });
 
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+// Swagger documentation (with error handling)
+try {
+  if (swaggerSpec) {
+    app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  }
+} catch (error) {
+  console.error("Failed to setup Swagger documentation:", error);
+}
 
 app.use("/api/auth", AuthRoute);
 app.use("/api/users", UserRoute);
@@ -105,10 +117,13 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
-  console.log(`Swagger Documentation: http://localhost:${PORT}/api-docs`);
-});
+// Only listen when not in Vercel serverless environment
+if (process.env.VERCEL !== "1") {
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
+    console.log(`Swagger Documentation: http://localhost:${PORT}/api-docs`);
+  });
+}
 
 module.exports = app;
