@@ -8,7 +8,6 @@ let cachedConnection = null;
 
 const connect = async () => {
   if (cachedConnection && mongoose.connection.readyState === 1) {
-    console.log("Using cached MongoDB connection");
     return cachedConnection;
   }
 

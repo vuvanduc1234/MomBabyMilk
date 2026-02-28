@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import axiosInstance from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
+import { formatPrice } from "@/lib/formatters";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -37,8 +38,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import NewProductDialog from "./components/NewProductDialog";
 import EditProductDialog from "./components/EditProductDialog";
-
-
 
 const fetchProducts = async () => {
   try {
@@ -73,14 +72,6 @@ const fetchProducts = async () => {
     console.error("[fetchProducts] Error fetching products:", error);
     throw error;
   }
-};
-
-// Format price helper
-const formatPrice = (price) => {
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-  }).format(price);
 };
 
 export default function StaffProducts() {

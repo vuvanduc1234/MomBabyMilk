@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   Package,
   Search,
@@ -7,24 +7,25 @@ import {
   Save,
   X,
   TrendingDown,
-} from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Skeleton } from '@/components/ui/skeleton';
-import { toast } from 'sonner';
-import axiosInstance from '@/lib/axios';
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
+import axiosInstance from "@/lib/axios";
+import { formatPrice } from "@/lib/formatters";
 
 const Inventory = () => {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [editingProduct, setEditingProduct] = useState(null);
-  const [editingQuantity, setEditingQuantity] = useState('');
+  const [editingQuantity, setEditingQuantity] = useState("");
   const [updating, setUpdating] = useState(false);
   const [showLowStockOnly, setShowLowStockOnly] = useState(false);
 
@@ -40,12 +41,12 @@ const Inventory = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axiosInstance.get('/api/product');
+      const response = await axiosInstance.get("/api/product");
       const productsData = response.data.data || response.data || [];
       setProducts(productsData);
     } catch (err) {
-      setError(err.message || 'Không thể tải danh sách sản phẩm');
-      toast.error('Không thể tải danh sách sản phẩm');
+      setError(err.message || "Không thể tải danh sách sản phẩm");
+      toast.error("Không thể tải danh sách sản phẩm");
     } finally {
       setLoading(false);
     }
@@ -56,7 +57,7 @@ const Inventory = () => {
 
     if (searchTerm) {
       filtered = filtered.filter((product) =>
-        product.name.toLowerCase().includes(searchTerm.toLowerCase())
+        product.name.toLowerCase().includes(searchTerm.toLowerCase()),
       );
     }
 
@@ -75,13 +76,13 @@ const Inventory = () => {
 
   const cancelEditing = () => {
     setEditingProduct(null);
-    setEditingQuantity('');
+    setEditingQuantity("");
   };
 
   const saveQuantity = async (productId) => {
     const newQuantity = parseInt(editingQuantity, 10);
     if (isNaN(newQuantity) || newQuantity < 0) {
-      toast.error('Số lượng không hợp lệ');
+      toast.error("Số lượng không hợp lệ");
       return;
     }
 
@@ -90,11 +91,11 @@ const Inventory = () => {
       await axiosInstance.patch(`/api/product/${productId}`, {
         quantity: newQuantity,
       });
-      toast.success('Cập nhật số lượng thành công');
+      toast.success("Cập nhật số lượng thành công");
       await fetchProducts();
       cancelEditing();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Không thể cập nhật số lượng');
+      toast.error(err.response?.data?.message || "Không thể cập nhật số lượng");
     } finally {
       setUpdating(false);
     }
@@ -102,21 +103,26 @@ const Inventory = () => {
 
   const getStockStatus = (quantity) => {
     if (quantity === 0) {
-      return { label: 'Hết hàng', variant: 'destructive', color: 'text-red-600' };
+      return {
+        label: "Hết hàng",
+        variant: "destructive",
+        color: "text-red-600",
+      };
     } else if (quantity <= 5) {
-      return { label: 'Sắp hết', variant: 'destructive', color: 'text-red-600' };
+      return {
+        label: "Sắp hết",
+        variant: "destructive",
+        color: "text-red-600",
+      };
     } else if (quantity <= 10) {
-      return { label: 'Tồn kho thấp', variant: 'secondary', color: 'text-yellow-600' };
+      return {
+        label: "Tồn kho thấp",
+        variant: "secondary",
+        color: "text-yellow-600",
+      };
     } else {
-      return { label: 'Còn hàng', variant: 'default', color: 'text-green-600' };
+      return { label: "Còn hàng", variant: "default", color: "text-green-600" };
     }
-  };
-
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-    }).format(price);
   };
 
   const lowStockCount = products.filter((p) => p.quantity <= 10).length;
@@ -178,7 +184,9 @@ const Inventory = () => {
             <TrendingDown className="h-4 w-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{lowStockCount}</div>
+            <div className="text-2xl font-bold text-yellow-600">
+              {lowStockCount}
+            </div>
             <p className="text-xs text-muted-foreground mt-1">
               Sản phẩm còn ≤ 10 đơn vị
             </p>
@@ -191,7 +199,9 @@ const Inventory = () => {
             <AlertCircle className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{outOfStockCount}</div>
+            <div className="text-2xl font-bold text-red-600">
+              {outOfStockCount}
+            </div>
             <p className="text-xs text-muted-foreground mt-1">
               Sản phẩm cần nhập hàng
             </p>
@@ -215,7 +225,7 @@ const Inventory = () => {
               </div>
             </div>
             <Button
-              variant={showLowStockOnly ? 'default' : 'outline'}
+              variant={showLowStockOnly ? "default" : "outline"}
               onClick={() => setShowLowStockOnly(!showLowStockOnly)}
             >
               <TrendingDown className="h-4 w-4 mr-2" />
@@ -231,7 +241,7 @@ const Inventory = () => {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Cảnh báo tồn kho</AlertTitle>
           <AlertDescription>
-            Có {lowStockCount} sản phẩm có tồn kho thấp hoặc sắp hết hàng.{' '}
+            Có {lowStockCount} sản phẩm có tồn kho thấp hoặc sắp hết hàng.{" "}
             <Button
               variant="link"
               className="p-0 h-auto"
@@ -246,9 +256,7 @@ const Inventory = () => {
       {/* Products table */}
       <Card>
         <CardHeader>
-          <CardTitle>
-            Danh sách sản phẩm ({filteredProducts.length})
-          </CardTitle>
+          <CardTitle>Danh sách sản phẩm ({filteredProducts.length})</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -268,7 +276,7 @@ const Inventory = () => {
                     className="flex items-center gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                   >
                     <img
-                      src={product.imageUrl?.[0] || '/placeholder.jpg'}
+                      src={product.imageUrl?.[0] || "/placeholder.jpg"}
                       alt={product.name}
                       className="w-16 h-16 object-cover rounded"
                     />
@@ -318,7 +326,9 @@ const Inventory = () => {
                       ) : (
                         <>
                           <div className="text-right min-w-20">
-                            <div className={`text-2xl font-bold ${stockStatus.color}`}>
+                            <div
+                              className={`text-2xl font-bold ${stockStatus.color}`}
+                            >
                               {product.quantity}
                             </div>
                             <div className="text-xs text-muted-foreground">

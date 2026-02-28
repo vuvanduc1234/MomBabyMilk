@@ -23,8 +23,6 @@ class AIService {
       // Extract keywords and search for products
       const keywords = this.extractKeywords(query);
 
-      console.log("🔍 Search keywords:", keywords);
-
       let products = [];
 
       // Try keyword search first
@@ -46,15 +44,10 @@ class AIService {
             "name price description quantity appropriateAge weight imageUrl tags",
           )
           .lean();
-
-        console.log(`✅ Found ${products.length} products with keywords`);
       }
 
       // Fallback: if no products found, get popular products
       if (products.length === 0) {
-        console.log(
-          "⚠️ No products found with keywords, fetching popular products...",
-        );
         products = await Product.find({ quantity: { $gt: 0 } })
           .populate("category", "name")
           .populate("brand", "name")
@@ -64,8 +57,6 @@ class AIService {
             "name price description quantity appropriateAge weight imageUrl tags",
           )
           .lean();
-
-        console.log(`✅ Fallback: Found ${products.length} popular products`);
       }
 
       return products;

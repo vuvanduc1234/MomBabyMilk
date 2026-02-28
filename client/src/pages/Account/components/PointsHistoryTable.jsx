@@ -20,6 +20,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { formatDateTime } from "@/lib/formatters";
 
 const TYPE_CONFIG = {
   earn: {
@@ -97,14 +98,7 @@ export default function PointsHistoryTable() {
 
   const formatDate = (dateString) => {
     if (!dateString) return "-";
-    const date = new Date(dateString);
-    return date.toLocaleString("vi-VN", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return formatDateTime(dateString);
   };
 
   const formatPoints = (amount) => {

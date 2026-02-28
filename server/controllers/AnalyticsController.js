@@ -24,7 +24,10 @@ const getRevenueOverview = async (req, res) => {
       paymentStatus: "paid",
     });
 
-    const totalRevenue = orders.reduce((sum, order) => sum + order.totalAmount, 0);
+    const totalRevenue = orders.reduce(
+      (sum, order) => sum + order.totalAmount,
+      0,
+    );
     const totalOrders = orders.length;
     const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
@@ -38,7 +41,6 @@ const getRevenueOverview = async (req, res) => {
 
     const orderStatusBreakdown = {
       processing: orders.filter((o) => o.orderStatus === "processing").length,
-      partially_shipped: orders.filter((o) => o.orderStatus === "partially_shipped").length,
       shipped: orders.filter((o) => o.orderStatus === "shipped").length,
       delivered: orders.filter((o) => o.orderStatus === "delivered").length,
       cancelled: orders.filter((o) => o.orderStatus === "cancelled").length,
@@ -78,7 +80,7 @@ const getRevenueOverview = async (req, res) => {
 
     const previousRevenue = previousOrders.reduce(
       (sum, order) => sum + order.totalAmount,
-      0
+      0,
     );
 
     const revenueGrowth =
@@ -102,7 +104,8 @@ const getRevenueOverview = async (req, res) => {
         },
         preOrder: preOrderStats,
         period: {
-          startDate: startDate || moment().subtract(30, "days").format("YYYY-MM-DD"),
+          startDate:
+            startDate || moment().subtract(30, "days").format("YYYY-MM-DD"),
           endDate: endDate || moment().format("YYYY-MM-DD"),
         },
       },
@@ -279,12 +282,13 @@ const getOrdersStats = async (req, res) => {
     const stats = {
       total: allOrders.length,
       byStatus: {
-        processing: allOrders.filter((o) => o.orderStatus === "processing").length,
-        partially_shipped: allOrders.filter((o) => o.orderStatus === "partially_shipped")
+        processing: allOrders.filter((o) => o.orderStatus === "processing")
           .length,
         shipped: allOrders.filter((o) => o.orderStatus === "shipped").length,
-        delivered: allOrders.filter((o) => o.orderStatus === "delivered").length,
-        cancelled: allOrders.filter((o) => o.orderStatus === "cancelled").length,
+        delivered: allOrders.filter((o) => o.orderStatus === "delivered")
+          .length,
+        cancelled: allOrders.filter((o) => o.orderStatus === "cancelled")
+          .length,
       },
       byPaymentStatus: {
         pending: allOrders.filter((o) => o.paymentStatus === "pending").length,
@@ -301,7 +305,8 @@ const getOrdersStats = async (req, res) => {
         percentage:
           allOrders.length > 0
             ? (
-                (allOrders.filter((o) => o.hasPreOrderItems).length / allOrders.length) *
+                (allOrders.filter((o) => o.hasPreOrderItems).length /
+                  allOrders.length) *
                 100
               ).toFixed(2)
             : 0,
@@ -309,7 +314,8 @@ const getOrdersStats = async (req, res) => {
       averageOrderValue:
         allOrders.length > 0
           ? Math.round(
-              allOrders.reduce((sum, o) => sum + o.totalAmount, 0) / allOrders.length
+              allOrders.reduce((sum, o) => sum + o.totalAmount, 0) /
+                allOrders.length,
             )
           : 0,
     };
@@ -350,16 +356,18 @@ const getCustomersStats = async (req, res) => {
       paymentStatus: "paid",
     });
 
-    const uniqueCustomers = new Set(orders.map((o) => o.customer.toString())).size;
+    const uniqueCustomers = new Set(orders.map((o) => o.customer.toString()))
+      .size;
 
     const customerOrderCount = {};
     orders.forEach((order) => {
       const customerId = order.customer.toString();
-      customerOrderCount[customerId] = (customerOrderCount[customerId] || 0) + 1;
+      customerOrderCount[customerId] =
+        (customerOrderCount[customerId] || 0) + 1;
     });
 
     const returningCustomers = Object.values(customerOrderCount).filter(
-      (count) => count > 1
+      (count) => count > 1,
     ).length;
 
     const customerRetentionRate =
@@ -479,14 +487,19 @@ const getRevenueByCategory = async (req, res) => {
     });
 
     const categoryData = Object.values(categoryStats).sort(
-      (a, b) => b.totalRevenue - a.totalRevenue
+      (a, b) => b.totalRevenue - a.totalRevenue,
     );
 
-    const totalRevenue = categoryData.reduce((sum, cat) => sum + cat.totalRevenue, 0);
+    const totalRevenue = categoryData.reduce(
+      (sum, cat) => sum + cat.totalRevenue,
+      0,
+    );
 
     categoryData.forEach((cat) => {
       cat.percentage =
-        totalRevenue > 0 ? parseFloat(((cat.totalRevenue / totalRevenue) * 100).toFixed(2)) : 0;
+        totalRevenue > 0
+          ? parseFloat(((cat.totalRevenue / totalRevenue) * 100).toFixed(2))
+          : 0;
     });
 
     res.status(200).json({
@@ -524,16 +537,17 @@ const getRevenueSummary = async (req, res) => {
       };
     };
 
-    const [todayStats, weekStats, monthStats, yearStats, allTimeStats] = await Promise.all([
-      getTotalRevenue(today),
-      getTotalRevenue(thisWeekStart),
-      getTotalRevenue(thisMonthStart),
-      getTotalRevenue(thisYearStart),
-      Order.find({ paymentStatus: "paid" }).then((orders) => ({
-        revenue: orders.reduce((sum, o) => sum + o.totalAmount, 0),
-        orders: orders.length,
-      })),
-    ]);
+    const [todayStats, weekStats, monthStats, yearStats, allTimeStats] =
+      await Promise.all([
+        getTotalRevenue(today),
+        getTotalRevenue(thisWeekStart),
+        getTotalRevenue(thisMonthStart),
+        getTotalRevenue(thisYearStart),
+        Order.find({ paymentStatus: "paid" }).then((orders) => ({
+          revenue: orders.reduce((sum, o) => sum + o.totalAmount, 0),
+          orders: orders.length,
+        })),
+      ]);
 
     res.status(200).json({
       message: "Lấy tổng quan doanh thu thành công",

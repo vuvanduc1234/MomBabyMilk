@@ -29,15 +29,6 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
-// Mock categories - replace with actual data from API
-const mockCategories = [
-  { id: "1", name: "Điện tử" },
-  { id: "2", name: "Gia dụng" },
-  { id: "3", name: "Thời trang" },
-  { id: "4", name: "Mỹ phẩm" },
-  { id: "5", name: "Thực phẩm" },
-];
-
 export default function NewBrandDialog({
   isOpen,
   onClose,
@@ -49,12 +40,10 @@ export default function NewBrandDialog({
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [logoPreview, setLogoPreview] = useState(null);
   const [open, setOpen] = useState(false);
-  const [isCreatingBrand, setIsCreatingBrand] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const fileInputRef = useRef(null);
 
-  // Use categories from props, fallback to mock data
-  const availableCategories = categories || mockCategories;
+  const availableCategories = categories || [];
 
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
@@ -323,7 +312,7 @@ export default function NewBrandDialog({
           <Button
             onClick={handleCreate}
             disabled={
-              isCreatingBrand || isUploadingImage || !newBrand.name.trim() || !newBrand.logoUrl
+              isUploadingImage || !newBrand.name.trim() || !newBrand.logoUrl
             }
           >
             {isUploadingImage ? "Đang tải logo..." : "Tạo thương hiệu"}

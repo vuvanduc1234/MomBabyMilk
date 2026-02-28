@@ -57,23 +57,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { formatDate as formatDateLib, formatPrice } from "@/lib/formatters";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const formatDate = (d) => {
   if (!d) return "-";
   const date = new Date(d);
   if (isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat("vi-VN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date);
+  return formatDateLib(d);
 };
-
-const formatPrice = (p) =>
-  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
-    p,
-  );
 
 const defaultForm = {
   code: "",

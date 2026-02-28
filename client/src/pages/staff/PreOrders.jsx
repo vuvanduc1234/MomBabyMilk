@@ -19,7 +19,8 @@ import {
   updateItemStatus,
   notifyPreOrderReady,
   formatOrderNumber,
-} from "./orders/services/orderService";
+} from "@/services/orderService";
+import { formatPrice, formatDateTime } from "@/lib/formatters";
 
 const PreOrders = () => {
   const [orders, setOrders] = useState([]);
@@ -109,21 +110,8 @@ const PreOrders = () => {
     }
   };
 
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(price);
-  };
-
   const formatDate = (dateString) => {
-    return new Intl.DateTimeFormat("vi-VN", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(dateString));
+    return formatDateTime(dateString);
   };
 
   const getItemStatusBadge = (status) => {

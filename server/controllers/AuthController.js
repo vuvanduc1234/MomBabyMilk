@@ -12,7 +12,6 @@ const {
   findRefreshToken,
   replaceRefreshToken,
 } = require("../services/tokenService");
-const UserModel = require("../models/UserModel");
 
 const PW_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,30}$/;
 const isStrongPassword = (pw) => PW_REGEX.test(pw);
