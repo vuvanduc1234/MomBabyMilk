@@ -109,13 +109,30 @@ function App() {
               <Route path="/products" element={<ProductListing />} />
               <Route path="/product/:slug" element={<ProductDetail />} />
               <Route path="/cart" element={<Cart />} />
-              <Route path="/checkout" element={<Checkout />} />
+
+              {/* Protected routes - require login */}
+              <Route
+                path="/checkout"
+                element={
+                  <ProtectedRoute>
+                    <Checkout />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/account"
+                element={
+                  <ProtectedRoute>
+                    <AccountPage />
+                  </ProtectedRoute>
+                }
+              />
+
               <Route path="/payment-result" element={<PaymentResult />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/verify-email" element={<VerifyEmailOTP />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/account" element={<AccountPage />} />
               <Route path="/blog" element={<BlogList />} />
               <Route path="/blog/:id" element={<BlogPost />} />
 

@@ -4,6 +4,9 @@ const OrderModel = require("../models/OrderModel");
 const PointModel = require("../models/PointModel");
 const PointHistoryModel = require("../models/PointHistoryModel");
 const ProductModel = require("../models/ProductModel");
+const RefreshTokenModel = require("../models/RefreshTokenModel");
+const ChatHistoryModel = require("../models/ChatHistoryModel");
+const NotificationModel = require("../models/NotificationModel");
 const PW_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,30}$/;
 const isStrongPassword = (pw) => PW_REGEX.test(pw);
 const createUser = async (req, res) => {
@@ -139,11 +142,21 @@ const deleteUser = async (req, res) => {
       { $pull: { comments: { author: id } } },
     );
 
+    // CASCADE 4: Xóa tất cả RefreshToken của user
+    await RefreshTokenModel.deleteMany({ user: id });
+
+    // CASCADE 5: Xóa tất cả ChatHistory của user
+    await ChatHistoryModel.deleteMany({ user: id });
+
+    // CASCADE 6: Xóa tất cả Notification của user
+    await NotificationModel.deleteMany({ user: id });
+
     // Xóa user (wishlist và userVouchers embedded sẽ tự động xóa)
     await UserModel.findByIdAndDelete(id);
 
     res.status(200).json({
-      message: "Xóa người dùng hoàn tất (đã cleanup points, comments)",
+      message:
+        "Xóa người dùng hoàn tất (đã cleanup points, comments, tokens, chat, notifications)",
       data: user,
     });
   } catch (err) {

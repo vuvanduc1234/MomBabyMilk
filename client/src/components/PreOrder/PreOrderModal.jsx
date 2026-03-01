@@ -4,15 +4,14 @@ import {
   X,
   Calendar,
   CreditCard,
-  Clock,
   Package,
   CheckCircle,
   Info,
 } from "lucide-react";
 
 export function PreOrderModal({ product, onClose, onConfirm }) {
-  const [selectedOption, setSelectedOption] = useState(null);
   const [quantity, setQuantity] = useState(1);
+  const selectedOption = "PAY_NOW"; // Chỉ hỗ trợ thanh toán ngay
 
   const formatVND = (price) => {
     return new Intl.NumberFormat("vi-VN", {
@@ -141,89 +140,28 @@ export function PreOrderModal({ product, onClose, onConfirm }) {
         {/* Payment Options */}
         <div className="p-6">
           <h3 className="text-lg font-bold text-gray-800 mb-4">
-            {isOutOfStock
-              ? "Chọn hình thức thanh toán"
-              : "Thông tin quan trọng"}
+            {isOutOfStock ? "Hình thức thanh toán" : "Thông tin quan trọng"}
           </h3>
 
           {isOutOfStock ? (
-            <div className="space-y-3">
-              {/* Pay Now Option */}
-              <div
-                onClick={() => setSelectedOption("PAY_NOW")}
-                className={`border-2 rounded-xl p-4 cursor-pointer transition-all ${
-                  selectedOption === "PAY_NOW"
-                    ? "border-pink-500 bg-pink-50 shadow-lg"
-                    : "border-gray-200 hover:border-pink-300 hover:bg-gray-50"
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <div
-                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center mt-0.5 ${
-                      selectedOption === "PAY_NOW"
-                        ? "border-pink-500 bg-pink-500"
-                        : "border-gray-300"
-                    }`}
-                  >
-                    {selectedOption === "PAY_NOW" && (
-                      <CheckCircle className="h-4 w-4 text-white" />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <CreditCard className="h-5 w-5 text-pink-500" />
-                      <h4 className="font-bold text-gray-800">
-                        Thanh toán ngay
-                      </h4>
-                    </div>
-                    <p className="text-sm text-gray-600 leading-relaxed">
-                      Thanh toán ngay để đảm bảo đơn hàng của bạn. Sản phẩm sẽ
-                      được giao ngay khi hàng về kho.
-                    </p>
-                    <div className="mt-2 bg-green-50 border border-green-200 rounded-lg p-2 text-xs text-green-700 font-medium">
-                      ✓ Ưu tiên giao hàng đầu tiên
-                    </div>
-                  </div>
+            <div className="bg-gradient-to-br from-pink-50 to-purple-50 border-2 border-pink-200 rounded-xl p-5">
+              <div className="flex gap-3 mb-3">
+                <CreditCard className="h-6 w-6 text-pink-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-bold text-gray-800 mb-2">
+                    Thanh toán ngay
+                  </h4>
+                  <p className="text-sm text-gray-700 leading-relaxed">
+                    Thanh toán ngay để đảm bảo đơn hàng của bạn. Sản phẩm sẽ
+                    được giao ngay khi hàng về kho.
+                  </p>
                 </div>
               </div>
-
-              {/* Pay Later Option */}
-              <div
-                onClick={() => setSelectedOption("PAY_LATER")}
-                className={`border-2 rounded-xl p-4 cursor-pointer transition-all ${
-                  selectedOption === "PAY_LATER"
-                    ? "border-pink-500 bg-pink-50 shadow-lg"
-                    : "border-gray-200 hover:border-pink-300 hover:bg-gray-50"
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <div
-                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center mt-0.5 ${
-                      selectedOption === "PAY_LATER"
-                        ? "border-pink-500 bg-pink-500"
-                        : "border-gray-300"
-                    }`}
-                  >
-                    {selectedOption === "PAY_LATER" && (
-                      <CheckCircle className="h-4 w-4 text-white" />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Clock className="h-5 w-5 text-purple-500" />
-                      <h4 className="font-bold text-gray-800">
-                        Thanh toán sau
-                      </h4>
-                    </div>
-                    <p className="text-sm text-gray-600 leading-relaxed">
-                      Giữ chỗ miễn phí. Thanh toán khi nhận được thông báo hàng
-                      về. Bạn có 48 giờ để hoàn tất thanh toán.
-                    </p>
-                    <div className="mt-2 bg-blue-50 border border-blue-200 rounded-lg p-2 text-xs text-blue-700 font-medium">
-                      ⓘ Không cần thanh toán ngay
-                    </div>
-                  </div>
-                </div>
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                <p className="text-sm text-green-700 font-medium">
+                  Ưu tiên giao hàng đầu tiên khi hàng về kho
+                </p>
               </div>
             </div>
           ) : (
@@ -275,12 +213,7 @@ export function PreOrderModal({ product, onClose, onConfirm }) {
             </button>
             <button
               onClick={handleConfirm}
-              disabled={isOutOfStock && !selectedOption}
-              className={`flex-1 py-3 px-4 rounded-xl font-semibold transition ${
-                isOutOfStock && !selectedOption
-                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : "bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:shadow-lg hover:scale-[1.02]"
-              }`}
+              className="flex-1 py-3 px-4 rounded-xl font-semibold transition bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:shadow-lg hover:scale-[1.02]"
             >
               {isOutOfStock ? "Xác Nhận Đặt Trước" : "Đăng Ký Ngay"}
             </button>

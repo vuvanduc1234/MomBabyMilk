@@ -163,6 +163,21 @@ const updateOrderStatus = async (req, res) => {
         session.endSession();
         return res.status(400).json({ message: "Trạng thái không hợp lệ" });
       }
+
+      // ✅ Validation: Chỉ cho phép chuyển sang processing/shipped/delivered nếu đã thanh toán
+      if (["processing", "shipped", "delivered"].includes(orderStatus)) {
+        // Nếu không phải COD, phải thanh toán thành công mới được chuyển trạng thái
+        if (order.paymentMethod !== "cod" && order.paymentStatus !== "paid") {
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(400).json({
+            message:
+              "Không thể chuyển trạng thái đơn hàng chưa thanh toán. Vui lòng đợi khách hàng thanh toán thành công.",
+            currentPaymentStatus: order.paymentStatus,
+          });
+        }
+      }
+
       order.orderStatus = orderStatus;
 
       // ✅ FIX 3: Hoàn stock trong transaction khi cancel
