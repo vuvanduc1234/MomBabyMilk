@@ -46,13 +46,17 @@ export default function PaymentResult() {
   const finalAmount =
     amount || momoAmount || (vnpAmount ? parseInt(vnpAmount) / 100 : null);
 
-  // Clear cart khi thanh toán thành công
+  // Clear cart trong mọi trường hợp (đơn hàng đã được tạo)
   useEffect(() => {
-    if (status === "success" && !hasCleared) {
+    if (status && !hasCleared) {
       // Use setTimeout to avoid setState in effect
       const timer = setTimeout(() => {
         clearCart();
-        toast.success("Đặt hàng thành công!");
+        if (status === "success") {
+          toast.success("Đặt hàng thành công!");
+        } else {
+          toast.info("Đơn hàng đã được tạo. Bạn có thể thử lại thanh toán ở trang theo dõi đơn hàng.");
+        }
       }, 0);
       setHasCleared(true);
       return () => clearTimeout(timer);
