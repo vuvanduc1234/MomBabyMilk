@@ -41,7 +41,7 @@ router.use(authenticateToken);
  *       201:
  *         description: Ticket tạo thành công
  */
-router.post("/conversations", checkRole(["User"]), createConversation);
+router.post("/conversations", createConversation);
 
 /**
  * @swagger

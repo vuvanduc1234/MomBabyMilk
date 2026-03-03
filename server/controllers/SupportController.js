@@ -389,19 +389,21 @@ const updateStatus = async (req, res) => {
       return res.status(403).json({ message: "Ticket này không được assign cho bạn" });
     }
 
-    conversation.status = status;
+    // Khi staff đánh dấu resolved → tự động đóng ticket
+    const finalStatus = status === "resolved" ? "closed" : status;
+    conversation.status = finalStatus;
     await conversation.save();
 
     try {
       const io = getIO();
       io.to(`conversation:${conversation._id}`).emit(
         "support:status_changed",
-        { conversationId: conversation._id, status },
+        { conversationId: conversation._id, status: finalStatus },
       );
     } catch (_) {}
 
     return res.status(200).json({
-      message: `Đã cập nhật status → ${status}`,
+      message: `Đã cập nhật status → ${finalStatus}`,
       conversation,
     });
   } catch (error) {
@@ -426,15 +428,12 @@ const closeConversation = async (req, res) => {
       return res.status(404).json({ message: "Không tìm thấy ticket" });
     }
 
-    // Only the owning user or Admin can close
-    if (!isStaff && conversation.user.toString() !== userId) {
+    // Chủ conversation hoặc Admin có thể đóng
+    if (conversation.user.toString() !== userId && role !== "Admin") {
       return res.status(403).json({ message: "Không có quyền truy cập" });
     }
-    if (role === "Staff") {
-      return res.status(403).json({ message: "Chỉ User hoặc Admin mới có thể đóng ticket" });
-    }
     if (conversation.status === "closed") {
-      return res.status(400).json({ message: "Ticket đã đóng rồi" });
+      return res.status(400).json({ message: "Hộp thoại đã đóng rồi" });
     }
 
     conversation.status = "closed";
@@ -449,13 +448,13 @@ const closeConversation = async (req, res) => {
     } catch (_) {}
 
     return res.status(200).json({
-      message: "Đã đóng ticket",
+      message: "Đã đóng hộp thoại",
       conversation,
     });
   } catch (error) {
     return res
       .status(500)
-      .json({ message: "Lỗi đóng ticket", error: error.message });
+      .json({ message: "Lỗi đóng hộp thoại", error: error.message });
   }
 };
 
