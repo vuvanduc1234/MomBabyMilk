@@ -29,6 +29,10 @@ const login = async (req, res) => {
         .json({ error: "Email hoặc mật khẩu không chính xác" });
     }
 
+    if (!userRecord.isVerified) {
+      return res.status(403).json({ error: "Email chưa được xác thực..." });
+    }
+
     const valid = await bcrypt.compare(password, userRecord.password);
     if (!valid) {
       return res

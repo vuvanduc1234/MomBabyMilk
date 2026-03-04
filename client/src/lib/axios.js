@@ -5,7 +5,7 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 const axiosInstance = axios.create({
   baseURL: API_URL,
-  withCredentials: true, 
+  withCredentials: true,
 });
 
 let isRefreshing = false;
@@ -28,7 +28,7 @@ const isTokenExpiringSoon = (token) => {
 
   try {
     const decoded = jwtDecode(token);
-    const currentTime = Date.now() / 1000; 
+    const currentTime = Date.now() / 1000;
     const expirationTime = decoded.exp;
     const timeUntilExpiry = expirationTime - currentTime;
 
@@ -69,6 +69,23 @@ const refreshAccessToken = async () => {
 
 axiosInstance.interceptors.request.use(
   async (config) => {
+    // Skip interceptor for public auth endpoints that don't need tokens
+    const publicEndpoints = [
+      "/api/auth/login",
+      "/api/auth/register",
+      "/api/auth/verify-email",
+      "/api/auth/forgot-password",
+      "/api/auth/reset-password",
+    ];
+
+    const isPublicEndpoint = publicEndpoints.some((endpoint) =>
+      config.url?.includes(endpoint),
+    );
+
+    if (isPublicEndpoint) {
+      return config;
+    }
+
     const token = localStorage.getItem("accessToken");
 
     if (token && isTokenExpiringSoon(token)) {
