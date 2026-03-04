@@ -6,11 +6,10 @@ export const aiService = {
   /**
    * Send a chat message to AI
    */
-  async chat(message, userId = null, sessionId = null, metadata = {}) {
+  async chat(message, sessionId = null, metadata = {}) {
     try {
       const response = await axios.post(`${AI_BASE_URL}/chat`, {
         message,
-        userId,
         sessionId,
         metadata,
       });

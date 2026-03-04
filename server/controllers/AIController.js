@@ -11,7 +11,10 @@ const { v4: uuidv4 } = require("uuid");
  */
 const chat = async (req, res) => {
   try {
-    const { message, userId, sessionId, metadata } = req.body;
+    const { message, sessionId, metadata } = req.body;
+    
+    // Get authenticated user ID from middleware
+    const userId = req.user?.id || req.user?._id;
 
     // Validate input
     if (!message || message.trim().length === 0) {
@@ -27,7 +30,7 @@ const chat = async (req, res) => {
     // Call AI service
     const result = await aiService.chat(
       message,
-      userId || null,
+      userId,
       currentSessionId,
       metadata || {},
     );
@@ -39,7 +42,7 @@ const chat = async (req, res) => {
 
     if (!chatHistory) {
       chatHistory = new ChatHistory({
-        user: userId || null,
+        user: userId,
         sessionId: currentSessionId,
         messages: [],
         metadata: metadata || {},
