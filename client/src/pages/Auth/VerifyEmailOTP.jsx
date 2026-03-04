@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axiosInstance from "@/lib/axios";
+import { useAuth } from "../../context/AuthContext";
 import Footer from "../../components/layouts/Footer";
 
 function VerifyEmailOTP() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [status, setStatus] = useState(null);
@@ -83,10 +85,16 @@ function VerifyEmailOTP() {
     setLoading(true);
 
     try {
-      await axiosInstance.post(`/api/auth/verify-email`, {
+      const response = await axiosInstance.post(`/api/auth/verify-email`, {
         email: email.trim(),
         otp: otp.trim(),
       });
+
+      // Lưu accessToken, refreshToken và user vào AuthContext
+      const { accessToken, refreshToken, user } = response?.data || {};
+      if (accessToken) {
+        login(accessToken, refreshToken, user);
+      }
 
       showStatus({
         type: "success",

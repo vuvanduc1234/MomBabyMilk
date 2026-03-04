@@ -15,9 +15,9 @@ const { authenticateToken } = require("../middleware/auth");
  *   description: AI Assistant endpoints
  */
 
-// Public routes (guests can chat)
-router.post("/chat", chat);
-router.get("/history/:sessionId", getChatHistory);
+// Protected routes (requires authentication)
+router.post("/chat", authenticateToken, chat);
+router.get("/history/:sessionId", authenticateToken, getChatHistory);
 
 // Protected routes (requires authentication)
 router.get("/history/user/:userId", authenticateToken, getUserChatHistories);
