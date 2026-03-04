@@ -135,7 +135,25 @@ axiosInstance.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Skip retry for public auth endpoints
+    const publicEndpoints = [
+      "/api/auth/login",
+      "/api/auth/register",
+      "/api/auth/verify-email",
+      "/api/auth/forgot-password",
+      "/api/auth/reset-password",
+    ];
+
+    const isPublicEndpoint = publicEndpoints.some((endpoint) =>
+      originalRequest.url?.includes(endpoint),
+    );
+
+    // Don't retry if it's a public endpoint or already retried
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !isPublicEndpoint
+    ) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
