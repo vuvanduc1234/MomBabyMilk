@@ -229,6 +229,12 @@ export default function Header() {
             >
               <div className="p-3">Blog</div>
             </Link>
+            <Link
+              to="/support"
+              className="text-gray-700 hover:text-pink-600 font-medium transition"
+            >
+              <div className="p-3">Hỗ trợ</div>
+            </Link>
           </div>
         </nav>
       </div>

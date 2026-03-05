@@ -45,6 +45,8 @@ import { ProtectedRoute } from "./components/layouts/ProtectedRoute";
 import OrderTracking from "./pages/Orders/OrderTracking";
 import StaffArticles from "./pages/staff/articles/Articles";
 import AIChatBox from "./components/AIChatBox";
+import SupportPage from "./pages/Support/SupportPage";
+import StaffSupport from "./pages/staff/SupportManagement";
 
 // Public Layout Component
 function PublicLayout() {
@@ -87,6 +89,7 @@ function App() {
               <Route path="brands" element={<StaffBrands />} />
               <Route path="categories" element={<StaffCategories />} />
               <Route path="articles" element={<StaffArticles />} />
+              <Route path="support" element={<StaffSupport />} />
             </Route>
 
             {/* Admin routes */}
@@ -137,6 +140,14 @@ function App() {
               <Route path="/blog/:id" element={<BlogPost />} />
 
               <Route path="/track-order" element={<OrderTracking />} />
+              <Route
+                path="/support"
+                element={
+                  <ProtectedRoute>
+                    <SupportPage />
+                  </ProtectedRoute>
+                }
+              />
             </Route>
           </Routes>
           <Toaster position="bottom-right" richColors />
