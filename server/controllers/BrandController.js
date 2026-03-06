@@ -1,6 +1,6 @@
 const BrandModel = require("../models/BrandModel");
 const CategoryModel = require("../models/CategoryModel");
-
+const ProductModel = require("../models/ProductModel");
 const createBrand = async (req, res) => {
   const { name, description, logoUrl, categories } = req.body;
 
