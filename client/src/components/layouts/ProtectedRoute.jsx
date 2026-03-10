@@ -51,9 +51,7 @@ export function ProtectedRoute({ children, allowedRoles = [] }) {
       );
     }
 
-    const userRole = user.role || "User";
-
-    if (!normalizedRoles.includes(userRole)) {
+    if (!normalizedRoles.includes(user.role)) {
       // Không có quyền -> chuyển đến trang 403 hoặc trang chủ
       return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
