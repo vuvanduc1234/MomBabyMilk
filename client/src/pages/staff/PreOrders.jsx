@@ -64,7 +64,10 @@ const PreOrders = () => {
       setLoading(true);
       setError(null);
       const response = await getPreOrderOrders();
-      setOrders(response.orders || []);
+      const nonCancelledOrders = (response.orders || []).filter(
+        (order) => order.orderStatus !== "cancelled",
+      );
+      setOrders(nonCancelledOrders);
     } catch (err) {
       setError(err.message || "Không thể tải danh sách pre-order");
       toast.error("Không thể tải danh sách pre-order");
