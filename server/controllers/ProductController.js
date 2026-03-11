@@ -3,6 +3,7 @@ const CategoryModel = require("../models/CategoryModel");
 const BrandModel = require("../models/BrandModel");
 const UserModel = require("../models/UserModel");
 const BlogModel = require("../models/BlogModel");
+const OrderModel = require("../models/OrderModel");
 
 const createProduct = async (req, res) => {
   const {
@@ -105,6 +106,17 @@ const deleteProduct = async (req, res) => {
       return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
     }
 
+    // BUG FIX 1: Kiểm tra product có trong đơn hàng chưa hoàn thành không
+    const activeOrders = await OrderModel.countDocuments({
+      "cartItems.product": id,
+      orderStatus: { $in: ["processing", "shipped", "pending_payment"] },
+    });
+    if (activeOrders > 0) {
+      return res.status(400).json({
+        message: `Không thể xóa: sản phẩm đang có trong ${activeOrders} đơn hàng chưa hoàn thành`,
+      });
+    }
+
     // CASCADE 1: Xóa product khỏi tất cả User.wishlist
     await UserModel.updateMany({ wishlist: id }, { $pull: { wishlist: id } });
 
@@ -122,7 +134,7 @@ const deleteProduct = async (req, res) => {
         "Xóa sản phẩm thành công (đã cleanup wishlist và blog references)",
     });
   } catch (err) {
-    res.status(500).json({ message: "Lối server:" + err.message });
+    res.status(500).json({ message: "Lỗi server:" + err.message });
   }
 };
 

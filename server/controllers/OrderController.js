@@ -1,5 +1,6 @@
 const Order = require("../models/OrderModel");
 const Product = require("../models/ProductModel");
+const UserModel = require("../models/UserModel");
 const {
   confirmPendingPoints,
   cancelPendingPoints,
@@ -178,7 +179,9 @@ const updateOrderStatus = async (req, res) => {
         }
       }
 
-      order.orderStatus = orderStatus;
+    // BUG FIX 4: Lưu previousStatus TRƯỚC khi ghi đè để notification log đúng
+    const previousStatus = order.orderStatus;
+    order.orderStatus = orderStatus;
 
       // ✅ FIX 3: Hoàn stock trong transaction khi cancel
       if (orderStatus === "cancelled") {
@@ -234,6 +237,18 @@ const updateOrderStatus = async (req, res) => {
       } catch (pointError) {
         // Log error but don't fail the request
       }
+
+      // BUG FIX 3: Hoàn lại voucher khi admin cancel order
+      if (order.voucherUsed) {
+        try {
+          await UserModel.updateOne(
+            { _id: userId, "userVouchers.voucherId": order.voucherUsed },
+            { $inc: { "userVouchers.$.quantity": 1 } },
+          );
+        } catch (voucherError) {
+          console.error("Failed to refund voucher on admin cancel:", voucherError);
+        }
+      }
     }
 
     // Create notification for order status change
@@ -253,7 +268,7 @@ const updateOrderStatus = async (req, res) => {
           message: `${statusMessages[orderStatus] || "Đơn hàng đã cập nhật"}. Mã đơn: #${order._id.toString().slice(-6).toUpperCase()}`,
           orderId: order._id,
           data: {
-            oldStatus: order.orderStatus,
+            oldStatus: previousStatus,
             newStatus: orderStatus,
           },
           link: `/track-order`,
@@ -360,6 +375,18 @@ const cancelOrder = async (req, res) => {
 
     await session.commitTransaction();
     session.endSession();
+
+    // BUG FIX 3: Hoàn lại voucher cho user nếu đơn hàng có dùng voucher
+    if (order.voucherUsed) {
+      try {
+        await UserModel.updateOne(
+          { _id: userId, "userVouchers.voucherId": order.voucherUsed },
+          { $inc: { "userVouchers.$.quantity": 1 } },
+        );
+      } catch (voucherError) {
+        console.error("Failed to refund voucher on cancel:", voucherError);
+      }
+    }
 
     // Hủy pending points
     try {
