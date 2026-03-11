@@ -131,16 +131,22 @@ const deleteBrand = async (req, res) => {
       });
     }
 
+    // BUG FIX 2: Không set brand=null vì ProductModel.brand là required:true
+    // Kiểm tra còn sản phẩm nào đang dùng brand này không
+    const productsUsingBrand = await ProductModel.countDocuments({ brand: id });
+    if (productsUsingBrand > 0) {
+      return res.status(400).json({
+        message: `Không thể xóa: có ${productsUsingBrand} sản phẩm đang sử dụng thương hiệu này. Vui lòng gán lại thương hiệu cho các sản phẩm trước.`,
+        productsCount: productsUsingBrand,
+      });
+    }
+
     if (brand.categories && brand.categories.length > 0) {
       await CategoryModel.updateMany(
         { _id: { $in: brand.categories } },
         { $pull: { brands: id } },
       );
     }
-    await ProductModel.updateMany(
-      { brand: id },
-      { $set: { brand: null } }
-    );
 
     await BrandModel.findByIdAndDelete(id);
 

@@ -289,6 +289,25 @@ const updateVoucher = async (req, res) => {
       return res.status(400).json({ message: "ID không hợp lệ" });
     }
 
+    // BUG FIX 5: Validate logic nghiệp vụ trước khi update
+    if (req.body.expiryDate && new Date(req.body.expiryDate) < new Date()) {
+      return res.status(400).json({
+        message: "Ngày hết hạn không được đặt ở quá khứ",
+      });
+    }
+
+    if (req.body.code) {
+      const hasOrders = await OrderModel.countDocuments({
+        voucherUsed: req.params.id,
+      });
+      if (hasOrders > 0) {
+        return res.status(400).json({
+          message: `Không thể đổi mã voucher đã được sử dụng trong ${hasOrders} đơn hàng`,
+          ordersCount: hasOrders,
+        });
+      }
+    }
+
     const updatedVoucher = await VoucherModel.findByIdAndUpdate(
       req.params.id,
       req.body,

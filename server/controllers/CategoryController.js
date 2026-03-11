@@ -150,17 +150,22 @@ const deleteCategory = async (req, res) => {
       });
     }
 
+    // BUG FIX 2: Không set category=null vì ProductModel.category là required:true
+    // Kiểm tra còn sản phẩm nào đang dùng category này không
+    const productsUsingCategory = await ProductModel.countDocuments({ category: id });
+    if (productsUsingCategory > 0) {
+      return res.status(400).json({
+        message: `Không thể xóa: có ${productsUsingCategory} sản phẩm đang thuộc danh mục này. Vui lòng gán lại danh mục cho các sản phẩm trước.`,
+        productsCount: productsUsingCategory,
+      });
+    }
+
     if (category.brands && category.brands.length > 0) {
       await BrandModel.updateMany(
         { _id: { $in: category.brands } },
         { $pull: { categories: id } }
       );
     }
-
-    await ProductModel.updateMany(
-      { category: id },
-      { $set: { category: null } }
-    );
 
     await CategoryModel.findByIdAndDelete(id);
 
