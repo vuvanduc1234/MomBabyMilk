@@ -23,41 +23,105 @@ class AIService {
       // Extract keywords and search for products
       const keywords = this.extractKeywords(query);
 
+      // Determine if query is asking for highly rated products
+      const isAskingForRating = query.match(/(đánh giá|sao|star|tốt|cao|review|chất lượng)/i);
+      let minRating = 0;
+      if (isAskingForRating) {
+        const starMatch = query.match(/(\d([\.,]\d)?)\s*(sao|star)/i);
+        if (starMatch) {
+          minRating = parseFloat(starMatch[1].replace(',', '.'));
+        } else if (query.match(/(tốt|cao|chất lượng|5 sao)/i)) {
+          minRating = 4; // default minimum for "good"
+        }
+      }
+
       let products = [];
+      let baseFilters = [];
 
       // Try keyword search first
       if (keywords.length > 0) {
-        const searchQuery = {
+        baseFilters.push({
           $or: [
             { name: { $regex: keywords.join("|"), $options: "i" } },
             { description: { $regex: keywords.join("|"), $options: "i" } },
             { tags: { $regex: keywords.join("|"), $options: "i" } },
             { appropriateAge: { $regex: keywords.join("|"), $options: "i" } },
           ],
-        };
-
-        products = await Product.find(searchQuery)
-          .populate("category", "name")
-          .populate("brand", "name")
-          .limit(limit)
-          .select(
-            "name price description quantity appropriateAge weight imageUrl tags",
-          )
-          .lean();
+        });
       }
 
-      // Fallback: if no products found, get popular products
+      // Add minimum rating filter if requested
+      if (minRating > 0) {
+        baseFilters.push({
+          $expr: {
+            $gte: [
+              {
+                $cond: {
+                  if: { $gt: [{ $size: { $ifNull: ["$comments", []] } }, 0] },
+                  then: { $avg: "$comments.rating" },
+                  else: 0,
+                },
+              },
+              minRating,
+            ],
+          },
+        });
+      }
+
+      const searchQuery = baseFilters.length > 0 ? { $and: baseFilters } : { quantity: { $gt: 0 } };
+
+      products = await Product.find(searchQuery)
+        .populate("category", "name")
+        .populate("brand", "name")
+        .sort(minRating > 0 ? {} : { quantity: -1 })
+        .limit(limit)
+        .select(
+          "name price description quantity appropriateAge weight imageUrl tags comments",
+        )
+        .lean();
+
+      // Fallback: if no products found, get popular products or fallback highly-rated products
       if (products.length === 0) {
-        products = await Product.find({ quantity: { $gt: 0 } })
+        const fallbackQuery = minRating > 0 ? {
+          $and: [
+            { quantity: { $gt: 0 } },
+            {
+              $expr: {
+                $gte: [
+                  {
+                    $cond: {
+                      if: { $gt: [{ $size: { $ifNull: ["$comments", []] } }, 0] },
+                      then: { $avg: "$comments.rating" },
+                      else: 0,
+                    },
+                  },
+                  minRating,
+                ],
+              },
+            },
+          ],
+        } : { quantity: { $gt: 0 } };
+
+        products = await Product.find(fallbackQuery)
           .populate("category", "name")
           .populate("brand", "name")
           .sort({ quantity: -1 })
           .limit(limit)
           .select(
-            "name price description quantity appropriateAge weight imageUrl tags",
+            "name price description quantity appropriateAge weight imageUrl tags comments",
           )
           .lean();
       }
+
+      // Compute avgRating for standard cases too, to pass to AI
+      products = products.map((p) => {
+        const comments = p.comments || [];
+        const avgRating =
+          comments.length > 0
+            ? comments.reduce((sum, c) => sum + c.rating, 0) / comments.length
+            : 0;
+        return { ...p, avgRating };
+      });
 
       return products;
     } catch (error) {
@@ -187,6 +251,7 @@ class AIService {
       products.forEach((product, index) => {
         context += `\n${index + 1}. ${product.name}`;
         context += `\n   - Giá: ${product.price.toLocaleString("vi-VN")}đ`;
+        context += `\n   - Đánh giá: ${product.avgRating > 0 ? product.avgRating.toFixed(1) + '/5 sao' : 'Chưa có đánh giá'}`;
         context += `\n   - Độ tuổi phù hợp: ${product.appropriateAge || "Chưa xác định"}`;
         context += `\n   - Tình trạng: ${product.quantity > 0 ? `Còn ${product.quantity} sản phẩm` : "Hết hàng"}`;
         if (product.category) {
