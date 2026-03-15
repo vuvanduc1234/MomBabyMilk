@@ -1,8 +1,24 @@
 const ProductModel = require("../models/ProductModel");
+const OrderModel = require("../models/OrderModel");
 
 const createComment = async (req, res) => {
   try {
     const { rating, content } = req.body;
+
+    // Kiểm tra xem user đã mua và nhận hàng thành công chưa
+    const hasBoughtAndReceived = await OrderModel.findOne({
+      customer: req.user.id,
+      "cartItems.product": req.params.id,
+      orderStatus: "delivered",
+    });
+
+    if (!hasBoughtAndReceived) {
+      return res.status(403).json({
+        message:
+          "Bạn chỉ có thể đánh giá sản phẩm sau khi mua và nhận hàng thành công.",
+      });
+    }
+
     const product = await ProductModel.findById(req.params.id);
     if (!product) {
       return res.status(404).json({ message: "Không tìm thấy sản phẩm" });
@@ -15,7 +31,7 @@ const createComment = async (req, res) => {
     if (alreadyCommented) {
       return res
         .status(400)
-        .json({ message: "Bạn đã comment sản phẩm này rồi" });
+        .json({ message: "Bạn đã đánh giá sản phẩm này rồi" });
     }
 
     const newComment = {
