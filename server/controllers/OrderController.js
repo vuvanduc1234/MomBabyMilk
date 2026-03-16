@@ -8,6 +8,14 @@ const {
 const { createNotification } = require("./NotificationController");
 const { createMomoUrl, createVnpayUrl } = require("./CheckoutController");
 
+const ALLOWED_STATUS_TRANSITIONS = {
+  pending_payment: ["processing", "cancelled"],
+  processing: ["shipped", "cancelled"],
+  shipped: ["delivered"],
+  delivered: [],
+  cancelled: [],
+};
+
 const getMyOrders = async (req, res) => {
   try {
     const userId = req.user?.id;
@@ -157,12 +165,34 @@ const updateOrderStatus = async (req, res) => {
       });
     }
 
+    let previousStatus = null;
+
     if (orderStatus) {
       const validStatuses = ["processing", "shipped", "delivered", "cancelled"];
       if (!validStatuses.includes(orderStatus)) {
         await session.abortTransaction();
         session.endSession();
         return res.status(400).json({ message: "Trạng thái không hợp lệ" });
+      }
+
+      if (order.orderStatus === "delivered") {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          message: "Không thể cập nhật đơn hàng đã giao thành công",
+        });
+      }
+
+      const currentTransitions =
+        ALLOWED_STATUS_TRANSITIONS[order.orderStatus] || [];
+      if (!currentTransitions.includes(orderStatus)) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          message: `Không thể chuyển trạng thái từ ${order.orderStatus} sang ${orderStatus}`,
+          currentStatus: order.orderStatus,
+          allowedTransitions: currentTransitions,
+        });
       }
 
       // ✅ Validation: Chỉ cho phép chuyển sang processing/shipped/delivered nếu đã thanh toán
@@ -179,9 +209,9 @@ const updateOrderStatus = async (req, res) => {
         }
       }
 
-    // BUG FIX 4: Lưu previousStatus TRƯỚC khi ghi đè để notification log đúng
-    const previousStatus = order.orderStatus;
-    order.orderStatus = orderStatus;
+      // BUG FIX 4: Lưu previousStatus TRƯỚC khi ghi đè để notification log đúng
+      previousStatus = order.orderStatus;
+      order.orderStatus = orderStatus;
 
       // ✅ FIX 3: Hoàn stock trong transaction khi cancel
       if (orderStatus === "cancelled") {
@@ -246,7 +276,10 @@ const updateOrderStatus = async (req, res) => {
             { $inc: { "userVouchers.$.quantity": 1 } },
           );
         } catch (voucherError) {
-          console.error("Failed to refund voucher on admin cancel:", voucherError);
+          console.error(
+            "Failed to refund voucher on admin cancel:",
+            voucherError,
+          );
         }
       }
     }
@@ -267,10 +300,7 @@ const updateOrderStatus = async (req, res) => {
           title: "Trạng thái đơn hàng thay đổi",
           message: `${statusMessages[orderStatus] || "Đơn hàng đã cập nhật"}. Mã đơn: #${order._id.toString().slice(-6).toUpperCase()}`,
           orderId: order._id,
-          data: {
-            oldStatus: previousStatus,
-            newStatus: orderStatus,
-          },
+          data: { oldStatus: previousStatus, newStatus: orderStatus },
           link: `/track-order`,
         });
       } catch (notifError) {
@@ -378,9 +408,10 @@ const cancelOrder = async (req, res) => {
 
     // BUG FIX 3: Hoàn lại voucher cho user nếu đơn hàng có dùng voucher
     if (order.voucherUsed) {
+      const orderOwnerId = order.customer._id || order.customer;
       try {
         await UserModel.updateOne(
-          { _id: userId, "userVouchers.voucherId": order.voucherUsed },
+          { _id: orderOwnerId, "userVouchers.voucherId": order.voucherUsed },
           { $inc: { "userVouchers.$.quantity": 1 } },
         );
       } catch (voucherError) {
@@ -438,6 +469,12 @@ const confirmDelivery = async (req, res) => {
     }
 
     await order.save();
+
+    try {
+      await confirmPendingPoints(userId, order._id);
+    } catch (pointError) {
+      // Log error but don't fail the request
+    }
 
     res.status(200).json({
       message: "Xác nhận nhận hàng thành công",

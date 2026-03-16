@@ -607,9 +607,6 @@ const momoNotify = async (req, res) => {
         console.error("Notification error:", notifError);
       }
 
-      await session.commitTransaction();
-      session.endSession();
-
       // Không cần hoàn voucher vì chưa trừ
       return res.status(200).json({ message: "Payment failed" });
     }
