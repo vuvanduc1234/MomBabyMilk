@@ -1,16 +1,19 @@
 // src/pages/PaymentResult.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { toast } from "sonner";
+import { getOrderById } from "../services/orderService";
 
 export default function PaymentResult() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { clearCart } = useCart();
   const [countdown, setCountdown] = useState(5);
-  const [hasCleared, setHasCleared] = useState(false);
+  const [resolvedStatus, setResolvedStatus] = useState("pending");
+  const hasClearedRef = useRef(false);
+  const hasNotifiedRef = useRef(false);
 
   // Parse params từ URL (hỗ trợ cả MoMo và VNPay)
   let status = searchParams.get("status");
@@ -46,22 +49,77 @@ export default function PaymentResult() {
   const finalAmount =
     amount || momoAmount || (vnpAmount ? parseInt(vnpAmount) / 100 : null);
 
-  // Clear cart trong mọi trường hợp (đơn hàng đã được tạo)
+  const gatewayStatus = status;
+
+  // Ưu tiên backend state thay vì chỉ tin query param từ gateway.
   useEffect(() => {
-    if (status && !hasCleared) {
-      // Use setTimeout to avoid setState in effect
-      const timer = setTimeout(() => {
-        clearCart();
-        if (status === "success") {
-          toast.success("Đặt hàng thành công!");
-        } else {
-          toast.info("Đơn hàng đã được tạo. Bạn có thể thử lại thanh toán ở trang theo dõi đơn hàng.");
+    let isCancelled = false;
+
+    const verifyOrderStatus = async () => {
+      if (!finalOrderId) {
+        setResolvedStatus(gatewayStatus === "error" ? "error" : "pending");
+        return;
+      }
+
+      try {
+        const response = await getOrderById(finalOrderId);
+        const order = response?.order;
+
+        if (!order) {
+          setResolvedStatus(gatewayStatus === "error" ? "error" : "pending");
+          return;
         }
-      }, 0);
-      setHasCleared(true);
-      return () => clearTimeout(timer);
+
+        if (order.paymentStatus === "paid") {
+          if (!isCancelled) setResolvedStatus("success");
+          return;
+        }
+
+        if (order.paymentStatus === "failed") {
+          if (!isCancelled) setResolvedStatus("error");
+          return;
+        }
+
+        if (!isCancelled) {
+          setResolvedStatus("pending");
+        }
+      } catch {
+        if (!isCancelled) {
+          setResolvedStatus(gatewayStatus === "error" ? "error" : "pending");
+        }
+      }
+    };
+
+    verifyOrderStatus();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [finalOrderId, gatewayStatus]);
+
+  // Clear cart đúng 1 lần khi đã có orderId (đơn đã được tạo trên hệ thống).
+  useEffect(() => {
+    if (finalOrderId && !hasClearedRef.current) {
+      hasClearedRef.current = true;
+      clearCart();
     }
-  }, [status, clearCart, hasCleared]);
+  }, [finalOrderId, clearCart]);
+
+  // Hiển thị toast đúng 1 lần sau khi backend resolve trạng thái.
+  useEffect(() => {
+    if (hasNotifiedRef.current) return;
+    if (resolvedStatus === "success") {
+      hasNotifiedRef.current = true;
+      toast.success("Đặt hàng thành công!");
+      return;
+    }
+    if (resolvedStatus === "error") {
+      hasNotifiedRef.current = true;
+      toast.info(
+        "Đơn hàng đã được tạo. Bạn có thể thử lại thanh toán ở trang theo dõi đơn hàng.",
+      );
+    }
+  }, [resolvedStatus]);
 
   // Countdown timer
   useEffect(() => {
@@ -86,7 +144,7 @@ export default function PaymentResult() {
     }).format(price);
   };
 
-  if (status === "success") {
+  if (resolvedStatus === "success") {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
@@ -132,7 +190,7 @@ export default function PaymentResult() {
     );
   }
 
-  if (status === "error") {
+  if (resolvedStatus === "error") {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
