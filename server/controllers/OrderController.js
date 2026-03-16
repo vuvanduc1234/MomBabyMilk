@@ -243,6 +243,37 @@ const updateOrderStatus = async (req, res) => {
       order.paymentStatus = paymentStatus;
     }
 
+    // Đồng bộ logic payment/order status: COD là ngoại lệ, online phải paid trước khi shipped/delivered.
+    const finalOrderStatus = order.orderStatus;
+    const finalPaymentStatus = order.paymentStatus;
+    const isOnlinePayment = order.paymentMethod !== "cod";
+
+    if (
+      isOnlinePayment &&
+      ["shipped", "delivered"].includes(finalOrderStatus) &&
+      finalPaymentStatus !== "paid"
+    ) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        message:
+          "Đơn hàng online phải thanh toán thành công trước khi giao hoặc hoàn tất",
+      });
+    }
+
+    if (
+      isOnlinePayment &&
+      finalOrderStatus === "pending_payment" &&
+      finalPaymentStatus === "paid"
+    ) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        message:
+          "Đơn hàng online đã thanh toán không thể ở trạng thái pending_payment. Vui lòng chuyển sang processing.",
+      });
+    }
+
     await order.save({ session });
 
     await session.commitTransaction();
@@ -406,9 +437,10 @@ const cancelOrder = async (req, res) => {
     await session.commitTransaction();
     session.endSession();
 
+    const orderOwnerId = order.customer._id || order.customer;
+
     // BUG FIX 3: Hoàn lại voucher cho user nếu đơn hàng có dùng voucher
     if (order.voucherUsed) {
-      const orderOwnerId = order.customer._id || order.customer;
       try {
         await UserModel.updateOne(
           { _id: orderOwnerId, "userVouchers.voucherId": order.voucherUsed },
@@ -421,7 +453,7 @@ const cancelOrder = async (req, res) => {
 
     // Hủy pending points
     try {
-      await cancelPendingPoints(userId, order._id);
+      await cancelPendingPoints(orderOwnerId, order._id);
     } catch (pointError) {
       // Log error but don't fail the request
     }

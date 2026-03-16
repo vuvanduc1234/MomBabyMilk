@@ -7,6 +7,7 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
+  AlertCircle,
 } from "lucide-react";
 import {
   getMyOrders,
@@ -69,6 +70,7 @@ export default function OrdersSection() {
 
   const statusOptions = [
     { value: "all", label: "Tất cả", icon: Package },
+    { value: "pending_payment", label: "Chờ thanh toán", icon: AlertCircle },
     { value: "processing", label: "Đang xử lý", icon: Clock },
     { value: "shipped", label: "Đang giao", icon: Truck },
     { value: "delivered", label: "Đã giao", icon: CheckCircle },

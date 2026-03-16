@@ -164,7 +164,10 @@ class AIService {
     try {
       if (!userId) return [];
 
-      const orders = await Order.find({ customer: userId, status: "Delivered" })
+      const orders = await Order.find({
+        customer: userId,
+        orderStatus: "delivered",
+      })
         .populate({
           path: "cartItems.product",
           select: "name category brand appropriateAge",

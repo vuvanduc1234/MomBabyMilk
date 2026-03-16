@@ -451,8 +451,13 @@ const checkout = async (req, res) => {
           order,
         });
       } catch (err) {
-        return res.status(500).json({
-          message: "Không thể tạo link thanh toán MOMO",
+        return res.status(201).json({
+          message:
+            "Đơn hàng đã được tạo nhưng chưa thể khởi tạo link MOMO. Vui lòng vào Theo dõi đơn hàng để thử lại thanh toán.",
+          order,
+          paymentPending: true,
+          paymentRetryAvailable: true,
+          paymentMethod: "momo",
           error: err.message,
         });
       }
@@ -467,8 +472,13 @@ const checkout = async (req, res) => {
           order,
         });
       } catch (err) {
-        return res.status(500).json({
-          message: "Không thể tạo link thanh toán VNPAY",
+        return res.status(201).json({
+          message:
+            "Đơn hàng đã được tạo nhưng chưa thể khởi tạo link VNPAY. Vui lòng vào Theo dõi đơn hàng để thử lại thanh toán.",
+          order,
+          paymentPending: true,
+          paymentRetryAvailable: true,
+          paymentMethod: "vnpay",
           error: err.message,
         });
       }
