@@ -9,7 +9,7 @@ const {
   getProductsByCategory,
   getProductsByBrand,
 } = require("../controllers/ProductController");
-const { authenticateToken } = require("../middleware/auth");
+const { authenticateToken, checkRole } = require("../middleware/auth");
 
 /**
  * @swagger
@@ -146,7 +146,12 @@ router.get("/brand/:id", getProductsByBrand);
  *       401:
  *         description: Unauthorized
  */
-router.post("/", authenticateToken, createProduct);
+router.post(
+  "/",
+  authenticateToken,
+  checkRole(["Admin", "Staff"]),
+  createProduct,
+);
 
 /**
  * @swagger
@@ -194,7 +199,12 @@ router.post("/", authenticateToken, createProduct);
  *       404:
  *         description: Product not found
  */
-router.patch("/:id", authenticateToken, updateProduct);
+router.patch(
+  "/:id",
+  authenticateToken,
+  checkRole(["Admin", "Staff"]),
+  updateProduct,
+);
 
 /**
  * @swagger
@@ -219,6 +229,11 @@ router.patch("/:id", authenticateToken, updateProduct);
  *       404:
  *         description: Product not found
  */
-router.delete("/:id", authenticateToken, deleteProduct);
+router.delete(
+  "/:id",
+  authenticateToken,
+  checkRole(["Admin", "Staff"]),
+  deleteProduct,
+);
 
 module.exports = router;
