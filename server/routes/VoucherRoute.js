@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { authenticateToken } = require("../middleware/auth");
+const { authenticateToken, checkRole } = require("../middleware/auth");
 const {
   createManualVoucher,
   createRandomVoucher,
@@ -151,7 +151,12 @@ router.post("/apply", authenticateToken, applyVoucher);
  *       500:
  *         description: Server error
  */
-router.post("/create-manual", authenticateToken, createManualVoucher);
+router.post(
+  "/create-manual",
+  authenticateToken,
+  checkRole(["Admin", "Staff"]),
+  createManualVoucher,
+);
 
 /**
  * @swagger
@@ -190,7 +195,12 @@ router.post("/create-manual", authenticateToken, createManualVoucher);
  *       500:
  *         description: Server error
  */
-router.post("/create-random", authenticateToken, createRandomVoucher);
+router.post(
+  "/create-random",
+  authenticateToken,
+  checkRole(["Admin", "Staff"]),
+  createRandomVoucher,
+);
 
 /**
  * @swagger
@@ -229,7 +239,12 @@ router.post("/create-random", authenticateToken, createRandomVoucher);
  *       500:
  *         description: Server error
  */
-router.post("/assign-to-user", authenticateToken, assignVoucherToUser);
+router.post(
+  "/assign-to-user",
+  authenticateToken,
+  checkRole(["Admin", "Staff"]),
+  assignVoucherToUser,
+);
 
 /**
  * @swagger
@@ -265,7 +280,12 @@ router.post("/assign-to-user", authenticateToken, assignVoucherToUser);
  *       500:
  *         description: Server error
  */
-router.post("/assign-to-all", authenticateToken, assignVoucherToAll);
+router.post(
+  "/assign-to-all",
+  authenticateToken,
+  checkRole(["Admin", "Staff"]),
+  assignVoucherToAll,
+);
 
 /**
  * @swagger
@@ -311,7 +331,12 @@ router.post("/assign-to-all", authenticateToken, assignVoucherToAll);
  *       500:
  *         description: Server error
  */
-router.put("/:id", authenticateToken, updateVoucher);
+router.put(
+  "/:id",
+  authenticateToken,
+  checkRole(["Admin", "Staff"]),
+  updateVoucher,
+);
 
 /**
  * @swagger
@@ -338,7 +363,12 @@ router.put("/:id", authenticateToken, updateVoucher);
  *       500:
  *         description: Server error
  */
-router.delete("/:id", authenticateToken, deleteVoucher);
+router.delete(
+  "/:id",
+  authenticateToken,
+  checkRole(["Admin", "Staff"]),
+  deleteVoucher,
+);
 
 /**
  * @swagger

@@ -311,7 +311,7 @@ export default function AdminDashboard() {
               title="Đơn hàng chờ xử lý"
               value={data.stats.pendingOrders.toLocaleString()}
               icon={ShoppingCart}
-              linkTo="/staff/orders"
+              linkTo="/admin/orders"
             />
           </div>
 
@@ -360,7 +360,7 @@ export default function AdminDashboard() {
                     ))}
                   </div>
                   <Button variant="outline" className="w-full mt-4" asChild>
-                    <Link to="/staff/products">Xem tất cả sản phẩm</Link>
+                    <Link to="/admin/products">Xem tất cả sản phẩm</Link>
                   </Button>
                 </>
               )}
@@ -376,7 +376,7 @@ export default function AdminDashboard() {
                   Voucher đang hoạt động
                 </CardTitle>
                 <Button variant="outline" size="sm" asChild>
-                  <Link to="/staff/vouchers">Xem tất cả</Link>
+                  <Link to="/admin/vouchers">Xem tất cả</Link>
                 </Button>
               </div>
             </CardHeader>
@@ -423,7 +423,7 @@ export default function AdminDashboard() {
                       asChild
                       className="mt-2"
                     >
-                      <Link to="/staff/vouchers">Tạo voucher mới</Link>
+                      <Link to="/admin/vouchers">Tạo voucher mới</Link>
                     </Button>
                   </div>
                 </div>
@@ -483,7 +483,7 @@ export default function AdminDashboard() {
             </Card>
 
             <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-              <Link to="/staff/vouchers" className="block p-6">
+              <Link to="/admin/vouchers" className="block p-6">
                 <Tag className="h-8 w-8 text-pink-600 mb-3" />
                 <h3 className="font-semibold mb-1">Voucher</h3>
                 <p className="text-sm text-muted-foreground">

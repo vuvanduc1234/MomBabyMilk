@@ -104,6 +104,9 @@ function App() {
               <Route index element={<AdminDashboard />} />
               <Route path="accounts" element={<AccountManagement />} />
               <Route path="revenue" element={<RevenueStatistics />} />
+              <Route path="orders" element={<StaffOrders />} />
+              <Route path="products" element={<StaffProducts />} />
+              <Route path="vouchers" element={<StaffVouchers />} />
             </Route>
 
             {/* Public routes - with Header/Footer */}
