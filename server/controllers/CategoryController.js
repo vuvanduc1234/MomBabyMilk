@@ -25,13 +25,13 @@ const createCategory = async (req, res) => {
     if (brands && brands.length > 0) {
       await BrandModel.updateMany(
         { _id: { $in: brands } },
-        { $addToSet: { categories: category._id } }
+        { $addToSet: { categories: category._id } },
       );
     }
 
     const populatedCategory = await CategoryModel.findById(category._id)
-      .populate('brands')
-      .populate('parentCategory');
+      .populate("brands")
+      .populate("parentCategory");
     res.status(201).json({
       message: "Tạo danh mục thành công",
       data: populatedCategory,
@@ -45,8 +45,8 @@ const createCategory = async (req, res) => {
 const getAllCategories = async (req, res) => {
   try {
     const categories = await CategoryModel.find({})
-      .populate('brands')
-      .populate('parentCategory');
+      .populate("brands")
+      .populate("parentCategory");
     res.status(200).json({
       message: "Lấy danh sách danh mục thành công",
       data: categories,
@@ -62,8 +62,8 @@ const getCategoryById = async (req, res) => {
 
   try {
     const category = await CategoryModel.findById(id)
-      .populate('brands')
-      .populate('parentCategory');
+      .populate("brands")
+      .populate("parentCategory");
 
     if (!category) {
       return res.status(404).json({
@@ -83,7 +83,7 @@ const getCategoryById = async (req, res) => {
 
 const updateCategory = async (req, res) => {
   const { id } = req.params;
-  const { parentCategory, brands } = req.body;
+  const { name, parentCategory, brands } = req.body;
 
   try {
     if (parentCategory && parentCategory === id) {
@@ -91,7 +91,7 @@ const updateCategory = async (req, res) => {
         message: "Danh mục không thể là cha của chính nó",
       });
     }
-    
+
     const oldCategory = await CategoryModel.findById(id);
     if (!oldCategory) {
       return res.status(404).json({
@@ -99,18 +99,31 @@ const updateCategory = async (req, res) => {
       });
     }
 
-    if (req.body.hasOwnProperty('brands')) {
+    if (typeof name === "string" && name.trim()) {
+      const duplicateCategory = await CategoryModel.findOne({
+        _id: { $ne: id },
+        name: name.trim(),
+      });
+
+      if (duplicateCategory) {
+        return res.status(400).json({
+          message: "Tên danh mục đã tồn tại",
+        });
+      }
+    }
+
+    if (req.body.hasOwnProperty("brands")) {
       if (oldCategory.brands && oldCategory.brands.length > 0) {
         await BrandModel.updateMany(
           { _id: { $in: oldCategory.brands } },
-          { $pull: { categories: id } }
+          { $pull: { categories: id } },
         );
       }
 
       if (brands && brands.length > 0) {
         await BrandModel.updateMany(
           { _id: { $in: brands } },
-          { $addToSet: { categories: id } }
+          { $addToSet: { categories: id } },
         );
       }
     }
@@ -118,7 +131,9 @@ const updateCategory = async (req, res) => {
     const category = await CategoryModel.findByIdAndUpdate(id, req.body, {
       new: true,
       runValidators: true,
-    }).populate('brands').populate('parentCategory');
+    })
+      .populate("brands")
+      .populate("parentCategory");
 
     res.status(200).json({
       message: "Cập nhật danh mục thành công",
@@ -134,14 +149,14 @@ const deleteCategory = async (req, res) => {
   const { id } = req.params;
 
   try {
-
     const hasChildren = await CategoryModel.findOne({ parentCategory: id });
     if (hasChildren) {
       return res.status(400).json({
-        message: "Không thể xóa vì danh mục này đang là cha của các danh mục khác. Hãy xóa hoặc cập nhật các danh mục con trước.",
+        message:
+          "Không thể xóa vì danh mục này đang là cha của các danh mục khác. Hãy xóa hoặc cập nhật các danh mục con trước.",
       });
     }
-    
+
     const category = await CategoryModel.findById(id);
 
     if (!category) {
@@ -152,7 +167,9 @@ const deleteCategory = async (req, res) => {
 
     // BUG FIX 2: Không set category=null vì ProductModel.category là required:true
     // Kiểm tra còn sản phẩm nào đang dùng category này không
-    const productsUsingCategory = await ProductModel.countDocuments({ category: id });
+    const productsUsingCategory = await ProductModel.countDocuments({
+      category: id,
+    });
     if (productsUsingCategory > 0) {
       return res.status(400).json({
         message: `Không thể xóa: có ${productsUsingCategory} sản phẩm đang thuộc danh mục này. Vui lòng gán lại danh mục cho các sản phẩm trước.`,
@@ -163,7 +180,7 @@ const deleteCategory = async (req, res) => {
     if (category.brands && category.brands.length > 0) {
       await BrandModel.updateMany(
         { _id: { $in: category.brands } },
-        { $pull: { categories: id } }
+        { $pull: { categories: id } },
       );
     }
 
@@ -197,19 +214,18 @@ const addBrandsToCategory = async (req, res) => {
       });
     }
 
-    await CategoryModel.findByIdAndUpdate(
-      id,
-      { $addToSet: { brands: { $each: brandIds } } }
-    );
+    await CategoryModel.findByIdAndUpdate(id, {
+      $addToSet: { brands: { $each: brandIds } },
+    });
 
     await BrandModel.updateMany(
       { _id: { $in: brandIds } },
-      { $addToSet: { categories: id } }
+      { $addToSet: { categories: id } },
     );
 
     const updatedCategory = await CategoryModel.findById(id)
-      .populate('brands')
-      .populate('parentCategory');
+      .populate("brands")
+      .populate("parentCategory");
 
     res.status(200).json({
       message: "Thêm thương hiệu vào danh mục thành công",
@@ -239,19 +255,18 @@ const removeBrandsFromCategory = async (req, res) => {
       });
     }
 
-    await CategoryModel.findByIdAndUpdate(
-      id,
-      { $pull: { brands: { $in: brandIds } } }
-    );
+    await CategoryModel.findByIdAndUpdate(id, {
+      $pull: { brands: { $in: brandIds } },
+    });
 
     await BrandModel.updateMany(
       { _id: { $in: brandIds } },
-      { $pull: { categories: id } }
+      { $pull: { categories: id } },
     );
 
     const updatedCategory = await CategoryModel.findById(id)
-      .populate('brands')
-      .populate('parentCategory');
+      .populate("brands")
+      .populate("parentCategory");
 
     res.status(200).json({
       message: "Xóa thương hiệu khỏi danh mục thành công",
