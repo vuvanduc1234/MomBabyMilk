@@ -78,7 +78,7 @@ const getBrandById = async (req, res) => {
 
 const updateBrand = async (req, res) => {
   const { id } = req.params;
-  const { categories } = req.body;
+  const { name, categories } = req.body;
 
   try {
     const oldBrand = await BrandModel.findById(id);
@@ -88,7 +88,20 @@ const updateBrand = async (req, res) => {
       });
     }
 
-    if (req.body.hasOwnProperty('categories')) {
+    if (typeof name === "string" && name.trim()) {
+      const duplicateBrand = await BrandModel.findOne({
+        _id: { $ne: id },
+        name: name.trim(),
+      });
+
+      if (duplicateBrand) {
+        return res.status(400).json({
+          message: "Tên thương hiệu đã tồn tại",
+        });
+      }
+    }
+
+    if (req.body.hasOwnProperty("categories")) {
       if (oldBrand.categories && oldBrand.categories.length > 0) {
         await CategoryModel.updateMany(
           { _id: { $in: oldBrand.categories } },
