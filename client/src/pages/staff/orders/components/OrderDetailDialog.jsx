@@ -170,6 +170,15 @@ export default function OrderDetailDialog({
                     </p>
                   </div>
                 )}
+                {selectedOrder.orderStatus === "cancelled" &&
+                  selectedOrder.cancellationReason && (
+                    <div>
+                      <h4 className="font-medium mb-1">Lý do hủy đơn</h4>
+                      <p className="text-muted-foreground">
+                        {selectedOrder.cancellationReason}
+                      </p>
+                    </div>
+                  )}
 
                 {/* Pre-order Info */}
                 {selectedOrder.cartItems?.some((item) => item.isPreOrder) && (

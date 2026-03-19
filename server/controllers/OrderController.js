@@ -148,7 +148,8 @@ const updateOrderStatus = async (req, res) => {
 
   try {
     const { id } = req.params;
-    const { orderStatus, paymentStatus } = req.body;
+    const { orderStatus, paymentStatus, reason } = req.body;
+    const normalizedReason = typeof reason === "string" ? reason.trim() : "";
 
     const order = await Order.findById(id).session(session);
     if (!order) {
@@ -180,6 +181,18 @@ const updateOrderStatus = async (req, res) => {
         session.endSession();
         return res.status(400).json({
           message: "Không thể cập nhật đơn hàng đã giao thành công",
+        });
+      }
+
+      if (
+        req.user?.role === "Staff" &&
+        orderStatus === "cancelled" &&
+        !normalizedReason
+      ) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          message: "Staff phải nhập lý do khi hủy đơn hàng",
         });
       }
 
@@ -215,6 +228,10 @@ const updateOrderStatus = async (req, res) => {
 
       // ✅ FIX 3: Hoàn stock trong transaction khi cancel
       if (orderStatus === "cancelled") {
+        if (normalizedReason) {
+          order.cancellationReason = normalizedReason;
+        }
+
         for (const item of order.cartItems) {
           // Only refund stock for non-preorder items and items in preorder_ready status
           if (
@@ -362,6 +379,7 @@ const cancelOrder = async (req, res) => {
     const userId = req.user?.id;
     const userRole = req.user?.role;
     const { reason } = req.body;
+    const normalizedReason = typeof reason === "string" ? reason.trim() : "";
 
     const order = await Order.findById(id).session(session);
     if (!order) {
@@ -410,11 +428,20 @@ const cancelOrder = async (req, res) => {
       });
     }
 
+    if (userRole === "Staff" && !normalizedReason) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        message: "Staff phải nhập lý do khi hủy đơn hàng",
+      });
+    }
+
     order.orderStatus = "cancelled";
-    if (reason) {
+    if (normalizedReason) {
+      order.cancellationReason = normalizedReason;
       order.note = order.note
-        ? `${order.note}\n\nLý do hủy: ${reason}`
-        : `Lý do hủy: ${reason}`;
+        ? `${order.note}\n\nLý do hủy: ${normalizedReason}`
+        : `Lý do hủy: ${normalizedReason}`;
     }
 
     // ✅ FIX 3: Hoàn stock trong transaction - luôn hoàn stock khi hủy đơn

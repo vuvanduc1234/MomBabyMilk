@@ -57,6 +57,20 @@ const getItemStatusInfo = (item) => {
   };
 };
 
+const getCancellationReason = (order) => {
+  if (order?.cancellationReason?.trim()) {
+    return order.cancellationReason.trim();
+  }
+
+  // Backward compatibility: some old orders append reason into note.
+  const note = order?.note || "";
+  const marker = "Lý do hủy:";
+  const markerIndex = note.lastIndexOf(marker);
+
+  if (markerIndex === -1) return "";
+  return note.slice(markerIndex + marker.length).trim();
+};
+
 export default function OrderTracking() {
   const { user } = useAuth();
   const [orders, setOrders] = useState([]);
@@ -203,6 +217,7 @@ export default function OrderTracking() {
           <div className="space-y-4">
             {orders.map((order) => {
               const isExpanded = expandedOrders.has(order._id);
+              const cancellationReason = getCancellationReason(order);
               return (
                 <div
                   key={order._id}
@@ -373,6 +388,27 @@ export default function OrderTracking() {
                             </div>
                           </div>
                         )}
+
+                        {/* Hiển thị lý do hủy cho đơn cancelled */}
+                        {order.orderStatus === "cancelled" &&
+                          cancellationReason && (
+                            <div className="mt-4 p-4 bg-rose-50 border border-rose-200 rounded-lg">
+                              <div className="flex items-start gap-3">
+                                <XCircle
+                                  className="text-rose-600 mt-0.5 flex-shrink-0"
+                                  size={18}
+                                />
+                                <div className="flex-1">
+                                  <h4 className="text-sm font-semibold text-rose-900 mb-1">
+                                    Lý do hủy đơn
+                                  </h4>
+                                  <p className="text-xs text-rose-700 whitespace-pre-line">
+                                    {cancellationReason}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
 
                         <div className="mt-4 pt-4 border-t border-gray-200 bg-blue-50 rounded-lg p-4">
                           <h4 className="text-sm font-semibold text-gray-900 mb-3">

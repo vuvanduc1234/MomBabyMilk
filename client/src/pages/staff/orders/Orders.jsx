@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -37,6 +38,14 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import OrderDetailDialog from "./components/OrderDetailDialog";
 import {
   getAllOrders,
@@ -77,6 +86,9 @@ export default function StaffOrders() {
   const [maxPrice, setMaxPrice] = useState("");
   const [page, setPage] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [cancelDialogOrderId, setCancelDialogOrderId] = useState(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [isCancelling, setIsCancelling] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("all");
@@ -224,6 +236,37 @@ export default function StaffOrders() {
     });
   };
 
+  const applyOrderStatusUpdate = async (orderId, newStatus, extraData = {}) => {
+    try {
+      await updateOrderStatus(orderId, {
+        orderStatus: newStatus,
+        ...extraData,
+      });
+      toast.success("Đã cập nhật trạng thái đơn hàng");
+
+      // Update local state
+      setOrders((prevOrders) =>
+        prevOrders.map((order) =>
+          order._id === orderId ? { ...order, orderStatus: newStatus } : order,
+        ),
+      );
+
+      // Update the selected order if it's currently open
+      if (selectedOrder?._id === orderId) {
+        setSelectedOrder((prev) => ({
+          ...prev,
+          orderStatus: newStatus,
+          cancellationReason: extraData.reason || prev.cancellationReason,
+        }));
+      }
+
+      return true;
+    } catch (err) {
+      toast.error(err.message || "Không thể cập nhật trạng thái đơn hàng");
+      return false;
+    }
+  };
+
   const handleUpdateStatus = async (orderId, newStatus) => {
     // Validation: Nếu chuyển sang shipped hoặc delivered, kiểm tra tất cả items phải ready
     if (newStatus === "shipped" || newStatus === "delivered") {
@@ -237,21 +280,37 @@ export default function StaffOrders() {
       }
     }
 
-    try {
-      await updateOrderStatus(orderId, { orderStatus: newStatus });
-      toast.success("Đã cập nhật trạng thái đơn hàng");
-      // Update local state
-      setOrders((prevOrders) =>
-        prevOrders.map((order) =>
-          order._id === orderId ? { ...order, orderStatus: newStatus } : order,
-        ),
-      );
-      // Update the selected order if it's currently open
-      if (selectedOrder?._id === orderId) {
-        setSelectedOrder((prev) => ({ ...prev, orderStatus: newStatus }));
-      }
-    } catch (err) {
-      toast.error(err.message || "Không thể cập nhật trạng thái đơn hàng");
+    if (newStatus === "cancelled") {
+      setCancelDialogOrderId(orderId);
+      setCancelReason("");
+      return;
+    }
+
+    await applyOrderStatusUpdate(orderId, newStatus);
+  };
+
+  const handleConfirmCancelOrder = async () => {
+    const reason = cancelReason.trim();
+    if (!reason) {
+      toast.error("Vui lòng nhập lý do hủy đơn hàng");
+      return;
+    }
+
+    if (!cancelDialogOrderId) return;
+
+    setIsCancelling(true);
+    const updated = await applyOrderStatusUpdate(
+      cancelDialogOrderId,
+      "cancelled",
+      {
+        reason,
+      },
+    );
+    setIsCancelling(false);
+
+    if (updated) {
+      setCancelDialogOrderId(null);
+      setCancelReason("");
     }
   };
 
@@ -708,6 +767,59 @@ export default function StaffOrders() {
               );
             }}
           />
+
+          <Dialog
+            open={!!cancelDialogOrderId}
+            onOpenChange={(open) => {
+              if (!open && !isCancelling) {
+                setCancelDialogOrderId(null);
+                setCancelReason("");
+              }
+            }}
+          >
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Nhập lý do hủy đơn hàng</DialogTitle>
+                <DialogDescription>
+                  Staff bắt buộc phải cung cấp lý do khi hủy đơn hàng.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-2">
+                <Label htmlFor="cancel-order-reason">Lý do hủy</Label>
+                <Textarea
+                  id="cancel-order-reason"
+                  placeholder="Ví dụ: Khách yêu cầu hủy vì thay đổi nhu cầu"
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  rows={4}
+                  disabled={isCancelling}
+                />
+              </div>
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isCancelling}
+                  onClick={() => {
+                    setCancelDialogOrderId(null);
+                    setCancelReason("");
+                  }}
+                >
+                  Đóng
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={isCancelling}
+                  onClick={handleConfirmCancelOrder}
+                >
+                  {isCancelling ? "Đang hủy..." : "Xác nhận hủy đơn"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </>
