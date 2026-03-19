@@ -53,6 +53,11 @@ const orderSchema = new mongoose.Schema(
       trim: true,
     },
 
+    cancellationReason: {
+      type: String,
+      trim: true,
+    },
+
     totalAmount: { type: Number, required: true },
 
     hasPreOrderItems: {
