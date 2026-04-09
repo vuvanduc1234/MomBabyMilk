@@ -120,5 +120,30 @@ demo <img width="1916" height="1093" alt="image" src="https://github.com/user-at
 [admin Revenue Statistics]
 <img width="1914" height="1038" alt="image" src="https://github.com/user-attachments/assets/0f4533fc-927c-4f6a-ae8a-04626a05d319" />
 
+[staff]
+<img width="1905" height="1046" alt="image" src="https://github.com/user-attachments/assets/a069462b-bfee-499e-9949-ab5c5eb4dbe5" />
+<img width="1910" height="1041" alt="image" src="https://github.com/user-attachments/assets/80ed0c5a-9159-4e26-b291-617bfa0aa02b" />
+<img width="1913" height="1042" alt="image" src="https://github.com/user-attachments/assets/2128eeb6-dd3a-415a-80c0-3aff2be8e8e0" />
+<img width="1911" height="1040" alt="image" src="https://github.com/user-attachments/assets/4bfded8a-42ec-4fb1-a81c-6d279c25ea9d" />
+<img width="1913" height="1040" alt="image" src="https://github.com/user-attachments/assets/b97863d7-d32f-46d5-afcd-256eafc86f1f" />
+<img width="1913" height="1005" alt="image" src="https://github.com/user-attachments/assets/6a295b54-3fa8-4ab1-a16c-f2a43d7a8178" />
+<img width="1915" height="1038" alt="image" src="https://github.com/user-attachments/assets/dfaf48de-1f20-4ade-8596-a93a9bf9efe3" />
+<img width="1918" height="1050" alt="image" src="https://github.com/user-attachments/assets/c6842f21-cc46-4b94-b107-80c9b4f247e2" />
+<img width="1915" height="1050" alt="image" src="https://github.com/user-attachments/assets/5082c4ad-d268-482e-84bc-cfea193be2c7" />
+<img width="1910" height="1062" alt="image" src="https://github.com/user-attachments/assets/c0224159-3fa7-4a70-87f7-d74f05041336" />
+<img width="1919" height="1057" alt="image" src="https://github.com/user-attachments/assets/62f5a675-eef4-4d80-b786-f04ebed09d47" />
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
