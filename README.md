@@ -113,3 +113,12 @@ The application will be available at:
 ## 📄 License
 
 This project is licensed under the ISC License.
+[admin dashboard]
+demo <img width="1916" height="1093" alt="image" src="https://github.com/user-attachments/assets/260a80c1-70fa-4934-8471-55d155bb4934" />
+[admin managerment account]
+<img width="1916" height="1035" alt="image" src="https://github.com/user-attachments/assets/6c578766-77e2-4b68-a32f-af171a2635b5" />
+[admin Revenue Statistics]
+<img width="1914" height="1038" alt="image" src="https://github.com/user-attachments/assets/0f4533fc-927c-4f6a-ae8a-04626a05d319" />
+
+
+
