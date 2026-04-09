@@ -18,7 +18,11 @@ MomBabyMilk/
 └── package.json     # Root package for workspace management
 ```
 
-## 🚀 Getting Started
+## 👨‍💻 My Contribution
+- Developed UI components using React + Tailwind CSS
+- Integrated frontend with backend API
+- Implemented product listing page
+- Fixed bugs and improved UI responsiveness
 
 ### Prerequisites
 
@@ -104,9 +108,7 @@ The application will be available at:
 - 👤 User authentication (coming soon)
 - 📦 Order management (coming soon)
 
-## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📄 License
 
